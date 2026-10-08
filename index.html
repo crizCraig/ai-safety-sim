@@ -1,0 +1,1214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game of AGI</title>
+<meta name="description" content="A 3D strategy simulator for AI safety decisions: the US–China race, open weights and bio risk, neural interfaces, and the road to superintelligence.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2711%27 fill=%27none%27 stroke=%27%237fe3ff%27 stroke-width=%273%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%274%27 fill=%27%23ffd76a%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #03060d;
+    --panel: rgba(10, 16, 30, 0.78);
+    --panel-solid: #0b1222;
+    --line: rgba(130, 170, 255, 0.16);
+    --text: #e6edf8;
+    --muted: #8a97ad;
+    --accent: #7fe3ff;
+    --good: #59f0b8;
+    --bad: #ff4d6a;
+    --warn: #ffb347;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --sans: 'Space Grotesk', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--sans); }
+  canvas#gl { position: fixed; inset: 0; display: block; transition: filter .6s ease; }
+  /* While choosing, the card takes center stage and the world recedes. */
+  body.deciding canvas#gl { filter: blur(8px) brightness(.5) saturate(.8); }
+  body.deciding .glabel { opacity: 0 !important; }
+  body.deciding #card { top: 50%; bottom: auto; transform: translate(-50%, -50%); width: min(820px, calc(100vw - 640px)); }
+  body.deciding #card.hidden { transform: translate(-50%, -46%); }
+  @media (prefers-reduced-motion: reduce) { canvas#gl, #card { transition: none; } }
+  button { font-family: inherit; color: inherit; cursor: pointer; }
+
+  /* ---------- top bar ---------- */
+  #top { position: fixed; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 18px; padding: 12px 18px; pointer-events: none; z-index: 5; }
+  #top > * { pointer-events: auto; }
+  .brand { font-weight: 700; letter-spacing: 0.18em; font-size: 15px; }
+  .brand small { display: block; font-weight: 400; letter-spacing: 0.04em; color: var(--muted); font-size: 11px; }
+  .tabs { display: flex; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 3px; backdrop-filter: blur(8px); }
+  .tabs button { background: none; border: 0; padding: 6px 12px; border-radius: 7px; font-size: 13px; color: var(--muted); }
+  .tabs button.on { background: rgba(127, 227, 255, 0.14); color: var(--text); }
+  #timeline { flex: 1; display: flex; align-items: center; gap: 0; max-width: 620px; margin: 0 auto; }
+  #timeline .yr { flex: 1; position: relative; height: 26px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  #timeline .yr::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #26334d; margin-bottom: 4px; transition: all .4s; }
+  #timeline .yr.past::before { background: #4b6a9a; }
+  #timeline .yr.now { color: var(--text); }
+  #timeline .yr.now::before { background: var(--accent); box-shadow: 0 0 10px var(--accent); transform: scale(1.4); }
+  #timeline .yr.end::before { background: var(--endc, var(--bad)); box-shadow: 0 0 12px var(--endc, var(--bad)); transform: scale(1.6); }
+  #modelBtn { margin-left: auto; }
+  .iconbtn { background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 6px 11px; font-size: 13px; color: var(--muted); backdrop-filter: blur(8px); }
+  .iconbtn:hover { color: var(--text); }
+
+  /* ---------- side panels ---------- */
+  .panel { position: fixed; top: 64px; width: 290px; max-height: calc(100vh - 80px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; backdrop-filter: blur(10px); z-index: 4; scrollbar-width: thin; }
+  #left { left: 16px; }
+  #right { right: 16px; }
+  .panel h3 { margin: 0 0 10px; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  .panel h3 + .sub { margin-top: -6px; margin-bottom: 10px; font-size: 11px; color: var(--muted); }
+  .stat { margin-bottom: 9px; }
+  .stat .row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
+  .stat .row span:last-child { font-family: var(--mono); color: var(--muted); }
+  .bar { height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; position: relative; }
+  .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; transition: width .7s cubic-bezier(.2,.8,.2,1); }
+  .bar b { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #fff; opacity: .0; transition: left .3s, opacity .3s; }
+  .divider { height: 1px; background: var(--line); margin: 14px 0; }
+
+  .risk { margin-bottom: 12px; }
+  .risk .row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; }
+  .risk .pct { font-family: var(--mono); font-size: 18px; font-weight: 600; }
+  .risk .delta { font-family: var(--mono); font-size: 11px; margin-left: 6px; }
+  .risk .why { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+  .up { color: var(--bad); } .down { color: var(--good); }
+  .survival { text-align: center; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); }
+  .survival .big { font-family: var(--mono); font-size: 28px; font-weight: 600; }
+  .survival .lbl { font-size: 11px; color: var(--muted); }
+  .lever { display: flex; align-items: center; gap: 8px; font-size: 11.5px; margin-bottom: 6px; }
+  .lever span:first-child { width: 128px; color: var(--muted); }
+  .lever .bar { flex: 1; }
+
+  /* ---------- decision card ---------- */
+  #card { max-height: calc(100vh - 100px); overflow-y: auto; position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(720px, calc(100vw - 640px)); min-width: 460px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px 16px; backdrop-filter: blur(12px); z-index: 4; transition: opacity .35s, transform .35s; }
+  #card.hidden { opacity: 0; transform: translate(-50%, 30px); pointer-events: none; }
+  #card .tag { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  #card h2 { margin: 4px 0 6px; font-size: 22px; }
+  #card p { margin: 0 0 6px; font-size: 13.5px; line-height: 1.5; color: #c3cee0; }
+  #card p.dyn { color: var(--warn); font-size: 12.5px; }
+  .choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+  .choice { text-align: left; background: rgba(255,255,255,0.035); border: 1px solid var(--line); border-radius: 11px; padding: 10px 12px; transition: all .18s; }
+  .choice:hover, .choice:focus-visible { border-color: var(--accent); background: rgba(127,227,255,0.08); transform: translateY(-2px); outline: none; }
+  .choice strong { display: block; font-size: 13.5px; margin-bottom: 3px; }
+  .choice small { display: block; font-size: 11.5px; color: var(--muted); line-height: 1.35; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+  .chip { font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 5px; background: rgba(255,255,255,0.06); }
+  .roll { display: none; margin-top: 10px; }
+  .roll.on { display: block; }
+  .roll .lane { display: flex; align-items: center; gap: 10px; font-size: 12px; margin: 6px 0; }
+  .roll .lane span:first-child { width: 160px; white-space: nowrap; color: var(--muted); }
+  .roll .track { flex: 1; height: 14px; border-radius: 7px; background: rgba(255,255,255,0.05); position: relative; overflow: hidden; }
+  .roll .zone { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,77,106,0.5); }
+  .roll .needle { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 8px #fff; }
+  .roll .verdict { font-size: 15px; font-weight: 600; margin-top: 10px; min-height: 20px; }
+  .roll .youchose { font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 4px; }
+  .roll .changes { margin-top: 8px; }
+  .roll .next { display: block; margin: 12px 0 0 auto; }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- lab ---------- */
+  .slider { margin-bottom: 12px; }
+  .slider .row { display: flex; justify-content: space-between; font-size: 12px; }
+  .slider .row span:last-child { font-family: var(--mono); color: var(--accent); }
+  .slider input { width: 100%; accent-color: var(--accent); margin: 4px 0 0; }
+  .slider .ends { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pair label { font-size: 10px; color: var(--muted); }
+  .world-reveal { font-size: 13px !important; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .presets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+  .presets button { background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 7px; font-size: 11px; padding: 4px 8px; color: var(--muted); }
+  .presets button:hover { color: var(--text); border-color: var(--accent); }
+  .orow { display: grid; grid-template-columns: 12px 1fr 52px; gap: 8px; align-items: center; font-size: 12.5px; margin-bottom: 8px; }
+  .orow .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .orow .bar { grid-column: 2 / 4; height: 6px; margin-top: -4px; }
+  .orow .v { font-family: var(--mono); text-align: right; }
+  .note { font-size: 11px; color: var(--muted); line-height: 1.45; }
+  #axisHelp { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; font-size: 12px; color: var(--muted); z-index: 4; text-align: center; max-width: calc(100vw - 640px); }
+
+  #fanTip { position: fixed; z-index: 6; pointer-events: none; min-width: 200px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  #fanTip .tip-year { font-family: var(--mono); font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  #fanTip .tip-row { display: flex; justify-content: space-between; gap: 14px; color: var(--muted); line-height: 1.6; }
+  #fanTip .tip-row b { font-family: var(--mono); font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+  #fanTip .tip-end { margin-top: 5px; font-weight: 500; }
+  #fanTip .tip-world { margin-top: 3px; font-size: 11px; color: var(--muted); max-width: 240px; }
+  /* ---------- labels ---------- */
+  .glabel { position: fixed; z-index: 3; pointer-events: none; font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 5px; background: rgba(0,0,0,0.55); border: 1px solid currentColor; white-space: nowrap; transform: translate(-50%, -140%); transition: opacity .3s; }
+
+  /* ---------- modals ---------- */
+  .modal { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(2,4,10,0.6); backdrop-filter: blur(3px); z-index: 10; padding: 16px; }
+  .modal.hidden { display: none; }
+  /* Intro: the globe stays clear and bright; the text sits to one side. */
+  #intro { background: linear-gradient(90deg, rgba(2,4,10,0.85) 0%, rgba(2,4,10,0.5) 45%, transparent 70%); backdrop-filter: none; place-items: center start; padding-left: max(16px, 6vw); }
+  #intro .box { width: min(520px, 100%); background: rgba(11,18,34,0.72); backdrop-filter: blur(8px); }
+  body.intro .panel, body.intro #card, body.intro #timeline, body.intro #statsToggle, body.intro .glabel { display: none !important; }
+  @media (max-width: 900px) {
+    #intro { place-items: end center; padding: 16px; background: linear-gradient(0deg, rgba(2,4,10,0.85) 0%, transparent 70%); }
+    #intro .box { max-height: 62vh; }
+  }
+  .modal .box { width: min(640px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 18px; padding: 26px 28px; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
+  .modal h1 { margin: 0 0 6px; font-size: 34px; letter-spacing: .04em; }
+  .modal h2 { margin: 0 0 10px; }
+  .modal p, .modal li { font-size: 14px; line-height: 1.6; color: #c3cee0; }
+  .modal .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+  .btnrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .btn { border: 1px solid var(--accent); background: rgba(127,227,255,0.12); padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 500; }
+  .btn.ghost { border-color: var(--line); background: none; color: var(--muted); }
+  .btn:hover { background: rgba(127,227,255,0.22); color: var(--text); }
+  .disclaimer { font-size: 11.5px !important; color: var(--muted) !important; border-left: 2px solid var(--warn); padding-left: 10px; }
+  .declist { font-size: 12.5px; margin: 8px 0 0; padding-left: 18px; }
+  .declist li { font-size: 12.5px; line-height: 1.5; }
+  .declist li .rewind { background: none; border: 1px solid var(--line); border-radius: 6px; font-size: 10.5px; padding: 0 6px; margin-left: 4px; color: var(--accent); }
+  .declist li .rewind:hover, .declist li .rewind:focus-visible { border-color: var(--accent); outline: none; }
+  .declist li.empty { list-style: none; margin-left: -18px; color: var(--muted); }
+  #history { margin: 0; }
+  #history li { font-size: 11.5px; margin-bottom: 4px; }
+  button.yr { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+  button.yr:hover, button.yr:focus-visible { color: var(--accent); outline: none; }
+  .declist li b { font-family: var(--mono); font-weight: 400; color: var(--muted); margin-right: 6px; }
+  .eq { font-family: var(--mono); font-size: 12px; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px 12px; color: #c3cee0; white-space: pre-wrap; line-height: 1.55; }
+  .mcline { font-size: 13px; color: var(--muted); }
+  .mcbars { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin: 6px 0 4px; }
+
+  .mode-lab .campaign-only, .mode-campaign .lab-only { display: none !important; }
+
+  @media (max-width: 1100px) {
+    .panel { width: 240px; }
+    #card { width: calc(100vw - 32px); min-width: 0; bottom: 12px; }
+    body.deciding #card { width: calc(100vw - 32px); max-height: calc(100vh - 140px); }
+    #axisHelp { max-width: calc(100vw - 32px); }
+    .choices { grid-template-columns: 1fr; }
+    body.mode-campaign #left, body.mode-campaign #right { display: none; }
+    body.compact-open.mode-campaign #left, body.compact-open.mode-campaign #right { display: block; top: 64px; bottom: auto; max-height: 40vh; width: calc(50vw - 24px); }
+    #statsToggle { display: inline-block !important; }
+  }
+  @media (max-width: 640px) {
+    #top { flex-wrap: wrap; gap: 8px; padding: 8px 16px; }
+    #timeline { order: 5; flex-basis: 100%; }
+    #timeline .yr { font-size: 0; }
+    .brand small { display: none; }
+    body.mode-lab #left { left: 16px; right: 16px; width: auto; top: 96px; max-height: 42vh; }
+    body.mode-lab #right { top: auto; bottom: 16px; left: 16px; right: 16px; width: auto; max-height: 30vh; }
+    #axisHelp { display: none !important; }
+    body.compact-open.mode-campaign #left, body.compact-open.mode-campaign #right { top: 96px; width: calc(100vw - 32px); left: 16px; right: 16px; max-height: 30vh; }
+    body.compact-open.mode-campaign #right { top: calc(96px + 31vh); }
+    #card h2 { font-size: 18px; }
+    #card p { font-size: 12.5px; }
+    .modal h1 { font-size: 26px; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script src="model.js"></script>
+<script src="events.js"></script>
+<script src="landmask.js"></script>
+</head>
+<body class="mode-campaign">
+<canvas id="gl"></canvas>
+
+<div id="top">
+  <div class="brand">GAME OF AGI<small>an AI safety simulator</small></div>
+  <div class="tabs">
+    <button data-mode="campaign" class="on">Campaign</button>
+    <button data-mode="lab">Futures Lab</button>
+  </div>
+  <div id="timeline" class="campaign-only"></div>
+  <button class="iconbtn" id="statsToggle" style="display:none">Stats</button>
+  <button class="iconbtn" id="modelBtn">How the model works</button>
+</div>
+
+<!-- Left: world state (campaign) / sliders (lab) -->
+<div class="panel" id="left">
+  <div class="campaign-only">
+    <h3>World state</h3>
+    <div id="stats"></div>
+    <div class="divider"></div>
+    <h3>Your decisions</h3>
+    <div class="sub">Change any one to replay from that year. Each year keeps its dice, so only your choice differs.</div>
+    <ol class="declist" id="history"></ol>
+  </div>
+  <div class="lab-only">
+    <h3>Policy levers</h3>
+    <div class="sub">Held fixed 2027–2040 across every simulated future.</div>
+    <div class="presets" id="presets"></div>
+    <div id="sliders"></div>
+    <div class="divider"></div>
+    <h3>Unknowns about the world</h3>
+    <div class="sub">Each future draws these from a bell curve: the center you set, ± the spread.</div>
+    <div id="assumptions"></div>
+  </div>
+</div>
+
+<!-- Right: risk (campaign) / outcome distribution (lab) -->
+<div class="panel" id="right">
+  <div class="campaign-only">
+    <h3>Risk this year</h3>
+    <div class="sub" id="riskSub">Hover a choice to preview its effect.</div>
+    <div id="risks"></div>
+    <div class="survival">
+      <div class="big" id="survival">100%</div>
+      <div class="lbl">expected chance of getting this far without catastrophe</div>
+    </div>
+    <div class="divider"></div>
+    <h3>Your policy levers</h3>
+    <div id="levers"></div>
+  </div>
+  <div class="lab-only">
+    <h3>2,000 simulated futures</h3>
+    <div class="sub" id="labSub"></div>
+    <div id="outcomes"></div>
+    <div class="divider"></div>
+    <p class="note">Each line in the 3D view is one simulated future, 2027 → its outcome. Height is frontier capability; depth is the alignment margin (alignment minus capability). Futures that end in catastrophe fall to the floor in the year it strikes; dots mark where each future ends. Hover or tap a line to read its values.</p>
+  </div>
+</div>
+
+<div id="card" class="campaign-only hidden">
+  <div class="tag" id="cardTag"></div>
+  <h2 id="cardTitle"></h2>
+  <p id="cardText"></p>
+  <p class="dyn" id="cardDyn"></p>
+  <div class="choices" id="choices"></div>
+  <div class="roll" id="roll"></div>
+</div>
+
+<div id="axisHelp" class="lab-only">Drag to orbit · scroll to zoom · <span style="color:#fff">x</span> = year · <span style="color:#fff">y</span> = capability · <span style="color:#fff">z</span> = alignment margin</div>
+
+<div id="labels"></div>
+<div id="fanTip" class="lab-only" role="status" hidden></div>
+
+<!-- Intro -->
+<div class="modal" id="intro">
+  <div class="box">
+    <div class="kicker">2027 · The decade that decides</div>
+    <h1>GAME OF AGI</h1>
+    <p>You chair a newly formed council that steers frontier AI policy for the US-aligned bloc. Over the next 13 years, systems will likely become smarter than any human. Every year you face a decision about <b>racing China</b>, <b>releasing open weights</b>, <b>biodefense</b>, <b>neural interfaces</b> and <b>alignment</b>.</p>
+    <p>Each year the dice are rolled against three catastrophes: an <span style="color:#7cff6b">engineered pandemic</span>, <span style="color:#ff3b5c">loss of control</span>, and <span style="color:#ff8a3d">great-power war</span>. Reach the superintelligence threshold with alignment ready, or reach 2040 on a careful path.</p>
+    <p>Some things nobody knows yet: whether AGI turns out <b>safe by default</b>, how hard alignment really is, and whether insiders would blow the whistle on a power grab. Each game draws them in secret. You find out at the end.</p>
+    <p class="disclaimer">This is a toy model built to make trade-offs tangible, not a forecast. Every probability comes from transparent, adjustable assumptions (see "How the model works"). Reasonable experts disagree about nearly all of them.</p>
+    <div class="btnrow">
+      <button class="btn" id="startBtn">Begin in 2027</button>
+      <button class="btn ghost" id="labBtn">Open the Futures Lab</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ending -->
+<div class="modal hidden" id="ending">
+  <div class="box">
+    <div class="kicker" id="endKicker"></div>
+    <h1 id="endTitle"></h1>
+    <p id="endText"></p>
+    <p class="world-reveal" id="endWorld"></p>
+    <div id="endMC"></div>
+    <h3 style="font-size:11px;letter-spacing:.16em;color:var(--muted);margin:16px 0 0">YOUR DECISIONS</h3>
+    <ol class="declist" id="endDecisions"></ol>
+    <div class="btnrow">
+      <button class="btn" id="againBtn">Play again</button>
+      <button class="btn ghost" id="toLabBtn">Explore your policy in the Futures Lab</button>
+      <button class="btn ghost" id="viewBtn">View the world</button>
+    </div>
+  </div>
+</div>
+
+<!-- Model explainer -->
+<div class="modal hidden" id="modelInfo">
+  <div class="box">
+    <div class="kicker">Under the hood</div>
+    <h2>How the model works</h2>
+    <p>The world has ten state variables (0–100) and eight policy levers (0–1). Each year the simulator rolls once against three annual hazards, then advances the world. All code is in <code>model.js</code>, which is short enough to read in one sitting.</p>
+    <p><b>Timelines follow AI 2040.</b> Capability 70 is an Automated Coder (AC), 90 an AI that dominates top human experts (TED-AI), 100 superintelligence (ASI). Under today's policies the model reaches AC around 2030 and ASI about a year later, matching <a href="https://ai-2040.com/supplements/takeoff-forecast" target="_blank" rel="noopener" style="color:var(--accent)">AI 2040's takeoff forecast</a>. AI labor speeds up AI research 3× at AC and ~40× at TED-AI. Effective speed scales with compute<sup>0.74</sup> (10× less compute, 5.5× slower), and a hidden progress-speed factor spreads timelines out.</p>
+    <div class="eq">Pandemic risk  ≈ 14% × [σ((open-model capability − 62)/6) + leakage from closed models] × (1 − biodefense)²
+Loss of control ≈ (not safe by default) × 30% × σ((capability − alignment − 36)/6) × σ((capability − 78)/4) × (0.4 + 0.9·hidden internal AI)
+War risk       ≈ 5.5% × (1 − coordination)² × race closeness × strategic stakes
+Superintelligence (capability = 100): goes well if safe by default, else with probability σ((alignment − bar)/6),
+               bar = 45 + 32·(hidden alignment difficulty) + 0.2·(hidden internal AI − 30) − 10·(BCI adoption)
+Lock-in        ≈ σ((power concentration − 64)/6) × (1 − 0.6·oversight) × (1 − whistleblower odds) × (1 − 0.6·plurality)</div>
+    <p><b>Research vs. weights.</b> As in AI 2040, publishing research is separate from releasing weights. <i>Research transparency</i> spreads power (dozens of labs can follow the frontier), speeds up shared alignment work, pulls internal AI into view and builds trust, but it also helps China catch up. <i>Open-weights releases</i> spread power too, but they also put capable models into anyone's hands, which drives the bio risk.</p>
+    <p><b>Safety share.</b> The safety lever is the share of AI compute and AI labor spent on safety, from 0% to 100%. Its value is linear up to 30% and then diminishes, because people and ideas become the bottleneck. At 100% the US bloc trains no new capabilities, which is a unilateral pause. China only partly slows down in response, and if China takes the lead its lab uses US alignment work only as far as coordination and published research allow.</p>
+    <p><b>Neural interfaces.</b> BCIs help in three speculative ways. Augmented researchers do alignment work up to 1.5× faster. Augmented overseers can follow what thousands of AI copies are doing, which shrinks hidden internal AI. And humans who can check AI reasoning directly lower the alignment bar at the handoff by up to 10 points. Pointing AI labor at neurotech speeds BCIs up, but surgery, approval and rollout cap adoption at about 20 points a year. A BCI push without diplomacy concentrates power.</p>
+    <p><b>Hidden internal AI.</b> AI 2040 argues most takeover risk comes from models labs run internally, before anyone outside can see them. Racing grows that gap, especially once AI automates R&amp;D. Transparency and inspections shrink it. A large gap raises the yearly loss-of-control risk and the bar alignment must clear at the handoff.</p>
+    <p><b>The deal.</b> When coordination is at least 60 and diplomacy is high, a verified deal holds frontier capability at top-expert level (78), like Plan A's 2035 pause. As in AI 2040 (about 48% collapse risk over ten years), a deal can collapse, about 6% a year, and stays dead once it does.</p>
+    <p><b>Hidden unknowns.</b> Each future first draws four facts nobody knows yet, each from a bell curve (mean ± spread): whether AGI is <b>safe by default</b>, how <b>difficult alignment</b> really is, how <b>fast AI progresses</b>, and the odds that <b>whistleblowers</b> stop a power grab. The risk panel shows risks averaged over those unknowns. The dice use the hidden truth.</p>
+    <p><b>Calibration.</b> Holding each plan's levers fixed, the model's chance of getting alignment right is about 18% for racing to ASI (AI 2040's median estimate: 25%), 40% for burning the lead (40%) and 79% for Plan A (72%).</p>
+    <p><b>What it leaves out.</b> Covert projects, cyberattacks, other countries, misuse beyond bio, conflict between AGIs, and whether "capability" can really be put on one axis at all. Treat it as an argument you can poke at, not an oracle.</p>
+    <p class="note">This version extends the original <a href="https://gist.github.com/crizCraig/f4c583f0ca535ce5565f3aa66353cf99" target="_blank" rel="noopener" style="color:var(--accent)">Game of AGI</a>, a Monte Carlo of AGI risk driven by safe-by-default odds, safety spending, oversight, the number of labs that originate AGI, whistleblowers, and takeoff vs. replication time. It adds time, geopolitics, open weights and bio risk, and calibrates timelines to <a href="https://ai-2040.com/" target="_blank" rel="noopener" style="color:var(--accent)">AI 2040</a>.</p>
+    <p class="disclaimer">All parameters are illustrative. The lab, company and leaders in this game are fictional composites.</p>
+    <div class="btnrow"><button class="btn" data-close="modelInfo">Close</button></div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const M = window.SimModel, E = window.SimEvents;
+const $ = (id) => document.getElementById(id);
+const pct = (p, d = 1) => (p * 100).toFixed(d) + '%';
+
+/* =====================================================================
+ * Three.js scene
+ * ===================================================================== */
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x03060d, 0.012);
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 500);
+camera.position.set(0, 6, 22);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.35;
+controls.minDistance = 9; controls.maxDistance = 80;
+controls.enablePan = false;
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.95, 0.55, 0.12);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+scene.add(new THREE.AmbientLight(0x6080ff, 0.35));
+const sun = new THREE.DirectionalLight(0xffffff, 1.4);
+sun.position.set(10, 8, 12);
+scene.add(sun);
+
+// Starfield
+{
+  const n = 3000, pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const v = new THREE.Vector3().randomDirection().multiplyScalar(120 + Math.random() * 180);
+    pos.set([v.x, v.y, v.z], i * 3);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0x9fb4ff, size: 0.6, sizeAttenuation: true, fog: false })));
+}
+
+const R = 5; // earth radius
+const world = new THREE.Group();
+scene.add(world);
+
+function latLon(lat, lon, r = R) {
+  const phi = (90 - lat) * Math.PI / 180, th = (lon + 180) * Math.PI / 180;
+  return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th));
+}
+
+// Earth body
+const earthMat = new THREE.MeshStandardMaterial({ color: 0x0a1a3a, emissive: 0x050c1e, roughness: 0.85, metalness: 0.1 });
+const earth = new THREE.Mesh(new THREE.SphereGeometry(R, 64, 48), earthMat);
+world.add(earth);
+
+// Continents: real coastlines from a Natural Earth land bitmask (landmask.js)
+const landBits = Uint8Array.from(atob(LAND_MASK.b64), (c) => c.charCodeAt(0));
+function isLand(lat, lon) {
+  const row = Math.min(LAND_MASK.h - 1, Math.floor((90 - lat) / 180 * LAND_MASK.h));
+  const col = Math.min(LAND_MASK.w - 1, Math.floor((lon + 180) / 360 * LAND_MASK.w));
+  const i = row * LAND_MASK.w + col;
+  return (landBits[i >> 3] >> (i & 7)) & 1;
+}
+const land = (() => {
+  const N = 42000, pts = [], base = [];
+  for (let i = 0; i < N; i++) {
+    const y = 1 - (i / (N - 1)) * 2, rr = Math.sqrt(1 - y * y), th = i * 2.399963;
+    const lat = Math.asin(y) * 180 / Math.PI;
+    const v = new THREE.Vector3(Math.cos(th) * rr, y, Math.sin(th) * rr);
+    const lon = Math.atan2(v.z, -v.x) * 180 / Math.PI - 180;
+    const lonN = ((lon + 540) % 360) - 180;
+    if (isLand(lat, lonN)) { pts.push(v.multiplyScalar(R * 1.004)); base.push(lat, lonN); }
+  }
+  const g = new THREE.BufferGeometry().setFromPoints(pts);
+  const col = new Float32Array(pts.length * 3);
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const mat = new THREE.PointsMaterial({ size: 0.055, vertexColors: true, transparent: true, opacity: 0.95 });
+  const p = new THREE.Points(g, mat);
+  world.add(p);
+  return { points: p, count: pts.length, col, latlon: base, seeds: pts.map(() => Math.random()) };
+})();
+
+// Atmosphere (fresnel glow)
+const atmoMat = new THREE.ShaderMaterial({
+  uniforms: { uColor: { value: new THREE.Color(0x3d8bff) }, uPow: { value: 2.6 }, uAmp: { value: 1.0 } },
+  vertexShader: `varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix*vec4(position,1.); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix*mv; }`,
+  fragmentShader: `uniform vec3 uColor; uniform float uPow; uniform float uAmp; varying vec3 vN; varying vec3 vV; void main(){ float f = pow(1.0 - max(dot(vN, vV), 0.0), uPow); gl_FragColor = vec4(uColor * f * uAmp, f); }`,
+  blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, side: THREE.FrontSide,
+});
+world.add(new THREE.Mesh(new THREE.SphereGeometry(R * 1.12, 64, 48), atmoMat));
+
+// Lab towers
+function makeTower(lat, lon, color) {
+  const grp = new THREE.Group();
+  const n = latLon(lat, lon, 1).normalize();
+  grp.position.copy(n.clone().multiplyScalar(R));
+  grp.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
+  const beamMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 });
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.14, 1, 12, 1, true), beamMat);
+  beam.geometry.translate(0, 0.5, 0);
+  grp.add(beam);
+  const tip = new THREE.Mesh(new THREE.SphereGeometry(0.22, 20, 16), new THREE.MeshBasicMaterial({ color }));
+  grp.add(tip);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.42, 40), new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.7 }));
+  ring.rotation.x = Math.PI / 2;
+  grp.add(ring);
+  world.add(grp);
+  return { grp, beam, tip, ring, n, h: 1 };
+}
+const towerUS = makeTower(37.77, -122.42, 0x5aa9ff); // San Francisco
+const towerCN = makeTower(34, 108, 0xff6b5a);
+const towerTop = (t) => t.n.clone().multiplyScalar(R + t.h);
+
+// Coordination arc: a great-circle bridge between the labs (SF → China over
+// the North Pacific) with pulses that flow faster and brighter as trust grows.
+const ARC_SEG = 96, ARC_N = 48;
+const arc = (() => {
+  const lg = new THREE.BufferGeometry();
+  lg.setAttribute('position', new THREE.BufferAttribute(new Float32Array((ARC_SEG + 1) * 3), 3));
+  const lm = new THREE.LineBasicMaterial({ color: 0x7fe3ff, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false });
+  const pg = new THREE.BufferGeometry();
+  pg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ARC_N * 3), 3));
+  const pm = new THREE.PointsMaterial({ size: 0.15, color: 0x7fe3ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
+  world.add(new THREE.Line(lg, lm), new THREE.Points(pg, pm));
+  return { lg, lm, pg, pm, offs: Array.from({ length: ARC_N }, (_, i) => i / ARC_N) };
+})();
+function arcPoint(u, out) {
+  const a = towerUS.n, b = towerCN.n;
+  const ang = Math.acos(THREE.MathUtils.clamp(a.dot(b), -1, 1));
+  const wa = Math.sin((1 - u) * ang) / Math.sin(ang), wb = Math.sin(u * ang) / Math.sin(ang);
+  out.copy(a).multiplyScalar(wa).addScaledVector(b, wb).normalize();
+  return out.multiplyScalar(R + THREE.MathUtils.lerp(towerUS.h, towerCN.h, u) + Math.sin(Math.PI * u) * 2.2);
+}
+
+// Alignment shield
+const shieldGeo = new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(R * 1.45, 2));
+const shieldMat = new THREE.LineBasicMaterial({ color: 0x59f0b8, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false });
+const shield = new THREE.LineSegments(shieldGeo, shieldMat);
+world.add(shield);
+
+// Open-weights swarm: copies of models proliferating in orbit
+const SWARM_N = 1400;
+const swarm = (() => {
+  const orbits = [];
+  for (let i = 0; i < SWARM_N; i++) {
+    const axis = new THREE.Vector3().randomDirection();
+    const start = new THREE.Vector3().randomDirection().projectOnPlane(axis).normalize();
+    orbits.push({ axis, start, r: R * (1.2 + Math.random() * 0.75), speed: 0.15 + Math.random() * 0.4, ph: Math.random() * Math.PI * 2 });
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(SWARM_N * 3), 3));
+  const mat = new THREE.PointsMaterial({ size: 0.07, color: 0xffd166, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
+  const p = new THREE.Points(g, mat);
+  world.add(p);
+  return { p, g, orbits, mat };
+})();
+
+// Neural-interface lattice: a ring of linked nodes
+const NEURO_N = 90;
+const neuro = (() => {
+  const nodes = [];
+  for (let i = 0; i < NEURO_N; i++) {
+    const a = (i / NEURO_N) * Math.PI * 2;
+    const r = R * 1.75 + Math.sin(i * 1.7) * 0.35;
+    nodes.push(new THREE.Vector3(Math.cos(a) * r, Math.sin(i * 2.3) * 0.5, Math.sin(a) * r));
+  }
+  const pg = new THREE.BufferGeometry().setFromPoints(nodes);
+  const pm = new THREE.PointsMaterial({ size: 0.16, color: 0xd68cff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
+  const pts = new THREE.Points(pg, pm);
+  const seg = [];
+  for (let i = 0; i < NEURO_N; i++) for (let k = 1; k <= 3; k++) {
+    const j = (i + k * 7) % NEURO_N;
+    if (nodes[i].distanceTo(nodes[j]) < 6.5) seg.push(nodes[i], nodes[j]);
+  }
+  const lg = new THREE.BufferGeometry().setFromPoints(seg);
+  const lm = new THREE.LineBasicMaterial({ color: 0xb06cff, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false });
+  const lines = new THREE.LineSegments(lg, lm);
+  const grp = new THREE.Group(); grp.add(pts, lines); grp.rotation.x = 0.35;
+  world.add(grp);
+  return { grp, pg, pm, lg, lm, segCount: seg.length };
+})();
+
+// Misalignment eye: a red ring that forms above when capability outruns alignment
+const eye = new THREE.Mesh(new THREE.TorusGeometry(R * 1.95, 0.05, 8, 160), new THREE.MeshBasicMaterial({ color: 0xff2a4a, transparent: true, opacity: 0 }));
+eye.rotation.x = Math.PI / 2.2;
+world.add(eye);
+
+// War flashes
+const flashes = [];
+for (let i = 0; i < 18; i++) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 10), new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0 }));
+  world.add(m); flashes.push({ m, t: Math.random() * 3 });
+}
+
+/* ---------- Futures Lab fan chart ---------- */
+const fan = new THREE.Group();
+fan.visible = false;
+scene.add(fan);
+const fanLines = new THREE.Group(); fan.add(fanLines);
+{
+  const grid = new THREE.GridHelper(16, 16, 0x2a3f66, 0x16213a);
+  grid.position.y = 0; fan.add(grid);
+  const axMat = new THREE.LineBasicMaterial({ color: 0x4b6a9a });
+  const ax = (a, b) => fan.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), axMat));
+  ax(new THREE.Vector3(-8, 0, 0), new THREE.Vector3(8.5, 0, 0));
+  ax(new THREE.Vector3(-8, 0, 0), new THREE.Vector3(-8, 8, 0));
+  ax(new THREE.Vector3(-8, 0, -6), new THREE.Vector3(-8, 0, 6));
+  // The "superintelligence" ceiling
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.04, side: THREE.DoubleSide, depthWrite: false }));
+  ceil.rotation.x = Math.PI / 2; ceil.position.y = 7; fan.add(ceil);
+  ceil.material.opacity = 0.025;
+  const lbl = (txt, pos, color = '#8a97ad', scale = 1) => {
+    const c = document.createElement('canvas'); c.width = 512; c.height = 64;
+    const x = c.getContext('2d'); x.font = '500 30px Space Grotesk, sans-serif'; x.fillStyle = color; x.textAlign = 'center'; x.fillText(txt, 256, 42);
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+    s.scale.set(4 * scale, 0.5 * scale, 1); s.position.copy(pos); fan.add(s);
+  };
+  lbl('2027', new THREE.Vector3(-8, -0.5, 0)); lbl('2040', new THREE.Vector3(8, -0.5, 0));
+  lbl('capability ↑', new THREE.Vector3(-8, 8.5, 0));
+  lbl('superintelligence threshold', new THREE.Vector3(0, 7.35, -6), '#ffd76a');
+  const acLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-8, 4.9, -6), new THREE.Vector3(8, 4.9, -6)]),
+    new THREE.LineDashedMaterial({ color: 0x7fe3ff, dashSize: 0.3, gapSize: 0.25, transparent: true, opacity: 0.5 }));
+  acLine.computeLineDistances(); fan.add(acLine);
+  lbl('automated coder', new THREE.Vector3(6.5, 5.25, -6), '#7fe3ff');
+  lbl('alignment ahead', new THREE.Vector3(-8, -0.5, 6.4)); lbl('capability ahead', new THREE.Vector3(-8, -0.5, -6.4), '#ff6b80');
+}
+const fanX = (y) => -8 + (y - M.START_YEAR) / (M.END_YEAR - M.START_YEAR) * 16;
+const fanY = (c) => c / 100 * 7;
+const fanZ = (a, c) => THREE.MathUtils.clamp((a - c) / 100 * 16, -6, 6);
+let fanAnim = 0;
+function buildFan(paths) {
+  setHover(null);
+  for (const ch of [...fanLines.children]) {
+    ch.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); });
+    fanLines.remove(ch);
+  }
+  for (const p of paths) {
+    const col = new THREE.Color(M.OUTCOMES[p.outcome].color);
+    const jit = (Math.random() - 0.5) * 0.6;
+    const pts = p.points.map((q) => new THREE.Vector3(fanX(q.year), fanY(q.cap), fanZ(q.align, q.cap) + jit));
+    // Catastrophes collapse to the floor in the year they strike.
+    if (['bio', 'misalign', 'war'].includes(p.outcome)) {
+      const last = pts[pts.length - 1];
+      pts.push(new THREE.Vector3(last.x + 0.35, last.y * 0.35, last.z), new THREE.Vector3(last.x + 0.5, 0.02, last.z));
+    }
+    const curve = new THREE.CatmullRomCurve3(pts);
+    const g = new THREE.BufferGeometry().setFromPoints(curve.getPoints(pts.length * 6));
+    const line = new THREE.Line(g, new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.32, depthWrite: false }));
+    line.userData.n = g.attributes.position.count;
+    // Raw data for the hover readout: one marker per simulated year.
+    line.userData.path = p;
+    line.userData.marks = p.points.map((q, i) => ({ q, v: pts[i] }));
+    g.setDrawRange(0, 0);
+    fanLines.add(line);
+    const end = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), new THREE.MeshBasicMaterial({ color: col }));
+    end.position.copy(pts[pts.length - 1]); end.visible = false;
+    line.add(end); line.userData.end = end;
+  }
+  fanAnim = 0;
+}
+
+/* ---------- hover readout: snap to the nearest simulated year ---------- */
+const raycaster = new THREE.Raycaster();
+raycaster.params.Line.threshold = 0.18;
+const pointer = new THREE.Vector2();
+const hoverDot = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+hoverDot.visible = false; fan.add(hoverDot);
+let hovered = null, hoverEvt = null;
+canvas.addEventListener('pointermove', (e) => { hoverEvt = e; });
+canvas.addEventListener('pointerleave', () => { hoverEvt = null; setHover(null); });
+canvas.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') hoverEvt = e; });
+
+function setHover(hit) {
+  if (hovered && (!hit || hit.line !== hovered)) hovered.material.opacity = 0.32;
+  hovered = hit ? hit.line : null;
+  $('fanTip').hidden = !hit;
+  hoverDot.visible = !!hit;
+  if (!hit) return;
+  hovered.material.opacity = 1;
+  const { q, v } = hit.mark, path = hit.line.userData.path, o = M.OUTCOMES[path.outcome];
+  const end = path.points[path.points.length - 1];
+  hoverDot.position.copy(v);
+  hoverDot.material.color.set(o.color);
+  const margin = Math.round(q.align - q.cap);
+  $('fanTip').innerHTML = `<div class="tip-year">${q.year}</div>
+    <div class="tip-row"><span>x · year</span><b>${q.year}</b></div>
+    <div class="tip-row"><span>y · capability</span><b>${Math.round(q.cap)}</b></div>
+    <div class="tip-row"><span>z · alignment margin</span><b style="color:${margin >= 0 ? 'var(--good)' : 'var(--bad)'}">${margin > 0 ? '+' : ''}${margin}</b></div>
+    <div class="tip-row"><span>alignment</span><b>${Math.round(q.align)}</b></div>
+    <div class="tip-row"><span>coordination</span><b>${Math.round(q.coord)}</b></div>
+    <div class="tip-end" style="color:${o.color}">Ends ${end.year}: ${o.title}</div>
+    <div class="tip-world">Hidden world: ${path.world.safe ? 'AGI safe by default' : 'not safe by default'} · alignment ${path.world.difficulty.toFixed(1)}× as hard · progress ${path.world.speed.toFixed(1)}× speed</div>`;
+  const tip = $('fanTip'), x = hit.x + 16, y = hit.y + 16;
+  tip.style.left = Math.min(x, innerWidth - tip.offsetWidth - 16) + 'px';
+  tip.style.top = Math.min(y, innerHeight - tip.offsetHeight - 16) + 'px';
+}
+
+function updateHover() {
+  if (!fan.visible || !hoverEvt || fanAnim < 1) return;
+  const e = hoverEvt; hoverEvt = null;
+  if (e.target !== canvas) return;
+  pointer.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(fanLines.children, false);
+  if (!hits.length) return setHover(null);
+  const line = hits[0].object, pt = hits[0].point;
+  let best = null, bd = Infinity;
+  for (const m of line.userData.marks) { const d = m.v.distanceToSquared(pt); if (d < bd) { bd = d; best = m; } }
+  setHover({ line, mark: best, x: e.clientX, y: e.clientY });
+}
+
+/* ---------- visual state, smoothed toward the simulation ---------- */
+const vis = { mc: 44, capUS: 44, capCN: 37, align: 16, openCap: 32, bio: 14, coord: 22, bci: 4, conc: 45, trust: 55, pBio: 0, gap: 0, outcome: null, outT: 0 };
+const target = { ...vis };
+const C = (h) => new THREE.Color(h);
+const colLand = C(0x2fd4c4), colBio = C(0x7cff6b), colLock = C(0xc38bff), colGold = C(0xffd76a), colDead = C(0x30343c), colWar = C(0xff8a3d);
+const colRed = C(0xff2a4a), colGrey = C(0x8a97ad), colTeal = C(0x59f0b8), colCyan = C(0x7fe3ff), colArcBad = C(0xff3b5c), colAtmo = C(0x3d8bff);
+const ATMO = Object.fromEntries(Object.entries({ flourish: 0xffd76a, bio: 0x6bff5a, misalign: 0xff2a4a, war: 0xff7a2a, lockin: 0xa86bff, pause: 0x7fe3ff, muddle: 0x7a8aa6 }).map(([k, v]) => [k, C(v)]));
+
+function syncTarget(s, L) {
+  Object.assign(target, { capUS: s.capUS, capCN: s.capCN, align: s.align, openCap: s.openCap, bio: s.bio, coord: s.coord, bci: s.bci, conc: s.conc, trust: s.trust });
+  const r = M.risks(s, L);
+  target.pBio = r.bio; target.gap = M.maxCap(s) - s.align; target.mc = M.maxCap(s);
+}
+
+const clock = new THREE.Clock();
+const tmpV = new THREE.Vector3(), tmpC = new THREE.Color();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+  for (const k in target) if (typeof target[k] === 'number' && k !== 'outT') vis[k] += (target[k] - vis[k]) * Math.min(1, dt * 2.5);
+  if (vis.outcome) vis.outT = Math.min(1, vis.outT + dt * 0.35);
+
+  if (world.visible) updateWorld(dt, t);
+  if (fan.visible) {
+    fanAnim = Math.min(1, fanAnim + dt * 0.55);
+    for (const line of fanLines.children) {
+      const n = line.userData.n;
+      line.geometry.setDrawRange(0, Math.floor(n * fanAnim));
+      line.userData.end.visible = fanAnim >= 1;
+    }
+  }
+  updateHover();
+  controls.update();
+  composer.render();
+  updateLabels();
+}
+
+function updateWorld(dt, t) {
+  world.rotation.y += dt * 0.02;
+  const introX = document.body.classList.contains('intro') && innerWidth > 900 ? 5 : 0;
+  world.position.x += (introX - world.position.x) * Math.min(1, dt * 2);
+  const out = vis.outcome, k = vis.outT;
+
+  // Towers scale with capability
+  for (const [tw, cap] of [[towerUS, vis.capUS], [towerCN, vis.capCN]]) {
+    tw.h = 0.3 + cap / 100 * 4.2;
+    tw.beam.scale.set(1, tw.h, 1);
+    tw.tip.position.y = tw.h;
+    tw.ring.position.y = tw.h;
+    tw.ring.scale.setScalar(1 + 0.25 * Math.sin(t * 3 + cap));
+    tw.tip.scale.setScalar(0.8 + cap / 100 * 0.9);
+  }
+
+  // Coordination arc: dim red trickle when trust is low, bright cyan flow when high
+  const co = vis.coord / 100;
+  const lpos = arc.lg.attributes.position;
+  for (let i = 0; i <= ARC_SEG; i++) { arcPoint(i / ARC_SEG, tmpV); lpos.setXYZ(i, tmpV.x, tmpV.y, tmpV.z); }
+  lpos.needsUpdate = true;
+  const ppos = arc.pg.attributes.position;
+  const shown = Math.round(4 + co * (ARC_N - 4));
+  for (let i = 0; i < shown; i++) {
+    const dirn = i % 2 ? 1 : -1;
+    const u = ((arc.offs[i] + dirn * t * (0.03 + co * 0.12)) % 1 + 1) % 1;
+    arcPoint(u, tmpV); ppos.setXYZ(i, tmpV.x, tmpV.y, tmpV.z);
+  }
+  ppos.needsUpdate = true;
+  arc.pg.setDrawRange(0, shown);
+  arc.lm.color.copy(colArcBad).lerp(colCyan, co);
+  arc.pm.color.copy(arc.lm.color);
+  arc.lm.opacity = 0.15 + co * 0.5;
+  arc.pm.opacity = 0.4 + co * 0.55;
+
+  // Shield: coverage = alignment, turns red as the gap widens
+  // Danger only matters once systems are strong: weight the gap by capability.
+  const gapF = THREE.MathUtils.clamp((vis.gap - 20) / 30, 0, 1) * THREE.MathUtils.clamp((vis.mc - 55) / 25, 0, 1);
+  shieldMat.opacity = 0.05 + vis.align / 100 * 0.5;
+  shieldMat.color.copy(colTeal).lerp(colRed, gapF);
+  shield.rotation.y = t * 0.05; shield.rotation.x = t * 0.03;
+  const jitter = gapF * gapF * 0.04;
+  shield.scale.setScalar(1 + (Math.random() - 0.5) * jitter);
+
+  // Swarm: number of copies ∝ open-model capability
+  const sp = swarm.g.attributes.position;
+  const nOpen = Math.floor(SWARM_N * Math.pow(vis.openCap / 100, 1.6));
+  for (let i = 0; i < nOpen; i++) {
+    const o = swarm.orbits[i];
+    tmpV.copy(o.start).applyAxisAngle(o.axis, o.ph + t * o.speed).multiplyScalar(o.r);
+    sp.setXYZ(i, tmpV.x, tmpV.y, tmpV.z);
+  }
+  sp.needsUpdate = true;
+  swarm.g.setDrawRange(0, nOpen);
+
+  // Neural lattice
+  const bf = vis.bci / 100;
+  neuro.pg.setDrawRange(0, Math.floor(NEURO_N * Math.min(1, bf * 1.4)));
+  neuro.lg.setDrawRange(0, Math.floor(neuro.segCount * bf) * 2);
+  neuro.lm.opacity = 0.1 + 0.4 * bf + 0.1 * Math.sin(t * 4);
+  neuro.grp.rotation.y = -t * 0.08;
+
+  // Eye of misalignment
+  eye.material.opacity = gapF * 0.6 * (0.7 + 0.3 * Math.sin(t * 2));
+  eye.rotation.z = t * 0.2;
+
+  // Land colors: healthy teal, bio haze patches, outcome tints
+  const bioH = THREE.MathUtils.clamp(vis.pBio / 0.06, 0, 1);
+  const col = land.col;
+  for (let i = 0; i < land.count; i++) {
+    tmpC.copy(colLand);
+    const s = land.seeds[i];
+    if (s < bioH * 0.35) tmpC.lerp(colBio, 0.5 + 0.5 * Math.sin(t * 2 + s * 40));
+    if (out === 'bio') { if (s < k * 1.1) tmpC.copy(colBio).lerp(colDead, Math.max(0, k * 1.3 - s - 0.3)); }
+    else if (out === 'misalign') tmpC.lerp(colRed, Math.min(1, k * 1.5 * (0.6 + s * 0.6)));
+    else if (out === 'war') tmpC.lerp(s < 0.3 ? colWar : colDead, k);
+    else if (out === 'lockin') tmpC.lerp(colLock, k * 0.8);
+    else if (out === 'flourish') tmpC.lerp(colGold, k * (0.5 + 0.5 * Math.sin(t + s * 10)));
+    else if (out === 'muddle') tmpC.lerp(colGrey, k * 0.5);
+    col[i * 3] = tmpC.r; col[i * 3 + 1] = tmpC.g; col[i * 3 + 2] = tmpC.b;
+  }
+  land.points.geometry.attributes.color.needsUpdate = true;
+
+  atmoMat.uniforms.uColor.value.copy(colAtmo).lerp(ATMO[out] || colAtmo, k);
+  atmoMat.uniforms.uAmp.value = 1 + (out === 'flourish' ? k * 1.5 : 0) + bioH * 0.3;
+
+  if (out === 'misalign') { shieldMat.color.set(0xff2a4a); shieldMat.opacity = 0.6; shield.scale.setScalar(1 - k * 0.25 + Math.sin(t * 9) * 0.02); eye.material.opacity = 0.9; }
+  if (out === 'lockin') { shieldMat.color.set(0xc38bff); shieldMat.opacity = 0.7; shield.scale.setScalar(1 - k * 0.22); }
+  if (out === 'flourish') { shieldMat.color.set(0xffd76a); shield.scale.setScalar(1 + k * 0.15); }
+
+  for (const f of flashes) {
+    if (out !== 'war') { f.m.material.opacity = 0; continue; }
+    f.t -= dt;
+    if (f.t <= 0) { f.t = 0.6 + Math.random() * 1.5; f.m.position.copy(latLon(Math.random() * 70 - 10, Math.random() * 360 - 180, R * 1.02)); f.life = 1; }
+    f.life = Math.max(0, (f.life || 0) - dt * 1.4);
+    f.m.material.opacity = f.life * k; f.m.scale.setScalar(1 + (1 - f.life) * 3);
+  }
+}
+
+// Screen-space labels for the two labs
+const lblUS = Object.assign(document.createElement('div'), { className: 'glabel', textContent: 'US frontier lab' });
+lblUS.style.color = '#5aa9ff';
+const lblCN = Object.assign(document.createElement('div'), { className: 'glabel', textContent: 'China frontier lab' });
+lblCN.style.color = '#ff6b5a';
+$('labels').append(lblUS, lblCN);
+function updateLabels() {
+  for (const [el, tw] of [[lblUS, towerUS], [lblCN, towerCN]]) {
+    if (!world.visible) { el.style.opacity = 0; continue; }
+    const p = towerTop(tw).applyMatrix4(world.matrixWorld);
+    const facing = p.clone().sub(world.position).normalize().dot(camera.position.clone().sub(world.position).normalize()) > 0.1;
+    p.project(camera);
+    el.style.left = ((p.x + 1) / 2 * innerWidth) + 'px';
+    el.style.top = ((1 - p.y) / 2 * innerHeight) + 'px';
+    el.style.opacity = facing ? 1 : 0;
+  }
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
+});
+
+/* =====================================================================
+ * Campaign
+ * ===================================================================== */
+const QUIET = {
+  id: 'quiet', tag: 'Budget', title: 'Budget Season',
+  text: 'A quieter year. Congress asks where the next $100 billion of AI spending should go.',
+  choices: [
+    { label: 'Compute & capabilities', note: 'Bigger clusters, faster models.', lev: { race: +0.1 }, st: { capUS: +3 } },
+    { label: 'Alignment research', note: 'Interpretability, control, evals.', lev: { safety: +0.03 }, st: { align: +3 } },
+    { label: 'Biodefense & diplomacy', note: 'Split between the two.', lev: { biodef: +0.1, diplomacy: +0.1 }, st: { coord: +3, bio: +2 } },
+  ],
+};
+
+let game = null;
+// Each game has a seed, and each year's dice come from (seed, year). Rewinding
+// to change a decision keeps the same luck, so you see what the choice changed.
+const yearRng = (salt) => M.mulberry32((game.seed + game.s.year * 7919 + salt) | 0);
+
+function newGame() {
+  const seed = (Math.random() * 2 ** 31) | 0;
+  game = { seed, s: M.initialState(M.sampleWorld(M.defaultAssumptions(), M.mulberry32(seed))), L: M.defaultLevers(),
+    used: new Set(), decisions: [], history: [], phase: 'choose', card: null };
+  vis.outcome = null; vis.outT = 0;
+  syncTarget(game.s, game.L);
+  Object.assign(vis, target);
+  $('ending').classList.add('hidden');
+  nextCard();
+  renderAll();
+}
+
+function nextCard() {
+  const c = E.pickCard(game.s, game.L, game.used, yearRng(1)) || QUIET;
+  game.used.add(c.id);
+  showCard(c);
+}
+
+// Return to the decision made at history[i]; later years are discarded.
+function rewind(i) {
+  const h = game.history[i];
+  if (!h || game.phase === 'rolling') return;
+  game.s = structuredClone(h.s); game.L = { ...h.L }; game.used = new Set(h.used);
+  game.decisions.length = i; game.history.length = i;
+  vis.outcome = null; vis.outT = 0;
+  $('ending').classList.add('hidden');
+  syncTarget(game.s, game.L);
+  if (mode !== 'campaign') setMode('campaign');
+  showCard(h.card);
+  renderAll();
+}
+
+function showCard(c) {
+  game.history.push({ s: structuredClone(game.s), L: { ...game.L }, used: new Set(game.used), card: c });
+  game.card = c; game.phase = 'choose';
+  renderTimeline(); renderHistory();
+  document.body.classList.add('deciding');
+  $('cardTag').textContent = `${game.s.year} · ${c.tag}`;
+  $('cardTitle').textContent = c.title;
+  $('cardText').textContent = c.text;
+  $('cardDyn').textContent = c.dynamic ? c.dynamic(game.s, game.L) : '';
+  $('roll').classList.remove('on');
+  const wrap = $('choices'); wrap.innerHTML = ''; wrap.style.display = '';
+  c.choices.forEach((ch) => {
+    const b = document.createElement('button');
+    b.className = 'choice';
+    b.innerHTML = `<strong>${ch.label}</strong><small>${ch.note || ''}</small><div class="chips">${chips(ch)}</div>`;
+    b.addEventListener('mouseenter', () => renderRisks(preview(ch)));
+    b.addEventListener('focus', () => renderRisks(preview(ch)));
+    b.addEventListener('mouseleave', () => renderRisks());
+    b.addEventListener('click', () => choose(ch));
+    wrap.append(b);
+  });
+  $('card').classList.remove('hidden');
+}
+
+const SHORT = { race: 'race', safety: 'safety', openness: 'open', biodef: 'biodef', diplomacy: 'diplo', bci: 'BCI', oversight: 'oversight', transparency: 'transparency', internal: 'hidden AI',
+  capUS: 'US cap', capCN: 'CN cap', align: 'align', openCap: 'open cap', bio: 'bio readiness', coord: 'coord', conc: 'power conc', trust: 'trust', cnMult: 'CN speed' };
+const GOOD_UP = new Set(['safety', 'biodef', 'diplomacy', 'oversight', 'transparency', 'align', 'bio', 'coord', 'trust']);
+const BAD_UP = new Set(['conc', 'openCap', 'capCN', 'cnMult', 'race', 'internal']);
+function chips(ch) {
+  const out = [];
+  const add = (k, v, isLev) => {
+    if (!v) return;
+    const up = v > 0;
+    const good = GOOD_UP.has(k) ? up : BAD_UP.has(k) ? !up : null;
+    const color = good === null ? 'var(--muted)' : good ? 'var(--good)' : 'var(--bad)';
+    const mag = isLev ? (Math.abs(v) >= 0.25 ? '▲▲' : '▲') : (Math.abs(v) >= 8 ? '▲▲' : '▲');
+    out.push(`<span class="chip" style="color:${color}">${!isLev && k === 'bci' ? 'BCI users' : SHORT[k]} ${up ? mag : mag.replace(/▲/g, '▼')}</span>`);
+  };
+  for (const k in ch.lev || {}) add(k, ch.lev[k], true);
+  for (const k in ch.st || {}) add(k, ch.st[k], false);
+  return out.join('');
+}
+
+// Projected risk one year out if this choice were made (expected-value step,
+// no noise), compared against making no change.
+function project(ch) {
+  const s = structuredClone({ ...game.s, log: [] }), L = { ...game.L };
+  if (ch) E.applyChoice(s, L, ch);
+  M.step(s, L, () => 0.5, false);
+  return M.risks(s, L);
+}
+function preview(ch) { return { now: project(ch), base: project(null) }; }
+
+function choose(ch) {
+  if (game.phase !== 'choose') return;
+  game.phase = 'rolling';
+  document.body.classList.remove('deciding');
+  game.before = { ...game.s };
+  game.lastChoice = ch.label;
+  E.applyChoice(game.s, game.L, ch);
+  game.decisions.push({ year: game.s.year, title: game.card.title, label: ch.label });
+  syncTarget(game.s, game.L);
+  renderAll();
+  rollYear();
+}
+
+function rollYear() {
+  const s = game.s, L = game.L, year = s.year;
+  const r = M.risks(s, L);
+  $('choices').style.display = 'none';
+  const roll = $('roll'); roll.classList.add('on');
+  const lanes = [['Pandemic', r.bio], ['Loss of control', r.misalign], ['Great-power war', r.war]];
+  roll.innerHTML = lanes.map(([n, p], i) => `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${Math.max(p * 100 * 4, p > 0 ? 0.6 : 0)}%"></div><div class="needle" id="nd${i}"></div></div></div>`).join('') +
+    `<div class="note">Zones drawn at 4× scale so small risks are visible.</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
+  const res = M.step(s, L, yearRng(2), true);
+  const t0 = performance.now();
+  const wiggle = () => {
+    const el = performance.now() - t0;
+    for (let i = 0; i < 3; i++) {
+      const n = $('nd' + i); if (!n) return;
+      const settle = Math.min(1, el / 1300);
+      const hit = res.event && ['bio', 'misalign', 'war'][i] === res.event;
+      const zone = lanes[i][1] * 400;
+      const final = hit ? zone * 0.5 : Math.min(97, Math.max(zone + 4, 30 + i * 22));
+      const x = settle < 1 ? (Math.sin(el / 60 + i * 2) * 0.5 + 0.5) * 100 * (1 - settle) + final * settle : final;
+      n.style.left = Math.min(99, x) + '%';
+    }
+    if (el < 1300) requestAnimationFrame(wiggle);
+  };
+  wiggle();
+  setTimeout(() => {
+    syncTarget(s, L);
+    renderAll();
+    const verdict = res.event
+      ? `<span style="color:${M.OUTCOMES[res.event].color}">${M.OUTCOMES[res.event].title}</span>`
+      : `<span style="color:var(--good)">${year} passes without catastrophe.</span>${s.dealCollapsed === year ? '<div class="youchose" style="color:var(--bad)">The US–China deal collapsed this year. The race is back on.</div>' : ''}`;
+    if (res.event) { vis.outcome = res.event; vis.outT = 0; }
+    game.phase = res.event ? 'ended' : 'result';
+    renderTimeline(); renderHistory();
+    $('verdict').innerHTML = `${verdict}<div class="youchose">You chose: ${game.lastChoice}</div>${yearChanges(game.before, s)}
+      <button class="btn next" id="nextBtn">${res.event ? 'See the ending →' : `Continue to ${s.year} →`}</button>`;
+    $('nextBtn').onclick = advance;
+    $('nextBtn').focus({ preventScroll: true });
+  }, 1450);
+}
+
+// Leave the result screen: next year's card, or the ending.
+function advance() {
+  if (game.phase === 'result') nextCard();
+  else if (game.phase === 'ended') { game.phase = 'over'; $('card').classList.add('hidden'); showEnding(); }
+}
+
+// The biggest stat changes over the year just played (choice + one year of dynamics).
+function yearChanges(a, b) {
+  const rows = Object.keys(M.STAT_INFO)
+    .map((k) => [k, b[k] - a[k]])
+    .filter(([, d]) => Math.abs(d) >= 1)
+    .sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]))
+    .slice(0, 6);
+  if (!rows.length) return '';
+  const BAD = new Set(['capCN', 'openCap', 'conc', 'internal']);
+  const NAME = { capUS: 'US capability', capCN: 'China capability', align: 'Alignment', openCap: 'Open models', bio: 'Biodefense',
+    coord: 'Coordination', bci: 'Neural interfaces', conc: 'Power concentration', trust: 'Public trust', internal: 'Hidden internal AI' };
+  return '<div class="chips changes">' + rows.map(([k, d]) => {
+    const good = k === 'capUS' || k === 'bci' ? null : BAD.has(k) ? d < 0 : d > 0;
+    const color = good === null ? 'var(--muted)' : good ? 'var(--good)' : 'var(--bad)';
+    return `<span class="chip" style="color:${color}">${NAME[k]} ${d > 0 ? '+' : ''}${Math.round(d)}</span>`;
+  }).join('') + '</div>';
+}
+
+function showEnding() {
+  const s = game.s, o = M.OUTCOMES[s.outcome];
+  const good = ['flourish', 'pause'].includes(s.outcome);
+  $('endKicker').textContent = `${s.year} · ${good ? 'You made it' : s.outcome === 'muddle' ? 'Unresolved' : s.outcome === 'lockin' ? 'Survived, but…' : 'Catastrophe'}`;
+  $('endTitle').textContent = o.title;
+  $('endTitle').style.color = o.color;
+  $('endText').textContent = o.text;
+  $('endDecisions').innerHTML = decisionItems();
+  const mc = M.monteCarlo(game.L, 1500, 0, Date.now() % 100000);
+  const w = s.world;
+  $('endWorld').innerHTML = `<b>The hidden world, revealed:</b> AGI ${w.safe ? '<span style="color:var(--good)">was safe by default</span>' : '<span style="color:var(--bad)">was not safe by default</span>'} (you'd been told ${pct(w.pSafe, 0)} odds) · alignment was <b>${w.difficulty.toFixed(2)}×</b> as hard as baseline · whistleblower odds <b>${pct(w.whistle, 0)}</b>.`;
+  $('endMC').innerHTML = `<p class="mcline">If the whole decade had run under your <i>final</i> policy settings, 1,500 simulated futures would end like this:</p>` + mcBar(mc);
+  $('ending').classList.remove('hidden');
+}
+
+function mcBar(mc) {
+  const segs = Object.keys(M.OUTCOMES).filter((k) => mc.counts[k]).map((k) => `<div title="${M.OUTCOMES[k].title}" style="width:${mc.counts[k] / mc.n * 100}%;background:${M.OUTCOMES[k].color}"></div>`).join('');
+  const legend = Object.keys(M.OUTCOMES).filter((k) => mc.counts[k] / mc.n >= 0.005).map((k) => `<span style="color:${M.OUTCOMES[k].color}">● ${M.OUTCOMES[k].title} ${pct(mc.counts[k] / mc.n, 0)}</span>`).join(' &nbsp; ');
+  return `<div class="mcbars">${segs}</div><div class="note">${legend}</div>`;
+}
+
+/* ---------- campaign HUD ---------- */
+function renderAll() { renderTimeline(); renderStats(); renderRisks(); renderLevers(); renderHistory(); }
+
+function decisionItems() {
+  return game.decisions.map((d, i) => `<li><b>${d.year}</b>${d.title}: ${d.label}
+    <button class="rewind" data-rewind="${i}" title="Go back to ${d.year} and choose again">change</button></li>`).join('');
+}
+function renderHistory() {
+  $('history').innerHTML = game.decisions.length ? decisionItems() : '<li class="empty">Your choices will appear here.</li>';
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-rewind]');
+  if (b) rewind(+b.dataset.rewind);
+});
+
+function renderTimeline() {
+  const el = $('timeline');
+  let html = '';
+  for (let y = M.START_YEAR; y <= M.END_YEAR; y++) {
+    let cls = y < game.s.year ? 'past' : y === game.s.year ? 'now' : '';
+    let style = '';
+    if (game.s.outcome && y === game.s.year) { cls = 'end'; style = `style="--endc:${M.OUTCOMES[game.s.outcome].color}"`; }
+    const i = game.decisions.findIndex((d) => d.year === y);
+    html += i >= 0 && game.phase !== 'rolling'
+      ? `<button class="yr ${cls}" ${style} data-rewind="${i}" title="Change your ${y} decision">${y}</button>`
+      : `<div class="yr ${cls}" ${style}>${y}</div>`;
+  }
+  el.innerHTML = html;
+}
+
+function renderStats() {
+  const s = game.s;
+  $('stats').innerHTML = Object.entries(M.STAT_INFO).map(([k, info]) =>
+    `<div class="stat" title="${info.label}"><div class="row"><span>${info.label}</span><span>${Math.round(s[k])}</span></div><div class="bar"><i style="width:${s[k]}%;background:${info.color}"></i></div></div>`
+  ).join('') + `<div class="note" style="margin-top:10px">Gap between capability and alignment: <b style="color:${M.maxCap(s) - s.align > 30 ? 'var(--bad)' : 'var(--good)'}">${Math.round(M.maxCap(s) - s.align)}</b>. Capability 70 is an Automated Coder, 90 dominates top experts, 100 is superintelligence.${M.dealActive(s, game.L) ? ' <b style="color:var(--accent)">A verified US–China deal is holding frontier capability at top-expert level (78).</b>' : ''}${s.dealCollapsed ? ` <b style="color:var(--bad)">The US–China deal collapsed in ${s.dealCollapsed}.</b>` : ''}</div>`;
+}
+
+function renderRisks(prev) {
+  const s = game.s, r = M.risks(s, game.L);
+  const why = {
+    bio: `Open-model capability ${Math.round(s.openCap)} (danger zone ≈ 60+), biodefense ${Math.round(s.bio)}.`,
+    misalign: `Capability ${Math.round(M.maxCap(s))} vs alignment ${Math.round(s.align)}. Hidden internal AI ${Math.round(s.internal)} raises it. Includes a ${pct(s.world.pSafe, 0)} chance AGI is safe by default.`,
+    war: `Coordination ${Math.round(s.coord)}; the race is ${Math.abs(s.capUS - s.capCN) < 8 ? 'neck and neck' : 'lopsided'}.`,
+  };
+  const rows = [['bio', 'Engineered pandemic', '#7cff6b'], ['misalign', 'Loss of control', '#ff3b5c'], ['war', 'Great-power war', '#ff8a3d']];
+  $('risks').innerHTML = rows.map(([k, name, c]) => {
+    let d = '';
+    if (prev) {
+      const dv = prev.now[k] - prev.base[k];
+      if (Math.abs(dv) >= 0.0005) d = `<span class="delta ${dv > 0 ? 'up' : 'down'}">${dv > 0 ? '▲' : '▼'}${(Math.abs(dv) * 100).toFixed(1)}</span>`;
+    }
+    return `<div class="risk"><div class="row"><span style="color:${c}">${name}</span><span><span class="pct">${pct(prev ? prev.now[k] : r[k])}</span>${d}</span></div><div class="why">${why[k]}</div></div>`;
+  }).join('');
+  $('riskSub').textContent = prev ? 'Projected risk next year with this choice (▲▼ vs. changing nothing).' : 'Hover a choice to preview where it leads.';
+  $('survival').textContent = pct(s.survival, 1);
+  $('survival').style.color = s.survival > 0.75 ? 'var(--good)' : s.survival > 0.45 ? 'var(--warn)' : 'var(--bad)';
+}
+
+function renderLevers() {
+  $('levers').innerHTML = Object.entries(M.LEVER_INFO).map(([k, info]) =>
+    `<div class="lever" title="${info.low} → ${info.high}"><span>${info.label}</span><div class="bar"><i style="width:${game.L[k] * 100}%;background:var(--accent)"></i></div></div>`
+  ).join('');
+}
+
+/* =====================================================================
+ * Futures Lab
+ * ===================================================================== */
+const P = (o) => ({ ...M.defaultLevers(), ...o });
+const PRESETS = {
+  'Status quo': P({}),
+  'AI 2040 Plan A': P({ race: 0.35, safety: 0.08, openness: 0.15, transparency: 0.9, biodef: 0.5, diplomacy: 0.85, oversight: 0.7 }),
+  'Race to ASI': P({ race: 1, safety: 0.025, openness: 0.4, transparency: 0.05, biodef: 0.1, diplomacy: 0.05, oversight: 0 }),
+  'Burn the lead': P({ race: 0.8, safety: 0.14, transparency: 0.15, diplomacy: 0.1, oversight: 0.3 }),
+  'Open everything': P({ race: 0.6, safety: 0.04, openness: 1, transparency: 0.6, biodef: 0.05, diplomacy: 0.3 }),
+  'Open + biodefense': P({ race: 0.6, safety: 0.05, openness: 1, transparency: 0.6, biodef: 0.8, diplomacy: 0.3, oversight: 0.2 }),
+  'IAEA for AI': P({ race: 0.5, safety: 0.07, biodef: 0.3, diplomacy: 0.4, oversight: 0.9 }),
+  'Global pause': P({ race: 0.05, safety: 0.13, openness: 0.2, biodef: 0.5, diplomacy: 1, oversight: 0.7 }),
+  'Neuralink bet': P({ race: 0.6, bci: 1 }),
+  'BCI-first': P({ race: 0.25, safety: 0.1, bci: 1, transparency: 0.5, diplomacy: 0.5, oversight: 0.4 }),
+  'All compute on safety': P({ safety: 1 }),
+};
+const labL = M.defaultLevers();
+function buildLabUI() {
+  $('presets').innerHTML = Object.keys(PRESETS).map((n) => `<button data-p="${n}">${n}</button>`).join('');
+  $('presets').onclick = (e) => { const p = e.target.dataset.p; if (!p) return; Object.assign(labL, PRESETS[p]); syncSliders(); runLab(); };
+  $('sliders').innerHTML = Object.entries(M.LEVER_INFO).map(([k, info]) =>
+    `<div class="slider"><div class="row"><span>${info.label}</span><span id="sv-${k}"></span></div><input type="range" min="0" max="100" id="sl-${k}" aria-label="${info.label}"><div class="ends"><span>${info.low}</span><span>${info.high}</span></div></div>`
+  ).join('');
+  let timer;
+  for (const k in M.LEVER_INFO) $('sl-' + k).addEventListener('input', (e) => {
+    labL[k] = e.target.value / 100; $('sv-' + k).textContent = leverText(k, labL[k]);
+    clearTimeout(timer); timer = setTimeout(runLab, 120);
+  });
+  syncSliders();
+}
+const labA = M.defaultAssumptions();
+const fmtA = (k, v) => M.ASSUMPTION_INFO[k].fmt === 'pct' ? Math.round(v * 100) + '%' : v.toFixed(2) + '×';
+function buildAssumptionUI() {
+  $('assumptions').innerHTML = Object.entries(M.ASSUMPTION_INFO).map(([k, info]) =>
+    `<div class="slider" title="${info.help}"><div class="row"><span>${info.label}</span><span id="av-${k}"></span></div>
+      <div class="pair"><label>center<input type="range" id="am-${k}" min="${info.min}" max="${info.max}" step="0.01" aria-label="${info.label} center"></label>
+      <label>± spread<input type="range" id="as-${k}" min="0" max="${(info.max - info.min) / 3}" step="0.01" aria-label="${info.label} spread"></label></div>
+      <div class="note">${info.help}</div></div>`
+  ).join('');
+  let timer;
+  for (const k in M.ASSUMPTION_INFO) for (const [pre, field] of [['am-', 'mean'], ['as-', 'sd']]) {
+    $(pre + k).addEventListener('input', (e) => {
+      labA[k][field] = +e.target.value; syncAssumptions(false);
+      clearTimeout(timer); timer = setTimeout(runLab, 120);
+    });
+  }
+  syncAssumptions(true);
+}
+function syncAssumptions(setInputs) {
+  for (const k in M.ASSUMPTION_INFO) {
+    if (setInputs) { $('am-' + k).value = labA[k].mean; $('as-' + k).value = labA[k].sd; }
+    $('av-' + k).textContent = `${fmtA(k, labA[k].mean)} ± ${fmtA(k, labA[k].sd)}`;
+  }
+}
+const leverText = (k, v) => Math.round(v * 100) + (M.LEVER_INFO[k].pct ? '%' : '');
+function syncSliders() { for (const k in M.LEVER_INFO) { $('sl-' + k).value = Math.round(labL[k] * 100); $('sv-' + k).textContent = leverText(k, labL[k]); } }
+
+function runLab() {
+  const mc = M.monteCarlo(labL, 2000, 260, 42, labA);
+  const order = Object.keys(M.OUTCOMES).sort((a, b) => mc.counts[b] - mc.counts[a]);
+  $('outcomes').innerHTML = order.map((k) => {
+    const p = mc.counts[k] / mc.n, o = M.OUTCOMES[k];
+    return `<div class="orow" title="${o.text}"><span class="dot" style="background:${o.color}"></span><span>${o.title}</span><span class="v">${pct(p)}</span><div class="bar"><i style="width:${p * 100}%;background:${o.color}"></i></div></div>`;
+  }).join('');
+  const cat = (mc.counts.bio + mc.counts.misalign + mc.counts.war) / mc.n;
+  $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, 0)}</b> of futures · outcome reached after ${mc.meanYears.toFixed(1)} years on average`;
+  buildFan(mc.paths);
+}
+
+/* =====================================================================
+ * Mode switching & wiring
+ * ===================================================================== */
+let mode = 'campaign';
+function setMode(m) {
+  mode = m;
+  document.body.classList.remove('mode-campaign', 'mode-lab', 'deciding');
+  document.body.classList.add('mode-' + m);
+  if (m === 'campaign' && game && game.phase === 'choose') document.body.classList.add('deciding');
+  document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.mode === m));
+  world.visible = m === 'campaign';
+  fan.visible = m === 'lab';
+  // Pull the camera back on portrait screens so the scene fits.
+  const fit = camera.aspect < 1 ? 0.75 / camera.aspect : 1;
+  if (m === 'lab') {
+    camera.position.set(5, 7, 21).multiplyScalar(fit); controls.target.set(1, 3, 0); controls.autoRotate = false;
+    scene.fog.density = 0.004; bloom.strength = 0.4;
+    runLab();
+  } else {
+    camera.position.set(0, 6, 22).multiplyScalar(fit); controls.target.set(0, 0, 0); controls.autoRotate = true;
+    scene.fog.density = 0.012; bloom.strength = 0.95;
+  }
+}
+function closeIntro() { $('intro').classList.add('hidden'); document.body.classList.remove('intro'); }
+document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => { closeIntro(); if (b.dataset.mode === 'campaign' && !game) newGame(); setMode(b.dataset.mode); }));
+$('startBtn').onclick = () => { closeIntro(); setMode('campaign'); newGame(); };
+$('labBtn').onclick = () => { closeIntro(); setMode('lab'); };
+$('againBtn').onclick = () => { setMode('campaign'); newGame(); };
+$('toLabBtn').onclick = () => { $('ending').classList.add('hidden'); Object.assign(labL, game.L); syncSliders(); setMode('lab'); };
+$('viewBtn').onclick = () => $('ending').classList.add('hidden');
+$('modelBtn').onclick = () => $('modelInfo').classList.remove('hidden');
+$('statsToggle').onclick = () => document.body.classList.toggle('compact-open');
+document.querySelectorAll('[data-close]').forEach((b) => b.onclick = () => $(b.dataset.close).classList.add('hidden'));
+document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m && m.id !== 'intro') m.classList.add('hidden'); }));
+addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { $('modelInfo').classList.add('hidden'); }
+  if (mode === 'campaign' && game && ['result', 'ended'].includes(game.phase) && ['Enter', ' ', 'ArrowRight'].includes(e.key)) {
+    e.preventDefault(); advance(); return;
+  }
+  if (mode === 'campaign' && game && game.phase === 'choose' && ['1', '2', '3'].includes(e.key)) {
+    const ch = game.card.choices[+e.key - 1]; if (ch) choose(ch);
+  }
+});
+
+buildLabUI();
+buildAssumptionUI();
+document.body.classList.add('intro');
+setMode('campaign');
+syncTarget(M.initialState(), M.defaultLevers()); // idle world behind the intro
+Object.assign(vis, target);
+animate();
+</script>
+</body>
+</html>
