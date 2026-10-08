@@ -18,6 +18,10 @@ calibrates its timelines and plan outcomes to [AI 2040: Plan A](https://ai-2040.
 
 ## Two modes
 
+- **Futures Lab** (opens first). Set eight policy levers and four uncertain
+  assumptions (mean ± spread, as in the original), run 2,000 Monte Carlo futures,
+  and see every trajectory as a 3D fan, colored by how it ends. Hover a line to
+  read its values; click an outcome to read it and isolate its futures.
 - **Campaign (2027–2040).** Each year you get a decision card. Hover a choice to
   see how it shifts next year's projected risk, then the dice roll against
   three catastrophes: an engineered pandemic, loss of control, and great-power war.
@@ -27,9 +31,6 @@ calibrates its timelines and plan outcomes to [AI 2040: Plan A](https://ai-2040.
   - open-weights copies swarm in orbit
   - the alignment shield thickens, or cracks red when capability outruns it
   - a neural-interface lattice spreads as BCIs are adopted
-- **Futures Lab.** Set eight policy levers and four uncertain assumptions
-  (mean ± spread, as in the original), run 2,000 Monte Carlo futures, and see
-  every trajectory as a 3D fan, colored by how it ends.
 
 ## Files
 

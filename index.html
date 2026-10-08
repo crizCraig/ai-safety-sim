@@ -119,6 +119,10 @@
   .presets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
   .presets button { background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 7px; font-size: 11px; padding: 4px 8px; color: var(--muted); }
   .presets button:hover { color: var(--text); border-color: var(--accent); }
+  button.orow { background: none; border: 1px solid transparent; border-radius: 8px; padding: 4px 6px; margin: 0 -6px 4px; width: calc(100% + 12px); text-align: left; font: inherit; font-size: 12.5px; color: inherit; cursor: pointer; }
+  button.orow:hover, button.orow:focus-visible { border-color: var(--line); background: rgba(255,255,255,0.03); outline: none; }
+  button.orow.open { border-color: var(--line); background: rgba(255,255,255,0.05); }
+  .orow .odesc { grid-column: 1 / 4; font-size: 11.5px; line-height: 1.45; color: #c3cee0; margin-top: 2px; }
   .orow { display: grid; grid-template-columns: 12px 1fr 52px; gap: 8px; align-items: center; font-size: 12.5px; margin-bottom: 8px; }
   .orow .dot { width: 10px; height: 10px; border-radius: 50%; }
   .orow .bar { grid-column: 2 / 4; height: 6px; margin-top: -4px; }
@@ -207,14 +211,14 @@
 <script src="events.js"></script>
 <script src="landmask.js"></script>
 </head>
-<body class="mode-campaign">
+<body class="mode-lab">
 <canvas id="gl"></canvas>
 
 <div id="top">
   <div class="brand">GAME OF AGI<small>an AI safety simulator</small></div>
   <div class="tabs">
-    <button data-mode="campaign" class="on">Campaign</button>
-    <button data-mode="lab">Futures Lab</button>
+    <button data-mode="lab" class="on">Futures Lab</button>
+    <button data-mode="campaign">Campaign</button>
   </div>
   <div id="timeline" class="campaign-only"></div>
   <button class="iconbtn" id="statsToggle" style="display:none">Stats</button>
@@ -262,7 +266,7 @@
     <div class="sub" id="labSub"></div>
     <div id="outcomes"></div>
     <div class="divider"></div>
-    <p class="note">Each line in the 3D view is one simulated future, 2027 → its outcome. Height is frontier capability; depth is the alignment margin (alignment minus capability). Futures that end in catastrophe fall to the floor in the year it strikes; dots mark where each future ends. Hover or tap a line to read its values.</p>
+    <p class="note">Each line in the 3D view is one simulated future, 2027 → its outcome. Height is frontier capability; depth is alignment minus capability (positive means alignment is ahead). Futures that end in catastrophe fall to the floor in the year it strikes; dots mark where each future ends. Hover or tap a line to read its values.</p>
   </div>
 </div>
 
@@ -275,13 +279,13 @@
   <div class="roll" id="roll"></div>
 </div>
 
-<div id="axisHelp" class="lab-only">Drag to orbit · scroll to zoom · <span style="color:#fff">x</span> = year · <span style="color:#fff">y</span> = capability · <span style="color:#fff">z</span> = alignment margin</div>
+<div id="axisHelp" class="lab-only">Drag to orbit · scroll to zoom · <span style="color:#fff">x</span> = year · <span style="color:#fff">y</span> = capability · <span style="color:#fff">z</span> = alignment − capability</div>
 
 <div id="labels"></div>
 <div id="fanTip" class="lab-only" role="status" hidden></div>
 
 <!-- Intro -->
-<div class="modal" id="intro">
+<div class="modal hidden" id="intro">
   <div class="box">
     <div class="kicker">2027 · The decade that decides</div>
     <h1>GAME OF AGI</h1>
@@ -291,7 +295,7 @@
     <p class="disclaimer">This is a toy model built to make trade-offs tangible, not a forecast. Every probability comes from transparent, adjustable assumptions (see "How the model works"). Reasonable experts disagree about nearly all of them.</p>
     <div class="btnrow">
       <button class="btn" id="startBtn">Begin in 2027</button>
-      <button class="btn ghost" id="labBtn">Open the Futures Lab</button>
+      <button class="btn ghost" id="labBtn">Back to the Futures Lab</button>
     </div>
   </div>
 </div>
@@ -626,7 +630,7 @@ canvas.addEventListener('pointerleave', () => { hoverEvt = null; setHover(null);
 canvas.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') hoverEvt = e; });
 
 function setHover(hit) {
-  if (hovered && (!hit || hit.line !== hovered)) hovered.material.opacity = 0.32;
+  if (hovered && (!hit || hit.line !== hovered)) hovered.material.opacity = lineOpacity(hovered);
   hovered = hit ? hit.line : null;
   $('fanTip').hidden = !hit;
   hoverDot.visible = !!hit;
@@ -640,7 +644,7 @@ function setHover(hit) {
   $('fanTip').innerHTML = `<div class="tip-year">${q.year}</div>
     <div class="tip-row"><span>x · year</span><b>${q.year}</b></div>
     <div class="tip-row"><span>y · capability</span><b>${Math.round(q.cap)}</b></div>
-    <div class="tip-row"><span>z · alignment margin</span><b style="color:${margin >= 0 ? 'var(--good)' : 'var(--bad)'}">${margin > 0 ? '+' : ''}${margin}</b></div>
+    <div class="tip-row"><span>z · alignment − capability</span><b style="color:${margin >= 0 ? 'var(--good)' : 'var(--bad)'}">${margin > 0 ? '+' : ''}${margin}</b></div>
     <div class="tip-row"><span>alignment</span><b>${Math.round(q.align)}</b></div>
     <div class="tip-row"><span>coordination</span><b>${Math.round(q.coord)}</b></div>
     <div class="tip-end" style="color:${o.color}">Ends ${end.year}: ${o.title}</div>
@@ -656,7 +660,7 @@ function updateHover() {
   if (e.target !== canvas) return;
   pointer.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   raycaster.setFromCamera(pointer, camera);
-  const hits = raycaster.intersectObjects(fanLines.children, false);
+  const hits = raycaster.intersectObjects(fanLines.children.filter((l) => !labFocus || l.userData.path.outcome === labFocus), false);
   if (!hits.length) return setHover(null);
   const line = hits[0].object, pt = hits[0].point;
   let best = null, bd = Infinity;
@@ -1146,16 +1150,39 @@ function syncAssumptions(setInputs) {
 const leverText = (k, v) => Math.round(v * 100) + (M.LEVER_INFO[k].pct ? '%' : '');
 function syncSliders() { for (const k in M.LEVER_INFO) { $('sl-' + k).value = Math.round(labL[k] * 100); $('sv-' + k).textContent = leverText(k, labL[k]); } }
 
+// Clicking an outcome shows its description and isolates its futures in 3D.
+let labFocus = null, lastMC = null;
+$('outcomes').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-outcome]'); if (!b) return;
+  labFocus = labFocus === b.dataset.outcome ? null : b.dataset.outcome;
+  if (lastMC) renderOutcomeRows(lastMC);
+  applyFocus();
+});
+const lineOpacity = (line) => !labFocus ? 0.32 : line.userData.path.outcome === labFocus ? 0.7 : 0.03;
+function applyFocus() {
+  for (const line of fanLines.children) {
+    line.material.opacity = lineOpacity(line);
+    line.userData.end.material.transparent = true;
+    line.userData.end.material.opacity = !labFocus || line.userData.path.outcome === labFocus ? 1 : 0.08;
+  }
+}
+
 function runLab() {
   const mc = M.monteCarlo(labL, 2000, 260, 42, labA);
+  lastMC = mc;
+  renderOutcomeRows(mc);
+  const cat = (mc.counts.bio + mc.counts.misalign + mc.counts.war) / mc.n;
+  $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, 0)}</b> of futures · outcome reached after ${mc.meanYears.toFixed(1)} years on average · click an outcome to isolate it`;
+  buildFan(mc.paths);
+  applyFocus();
+}
+
+function renderOutcomeRows(mc) {
   const order = Object.keys(M.OUTCOMES).sort((a, b) => mc.counts[b] - mc.counts[a]);
   $('outcomes').innerHTML = order.map((k) => {
-    const p = mc.counts[k] / mc.n, o = M.OUTCOMES[k];
-    return `<div class="orow" title="${o.text}"><span class="dot" style="background:${o.color}"></span><span>${o.title}</span><span class="v">${pct(p)}</span><div class="bar"><i style="width:${p * 100}%;background:${o.color}"></i></div></div>`;
+    const p = mc.counts[k] / mc.n, o = M.OUTCOMES[k], open = labFocus === k;
+    return `<button class="orow${open ? ' open' : ''}" data-outcome="${k}" aria-expanded="${open}"><span class="dot" style="background:${o.color}"></span><span>${o.title}</span><span class="v">${pct(p)}</span><span class="bar"><i style="width:${p * 100}%;background:${o.color}"></i></span>${open ? `<span class="odesc">${o.text}</span>` : ''}</button>`;
   }).join('');
-  const cat = (mc.counts.bio + mc.counts.misalign + mc.counts.war) / mc.n;
-  $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, 0)}</b> of futures · outcome reached after ${mc.meanYears.toFixed(1)} years on average`;
-  buildFan(mc.paths);
 }
 
 /* =====================================================================
@@ -1182,7 +1209,13 @@ function setMode(m) {
   }
 }
 function closeIntro() { $('intro').classList.add('hidden'); document.body.classList.remove('intro'); }
-document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => { closeIntro(); if (b.dataset.mode === 'campaign' && !game) newGame(); setMode(b.dataset.mode); }));
+// The first visit to the campaign shows its intro over a clear, prominent globe.
+function openIntro() { document.body.classList.add('intro'); $('intro').classList.remove('hidden'); }
+document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
+  const m = b.dataset.mode;
+  if (m === 'campaign' && !game) { setMode('campaign'); openIntro(); return; }
+  closeIntro(); setMode(m);
+}));
 $('startBtn').onclick = () => { closeIntro(); setMode('campaign'); newGame(); };
 $('labBtn').onclick = () => { closeIntro(); setMode('lab'); };
 $('againBtn').onclick = () => { setMode('campaign'); newGame(); };
@@ -1204,10 +1237,9 @@ addEventListener('keydown', (e) => {
 
 buildLabUI();
 buildAssumptionUI();
-document.body.classList.add('intro');
-setMode('campaign');
-syncTarget(M.initialState(), M.defaultLevers()); // idle world behind the intro
+syncTarget(M.initialState(), M.defaultLevers()); // idle world until a campaign starts
 Object.assign(vis, target);
+setMode('lab');
 animate();
 </script>
 </body>
