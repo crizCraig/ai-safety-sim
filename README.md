@@ -46,3 +46,7 @@ calibrates its timelines and plan outcomes to [AI 2040: Plan A](https://ai-2040.
 This is a toy model meant to make trade-offs tangible, not a forecast. Every
 parameter is an illustrative assumption you can read and change in `model.js`.
 The council, labs and companies in the game are fictional composites.
+
+## License
+
+MIT. The coastline data in `landmask.js` is derived from Natural Earth (public domain).
