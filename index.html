@@ -50,6 +50,8 @@
   #timeline .yr.now::before { background: var(--accent); box-shadow: 0 0 10px var(--accent); transform: scale(1.4); }
   #timeline .yr.end::before { background: var(--endc, var(--bad)); box-shadow: 0 0 12px var(--endc, var(--bad)); transform: scale(1.6); }
   #modelBtn { margin-left: auto; }
+  #modelBtn .short { display: none; }
+  body.mode-lab #statsToggle { display: none !important; }
   a.iconbtn { text-decoration: none; }
   .iconbtn { background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 6px 11px; font-size: 13px; color: var(--muted); backdrop-filter: blur(8px); }
   .iconbtn:hover { color: var(--text); }
@@ -193,15 +195,32 @@
     #statsToggle { display: inline-block !important; }
   }
   @media (max-width: 640px) {
-    #top { flex-wrap: wrap; gap: 8px; padding: 8px 16px; }
-    #timeline { order: 5; flex-basis: 100%; }
-    #timeline .yr { font-size: 0; }
+    /* Header: brand, tabs and About on one row; Stats + year dots on a second row in the campaign. */
+    #top { flex-wrap: wrap; gap: 8px 10px; padding: 10px 16px 8px; background: rgba(3,6,13,0.94); border-bottom: 1px solid var(--line); }
+    .brand { font-size: 13px; letter-spacing: 0.12em; }
     .brand small { display: none; }
-    body.mode-lab #left { left: 16px; right: 16px; width: auto; top: 96px; max-height: 42vh; }
-    body.mode-lab #right { top: auto; bottom: 16px; left: 16px; right: 16px; width: auto; max-height: 30vh; }
+    .tabs button { padding: 6px 10px; }
+    #modelBtn { padding: 6px 10px; }
+    #modelBtn .long, #builtLink { display: none !important; }
+    #modelBtn .short { display: inline; }
+    #statsToggle { order: 5; padding: 4px 10px; }
+    #timeline { order: 6; flex: 1; min-width: 0; }
+    #timeline .yr { font-size: 0; }
     #axisHelp { display: none !important; }
-    body.compact-open.mode-campaign #left, body.compact-open.mode-campaign #right { top: 96px; width: calc(100vw - 32px); left: 16px; right: 16px; max-height: 30vh; }
-    body.compact-open.mode-campaign #right { top: calc(96px + 31vh); }
+
+    /* Futures Lab: the 3D view fills the top half; results and controls scroll below it. */
+    body.mode-lab { overflow-y: auto; display: flex; flex-direction: column; }
+    body.mode-lab .panel { position: static; width: auto; max-height: none; overflow: visible; flex-shrink: 0; margin: 0 16px 16px; }
+    body.mode-lab #right { order: 1; margin-top: calc(50vh + 8px); }
+    body.mode-lab #left { order: 2; }
+
+    /* Campaign stats: a full scrolling sheet that stands in for the card. */
+    body.mode-campaign.compact-open { overflow-y: auto; display: flex; flex-direction: column; }
+    body.compact-open.mode-campaign #left, body.compact-open.mode-campaign #right { display: block; position: static; width: auto; max-height: none; overflow: visible; flex-shrink: 0; margin: 0 16px 16px; }
+    body.compact-open.mode-campaign #left { margin-top: 104px; }
+    body.compact-open #card { display: none !important; }
+    body.deciding #card { top: calc(50% + 40px); max-height: calc(100vh - 128px); }
+    #card { bottom: 12px; padding: 16px; }
     #card h2 { font-size: 18px; }
     #card p { font-size: 12.5px; }
     .modal h1 { font-size: 26px; }
@@ -229,7 +248,7 @@
   </div>
   <div id="timeline" class="campaign-only"></div>
   <button class="iconbtn" id="statsToggle" style="display:none">Stats</button>
-  <button class="iconbtn" id="modelBtn">How the model works</button>
+  <button class="iconbtn" id="modelBtn"><span class="long">How the model works</span><span class="short">About</span></button>
   <a class="iconbtn" id="builtLink" href="#" target="_blank" rel="noopener" hidden>How it was built ↗</a>
 </div>
 
@@ -680,7 +699,8 @@ function updateHover() {
   if (!fan.visible || !hoverEvt || fanAnim < 1) return;
   const e = hoverEvt; hoverEvt = null;
   if (e.target !== canvas) return;
-  pointer.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  const rect = canvas.getBoundingClientRect();
+  pointer.set((e.clientX - rect.left) / rect.width * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
   raycaster.setFromCamera(pointer, camera);
   const hits = raycaster.intersectObjects(fanLines.children.filter((l) => !labFocus || l.userData.path.outcome === labFocus), false);
   if (!hits.length) return setHover(null);
@@ -844,10 +864,14 @@ function updateLabels() {
   }
 }
 
-addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
-});
+// On phones the Lab renders into the top half of the screen; panels scroll below.
+function resizeView() {
+  const h = currentMode() === 'lab' && innerWidth <= 640 ? Math.round(innerHeight * 0.5) : innerHeight;
+  camera.aspect = innerWidth / h; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, h); composer.setSize(innerWidth, h);
+}
+const currentMode = () => (document.body.classList.contains('mode-lab') ? 'lab' : 'campaign');
+addEventListener('resize', resizeView);
 
 /* =====================================================================
  * Campaign
@@ -1210,7 +1234,7 @@ function renderOutcomeRows(mc) {
 /* =====================================================================
  * Memtree links and "Copy page"
  * ===================================================================== */
-const TREES = window.MEMTREES || [];
+const TREES = (window.MEMTREES || []).filter((t) => t.url);
 if (TREES.length) {
   $('builtLink').href = TREES[TREES.length - 1].url;
   $('builtLink').hidden = false;
@@ -1317,10 +1341,12 @@ function setMode(m) {
   document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.mode === m));
   world.visible = m === 'campaign';
   fan.visible = m === 'lab';
-  // Pull the camera back on portrait screens so the scene fits.
+  resizeView();
+  document.body.scrollTop = 0;
+  // Pull the camera back on narrow screens so the scene fits.
   const fit = camera.aspect < 1 ? 0.75 / camera.aspect : 1;
   if (m === 'lab') {
-    camera.position.set(5, 7, 21).multiplyScalar(fit); controls.target.set(1, 3, 0); controls.autoRotate = false;
+    camera.position.set(5, 7, 21).multiplyScalar(Math.max(1, 1.3 / camera.aspect)); controls.target.set(1, 3, 0); controls.autoRotate = false;
     scene.fog.density = 0.004; bloom.strength = 0.4;
     runLab();
   } else {
@@ -1342,7 +1368,11 @@ $('againBtn').onclick = () => { setMode('campaign'); newGame(); };
 $('toLabBtn').onclick = () => { $('ending').classList.add('hidden'); Object.assign(labL, game.L); syncSliders(); setMode('lab'); };
 $('viewBtn').onclick = () => $('ending').classList.add('hidden');
 $('modelBtn').onclick = () => $('modelInfo').classList.remove('hidden');
-$('statsToggle').onclick = () => document.body.classList.toggle('compact-open');
+$('statsToggle').onclick = () => {
+  const open = document.body.classList.toggle('compact-open');
+  $('statsToggle').textContent = open ? 'Back to decision' : 'Stats';
+  if (open) document.body.scrollTop = 0;
+};
 document.querySelectorAll('[data-close]').forEach((b) => b.onclick = () => $(b.dataset.close).classList.add('hidden'));
 document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m && m.id !== 'intro') m.classList.add('hidden'); }));
 addEventListener('keydown', (e) => {

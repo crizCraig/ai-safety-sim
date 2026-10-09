@@ -13,8 +13,10 @@ memtrees, and the page links them under "How it was built".
    AI 2040's p(alignment) medians (72%, 40%, 25%). Explain any drift in the commit message.
 2. Update `trees.js` with the **latest** tree of the current session. Trees are regenerated as
    a session grows, so the link from earlier in the session is stale. Get it with the memtree
-   `list` tool (project `ai-safety-sim`): use the session's "latest tree" URL. Update that
-   session's entry if it exists, otherwise append a new entry (newest last), and set `updated`
-   to today's date.
+   `list` tool (project `ai-safety-sim`) to find the session's latest tree, then use that
+   tree's **public share link**. The `app.polychat.co/usage/...` URL the tool prints needs
+   sign-in, so never put it in `trees.js`; leave `url: null` until a public link exists.
+   Update that session's entry if it exists, otherwise append a new entry (newest last), and
+   set `updated` to today's date.
 3. Scan for sensitive info before pushing: no local paths, emails, keys or tokens.
 4. Commit and push. Pages redeploys on its own.
