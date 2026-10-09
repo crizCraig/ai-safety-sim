@@ -19,4 +19,5 @@ memtrees, and the page links them under "How it was built".
    Update that session's entry if it exists, otherwise append a new entry (newest last), and
    set `updated` to today's date.
 3. Scan for sensitive info before pushing: no local paths, emails, keys or tokens.
-4. Commit and push. Pages redeploys on its own.
+4. `python3 scripts/stamp_version.py` so browsers fetch the new files instead of cached ones.
+5. Commit and push. Pages redeploys on its own.

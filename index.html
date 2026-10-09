@@ -124,7 +124,6 @@
   .pgroup { flex-basis: 100%; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 4px 0 1px; }
   .pgroup a, .plannote a { color: var(--accent); text-decoration: none; }
   .pgroup a:hover, .plannote a:hover { text-decoration: underline; }
-  .presets button[data-p="Safest mix"] { border-color: rgba(89,240,184,0.45); color: var(--good); }
   .presets button.plan { border-color: rgba(127,227,255,0.3); }
   .presets button.on { color: var(--text); border-color: var(--accent); background: rgba(127,227,255,0.12); }
   .plannote { flex-basis: 100%; font-size: 11.5px; line-height: 1.45; color: #c3cee0; background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-top: 4px; }
@@ -268,10 +267,10 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js"></script>
-<script src="events.js"></script>
-<script src="landmask.js"></script>
-<script src="trees.js"></script>
+<script src="model.js?v=20261009164651"></script>
+<script src="events.js?v=20261009164651"></script>
+<script src="landmask.js?v=20261009164651"></script>
+<script src="trees.js?v=20261009164651"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -367,7 +366,7 @@
     <h1>GAME OF AGI</h1>
     <p>You chair a newly formed council that steers frontier AI policy for the US-aligned bloc. Over the next 13 years, systems will likely become smarter than any human. Every year you face a decision about <b>racing China</b>, <b>releasing open weights</b>, <b>biodefense</b>, <b>neural interfaces</b> and <b>alignment</b>.</p>
     <p>Each year the dice are rolled against three catastrophes: an <span style="color:#7cff6b">engineered pandemic</span>, <span style="color:#ff3b5c">loss of control</span>, and <span style="color:#ff8a3d">great-power war</span>. Reach the superintelligence threshold with alignment ready, or reach 2040 on a careful path.</p>
-    <p>Some things nobody knows yet: how hard alignment really is (maybe easy enough to work out by default), and whether insiders would blow the whistle on a power grab. Each game draws them in secret. You find out at the end.</p>
+    <p>Some things nobody knows yet: how easy alignment really is (perhaps easy enough that fixing problems as they come up leads to long-term alignment), and whether insiders would blow the whistle on a power grab. Each game draws them in secret. You find out at the end.</p>
     <p class="disclaimer">This is a toy model built to make trade-offs tangible, not a forecast. Every probability comes from transparent, adjustable assumptions (see "How the model works"). Reasonable experts disagree about nearly all of them.</p>
     <div class="btnrow">
       <button class="btn" id="startBtn">Begin in 2027</button>
@@ -430,7 +429,7 @@
     <div class="tablewrap"><table>
       <thead><tr><th>Symbol</th><th>Lever</th><th>0 → 1</th><th>Default</th></tr></thead>
       <tbody>
-        <tr><td><span class="mi">r</span></td><td>Race intensity</td><td>pause → all-out sprint</td><td>0.55</td></tr>
+        <tr><td><span class="mi">r</span></td><td>Race intensity</td><td>pause → all-out sprint</td><td>0.70</td></tr>
         <tr><td><span class="mi">s</span></td><td>Safety share of AI compute and AI labor</td><td>0% → 100% (a unilateral pause)</td><td>0.05</td></tr>
         <tr><td><span class="mi">o</span></td><td>Open-weights releases</td><td>closed → release frontier weights</td><td>0.45</td></tr>
         <tr><td><span class="mi">\tau</span></td><td>Research transparency</td><td>secret labs → all research public</td><td>0.20</td></tr>
@@ -445,7 +444,7 @@
     <div class="tablewrap"><table>
       <thead><tr><th>Symbol</th><th>Meaning</th><th>Distribution</th></tr></thead>
       <tbody>
-        <tr><td><span class="mi">\delta</span></td><td>Alignment difficulty. Below 0.3× alignment is easy by default (about 14% of worlds): fixing problems as they come up is enough and loss of control cannot happen</td><td><span class="mi">\log_{10}\delta \sim \mathcal{N}(-0.1,\ 0.4)</span>, median 0.79× <span class="src a2040">AI 2040</span> (calibrated)</td></tr>
+        <tr><td><span class="mi">1/\delta</span></td><td>Ease of alignment; the equations use its inverse, difficulty <span class="mi">\delta</span>. Above 3.3× ease (<span class="mi">\delta \le 0.3</span>, about 14% of worlds) fixing safety problems as they come up leads to long-term alignment without a general solution, and loss of control cannot happen</td><td><span class="mi">\log_{10}(1/\delta) \sim \mathcal{N}(0.1,\ 0.4)</span>, median 1.26× <span class="src a2040">AI 2040</span> (calibrated)</td></tr>
         <tr><td><span class="mi">\varphi</span></td><td>AI progress speed</td><td><span class="mi">\mathcal{N}(1,\ 0.3)</span>, clipped to [0.3, 2.5] <span class="src a2040">AI 2040</span></td></tr>
         <tr><td><span class="mi">W</span></td><td>If humans lose control anyway, the AI still cares for humanity (1) or not (0). If 1, AI rather than humanity steers the future, but kindly</td><td><span class="mi">W \sim \text{Bernoulli}(w),\ w \sim \mathcal{N}(0.10,\ 0.08)</span> <span class="src own">Assumption</span></td></tr>
         <tr><td><span class="mi">\omega</span></td><td>Whistleblower odds</td><td><span class="mi">\mathcal{N}(0.25,\ 0.15)</span>, clipped to [0, 1] <span class="src own">Assumption</span></td></tr>
@@ -537,6 +536,8 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
+// Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
+const ASSET_VERSION = '20261009164651';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -873,7 +874,7 @@ function setHover(hit) {
     <div class="tip-row"><span>z · alignment</span><b>${Math.round(q.align)}</b></div>
     <div class="tip-row"><span>coordination</span><b>${Math.round(q.coord)}</b></div>
     <div class="tip-end" style="color:${o.color}">Ends ${end.year}: ${o.title}</div>
-    <div class="tip-world">Hidden world: alignment ${path.world.difficulty.toFixed(1)}× as hard${path.world.safe ? ' (easy by default)' : ''} · progress ${path.world.speed.toFixed(1)}× speed · bio risk ${pct(path.world.bioDecade, 2)}/decade</div>`;
+    <div class="tip-world">Hidden world: alignment ${(1 / path.world.difficulty).toFixed(1)}× as easy${path.world.safe ? ' (short-term fixes were enough)' : ''} · progress ${path.world.speed.toFixed(1)}× speed · bio risk ${pct(path.world.bioDecade, 2)}/decade</div>`;
   const tip = $('fanTip'), x = hit.x + 16, y = hit.y + 16;
   tip.style.left = Math.min(x, innerWidth - tip.offsetWidth - 16) + 'px';
   tip.style.top = Math.min(y, innerHeight - tip.offsetHeight - 16) + 'px';
@@ -1258,7 +1259,7 @@ function showEnding() {
   $('endDecisions').innerHTML = decisionItems();
   const mc = M.monteCarlo(game.L, 1500, 0, Date.now() % 100000);
   const w = s.world;
-  $('endWorld').innerHTML = `<b>The hidden world, revealed:</b> alignment was <b>${w.difficulty.toFixed(2)}×</b> as hard as baseline${w.safe ? ' (<span style="color:var(--good)">easy enough to work out by default</span>)' : ''}, against a ${pct(w.pSafe, 0)} chance of that · whistleblower odds <b>${pct(w.whistle, 0)}</b> · an uncontrolled AI ${w.benevolent ? '<span style="color:#ff9ecf">would have been benevolent</span>' : 'would not have been benevolent'} · open-weights bio risk <b>${pct(w.bioDecade, 2)}</b> per decade.`;
+  $('endWorld').innerHTML = `<b>The hidden world, revealed:</b> alignment was <b>${(1 / w.difficulty).toFixed(2)}×</b> as easy as baseline${w.safe ? ' (<span style="color:var(--good)">easy enough that short-term fixes led to long-term alignment</span>)' : ''}, against a ${pct(w.pSafe, 0)} chance of that · whistleblower odds <b>${pct(w.whistle, 0)}</b> · an uncontrolled AI ${w.benevolent ? '<span style="color:#ff9ecf">would have been benevolent</span>' : 'would not have been benevolent'} · open-weights bio risk <b>${pct(w.bioDecade, 2)}</b> per decade.`;
   $('endMC').innerHTML = `<p class="mcline">If the whole decade had run under your <i>final</i> policy settings, 1,500 simulated futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
 }
@@ -1310,7 +1311,7 @@ function renderRisks(prev) {
   const s = game.s, r = M.risks(s, game.L);
   const why = {
     bio: `Open-model capability ${Math.round(s.openCap)} (danger zone ≈ 60+), biodefense ${Math.round(s.bio)}.`,
-    misalign: `Capability ${Math.round(M.maxCap(s))} vs alignment ${Math.round(s.align)}. Hidden internal AI ${Math.round(s.internal)} raises it. Allows a ${pct(s.world.pSafe, 0)} chance alignment is easy by default.`,
+    misalign: `Capability ${Math.round(M.maxCap(s))} vs alignment ${Math.round(s.align)}. Hidden internal AI ${Math.round(s.internal)} raises it. Allows a ${pct(s.world.pSafe, 0)} chance that short-term fixes lead to long-term alignment.`,
     war: `Coordination ${Math.round(s.coord)}; the race is ${Math.abs(s.capUS - s.capCN) < 8 ? 'neck and neck' : 'lopsided'}.`,
   };
   const rows = [['bio', 'Engineered pandemic', '#7cff6b'], ['misalign', 'Loss of control', '#ff3b5c'], ['war', 'Great-power war', '#ff8a3d']];
@@ -1341,7 +1342,7 @@ const AI2040_PLANS = 'https://ai-2040.com/supplements/comparing-possible-plans';
 // Short descriptions for the non-AI-2040 presets.
 const PRESET_INFO = {
   'Safest mix': 'Every safety lever turned up together: a slow race, 74% of AI compute on safety, closed weights but all research public, heavy biodefense, a joint project with China, a BCI moonshot and an IAEA for AI. About 2% of futures end in catastrophe; most reach 2040 on the careful path.',
-  'Status quo': 'Today\'s trajectory: a moderately intense race, 5% of AI compute on safety, partly open weights and little diplomacy.',
+  'Status quo': 'Today\'s trajectory: an intense race, 5% of AI compute on safety, partly open weights and little diplomacy.',
   'Open everything': 'Release frontier weights and most research. Power spreads out, but capable models reach anyone, including would-be bioterrorists.',
   'Open + biodefense': 'Open everything, plus heavy investment in DNA synthesis screening, surveillance and stockpiles to offset the bio risk.',
   'IAEA for AI': 'An independent international agency inspects every frontier lab, publishes safety scores and protects whistleblowers.',
@@ -1381,12 +1382,7 @@ function buildLabUI() {
     <div class="plannote" id="planNote" hidden></div>`;
   $('presets').onclick = (e) => {
     const p = e.target.closest('[data-p]')?.dataset.p; if (!p) return;
-    Object.assign(labL, PRESETS[p]); syncSliders(); runLab();
-    $('presets').querySelectorAll('[data-p]').forEach((b) => b.classList.toggle('on', b.dataset.p === p));
-    const info = PLAN_INFO[p];
-    $('planNote').hidden = false;
-    if (!info) { $('planNote').textContent = PRESET_INFO[p] || ''; return; }
-    $('planNote').innerHTML = `${info.text} <span class="pn-src">AI 2040's median estimates: ${info.align ? `p(alignment) ${info.align}, p(great future) ${info.great}` : 'not given'}. These sliders are a fixed-lever approximation; AI 2040's plans change over time.</span> <a href="${AI2040_PLANS}" target="_blank" rel="noopener">Read the comparison ↗</a>`;
+    Object.assign(labL, PRESETS[p]); syncSliders(); runLab(); selectPreset(p);
   };
   $('sliders').innerHTML = Object.entries(M.LEVER_INFO).map(([k, info]) =>
     `<div class="slider"><div class="row"><span>${info.label}</span><span id="sv-${k}"></span></div><input type="range" min="0" max="100" id="sl-${k}" aria-label="${info.label}"><div class="ends"><span>${info.low}</span><span>${info.high}</span></div></div>`
@@ -1394,6 +1390,7 @@ function buildLabUI() {
   let timer;
   for (const k in M.LEVER_INFO) $('sl-' + k).addEventListener('input', (e) => {
     labL[k] = e.target.value / 100; $('sv-' + k).textContent = leverText(k, labL[k]);
+    selectPreset(null); // a hand-tuned mix is no longer the preset
     clearTimeout(timer); timer = setTimeout(runLab, 120);
   });
   syncSliders();
@@ -1429,6 +1426,16 @@ function syncAssumptions(setInputs) {
       : `${fmtA(k, labA[k].mean)} ± ${fmtA(k, labA[k].sd)}`;
   }
 }
+// Highlight a preset and show its description; null clears both.
+function selectPreset(p) {
+    $('presets').querySelectorAll('[data-p]').forEach((b) => b.classList.toggle('on', b.dataset.p === p));
+    const info = PLAN_INFO[p];
+    $('planNote').hidden = !p;
+    if (!p) return;
+    if (!info) { $('planNote').textContent = PRESET_INFO[p] || ''; return; }
+    $('planNote').innerHTML = `${info.text} <span class="pn-src">AI 2040's median estimates: ${info.align ? `p(alignment) ${info.align}, p(great future) ${info.great}` : 'not given'}. These sliders are a fixed-lever approximation; AI 2040's plans change over time.</span> <a href="${AI2040_PLANS}" target="_blank" rel="noopener">Read the comparison ↗</a>`;
+}
+
 const leverText = (k, v) => Math.round(v * 100) + (M.LEVER_INFO[k].pct ? '%' : '');
 function syncSliders() { for (const k in M.LEVER_INFO) { $('sl-' + k).value = Math.round(labL[k] * 100); $('sv-' + k).textContent = leverText(k, labL[k]); } }
 
@@ -1480,7 +1487,7 @@ if (TREES.length) {
 
 // Fetched up front so the copy happens synchronously inside the click.
 let modelSource = null;
-fetch('model.js').then((r) => (r.ok ? r.text() : null)).then((t) => { modelSource = t; }).catch(() => {});
+fetch('model.js?v=' + ASSET_VERSION).then((r) => (r.ok ? r.text() : null)).then((t) => { modelSource = t; }).catch(() => {});
 
 const SITE = 'https://agi.memtree.dev', REPO = 'https://github.com/crizCraig/ai-safety-sim';
 // The model reference as Markdown with LaTeX math, for Copy page.
@@ -1653,6 +1660,7 @@ buildAssumptionUI();
 syncTarget(M.initialState(), M.defaultLevers()); // idle world until a campaign starts
 Object.assign(vis, target);
 setMode('lab');
+selectPreset('Status quo');
 animate();
 </script>
 </body>

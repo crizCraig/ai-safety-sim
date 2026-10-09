@@ -18,7 +18,7 @@
   // Policy levers, each 0..1. The player sets these through decisions
   // (campaign) or sliders (Futures Lab).
   const LEVER_INFO = {
-    race:      { label: 'Race intensity',        low: 'Pause',        high: 'All-out sprint',  def: 0.55 },
+    race:      { label: 'Race intensity',        low: 'Pause',        high: 'All-out sprint',  def: 0.7 },
     safety:    { label: 'Safety share of AI compute', low: '0%', high: '100% (a pause)', def: 0.05, pct: true },
     openness:  { label: 'Open-weights releases', low: 'Closed weights', high: 'Release frontier', def: 0.45 },
     transparency: { label: 'Research transparency', low: 'Secret labs', high: 'All research public', def: 0.2 },
@@ -32,11 +32,10 @@
   // Hidden facts about the world nobody knows in advance. As in the original
   // Game of AGI, each simulated future samples them from Gaussians (mean ± sd).
   const ASSUMPTION_INFO = {
-    // Lognormal, set in log10 units: median 10^mean, spread ×10^sd. The easy tail
-    // (below 0.3×) is "aligned by default": fixing problems as they come up is
-    // enough, and loss of control cannot happen.
-    difficulty: { label: 'Alignment difficulty', mean: -0.1, sd: 0.4, min: -0.7, max: 0.6, fmt: 'logx',
-      help: 'How much research alignment really needs, relative to this model\'s baseline. 2× means progress comes at half the speed. Below 0.3× alignment works out by default; loss-of-control risk fades in between 0.3× and 0.8×.' },
+    // Ease of alignment = 1 / difficulty. Lognormal, set in log10 units: median
+    // 10^mean, spread ×10^sd. Calibrated to AI 2040's p(alignment) estimates.
+    ease: { label: 'Ease of alignment', mean: 0.1, sd: 0.4, min: -0.6, max: 0.7, fmt: 'logx',
+      help: 'How easy alignment turns out to be. Easy enough (above 3.3×), fixing safety problems as they come up leads to long-term alignment without a general solution, and loss of control cannot happen. At 1× alignment needs this model\'s baseline research; at 0.5× progress comes at half the speed.' },
     speed: { label: 'AI progress speed', mean: 1, sd: 0.3, min: 0.3, max: 2.5, fmt: 'x',
       help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2034.' },
     benevolent: { label: 'Kind even if uncontrolled', mean: 0.1, sd: 0.08, min: 0, max: 1, fmt: 'pct',
@@ -66,8 +65,9 @@
       const info = ASSUMPTION_INFO[k];
       return Math.max(info.min, Math.min(info.max, A[k].mean + A[k].sd * gauss(rng)));
     };
-    const difficulty = Math.min(5, Math.max(0.1, Math.pow(10, A.difficulty.mean + A.difficulty.sd * gauss(rng))));
-    const w = Object.assign({ difficulty, speed: draw('speed'), whistle: draw('whistle') }, difficultyWorld(difficulty, A.difficulty));
+    const dd = diffDistOf(A);
+    const difficulty = Math.min(5, Math.max(0.1, Math.pow(10, dd.mean + dd.sd * gauss(rng))));
+    const w = Object.assign({ difficulty, speed: draw('speed'), whistle: draw('whistle') }, difficultyWorld(difficulty, dd));
     const pBen = draw('benevolent');
     Object.assign(w, { pBenevolent: A.benevolent.mean, benevolent: rng() < pBen });
     // Bio: the decade risk is unclamped in log space (the tails are the point), capped below 1.
@@ -77,15 +77,17 @@
 
   function meanWorld() {
     const A = defaultAssumptions();
-    const d = Math.pow(10, A.difficulty.mean);
+    const dd = diffDistOf(A), d = Math.pow(10, dd.mean);
     return Object.assign({ difficulty: d, speed: A.speed.mean, whistle: A.whistle.mean,
-      pBenevolent: A.benevolent.mean, benevolent: false }, difficultyWorld(d, A.difficulty),
+      pBenevolent: A.benevolent.mean, benevolent: false }, difficultyWorld(d, dd),
       bioWorld(Math.pow(10, A.bioDecade.mean), A.bioDecade));
   }
 
   // Loss-of-control exposure from alignment difficulty: none below 0.3× (aligned
   // by default), full above 0.8×. `hazardBelief` and `pSafe` are expectations
   // over the difficulty distribution, used for what players are shown.
+  // Internally the model works with difficulty δ = 1 / ease (log10 δ = -log10 ease).
+  const diffDistOf = (A) => ({ mean: -A.ease.mean, sd: A.ease.sd });
   const lossHazard = (d) => clamp((d - 0.3) / 0.5, 0, 1);
   const DIFF_Z = Array.from({ length: 41 }, (_, i) => -4 + i * 0.2);
   const zWeight = (z) => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI) * 0.2;
