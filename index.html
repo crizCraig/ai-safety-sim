@@ -732,15 +732,20 @@ fan.visible = false;
 scene.add(fan);
 const fanLines = new THREE.Group(); fan.add(fanLines);
 {
-  const grid = new THREE.GridHelper(16, 16, 0x2a3f66, 0x16213a);
-  grid.position.y = 0; fan.add(grid);
+  // Floor grid matching the data box exactly: years x ∈ [-8, 8], alignment z ∈ [-6, 6].
+  {
+    const pts = [];
+    for (let x = -8; x <= 8; x++) pts.push(new THREE.Vector3(x, 0, -6), new THREE.Vector3(x, 0, 6));
+    for (let z = -6; z <= 6; z++) pts.push(new THREE.Vector3(-8, 0, z), new THREE.Vector3(8, 0, z));
+    fan.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x1c2a48 })));
+  }
   const axMat = new THREE.LineBasicMaterial({ color: 0x4b6a9a });
   const ax = (a, b) => fan.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), axMat));
   // All three axes start at one origin: 2027, capability 0, alignment 0 (front-left corner).
-  ax(new THREE.Vector3(-8, 0, 6), new THREE.Vector3(8.5, 0, 6));
+  ax(new THREE.Vector3(-8, 0, 6), new THREE.Vector3(8, 0, 6));
   ax(new THREE.Vector3(-8, 0, 6), new THREE.Vector3(-8, 8, 6));
   // Alignment runs along the right (2040) edge, nearest the starting camera.
-  ax(new THREE.Vector3(8.5, 0, 6), new THREE.Vector3(8.5, 0, -6.5));
+  ax(new THREE.Vector3(8, 0, 6), new THREE.Vector3(8, 0, -6));
   // The "superintelligence" ceiling
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.04, side: THREE.DoubleSide, depthWrite: false }));
   ceil.rotation.x = Math.PI / 2; ceil.position.y = 7; fan.add(ceil);
@@ -773,7 +778,7 @@ const fanLines = new THREE.Group(); fan.add(fanLines);
     new THREE.LineDashedMaterial({ color: 0x7fe3ff, dashSize: 0.3, gapSize: 0.25, transparent: true, opacity: 0.5 }));
   acLine.computeLineDistances(); fan.add(acLine);
   lbl('automated coder', new THREE.Vector3(6.5, 5.25, -6), '#7fe3ff');
-  axisTag('alignment', new THREE.Vector3(6.6, 0.5, 4.2), new THREE.Vector3(0, 0, -1));
+  axisTag('alignment', new THREE.Vector3(6.4, 0.5, 4.2), new THREE.Vector3(0, 0, -1));
 }
 const fanX = (y) => -8 + (y - M.START_YEAR) / (M.END_YEAR - M.START_YEAR) * 16;
 const fanY = (c) => c / 100 * 7;
