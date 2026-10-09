@@ -49,7 +49,7 @@
   #timeline .yr.now { color: var(--text); }
   #timeline .yr.now::before { background: var(--accent); box-shadow: 0 0 10px var(--accent); transform: scale(1.4); }
   #timeline .yr.end::before { background: var(--endc, var(--bad)); box-shadow: 0 0 12px var(--endc, var(--bad)); transform: scale(1.6); }
-  #modelBtn { margin-left: auto; }
+  #ghLink { margin-left: auto; }
   #modelBtn .short { display: none; }
   body.mode-lab #statsToggle { display: none !important; }
   a.iconbtn { text-decoration: none; }
@@ -226,7 +226,7 @@
     .brand small { display: none; }
     .tabs button { padding: 6px 10px; }
     #modelBtn { padding: 6px 10px; }
-    #modelBtn .long, #builtLink { display: none !important; }
+    #modelBtn .long, #builtLink, #ghLink { display: none !important; }
     #modelBtn .short { display: inline; }
     #statsToggle { order: 5; padding: 4px 10px; }
     #timeline { order: 6; flex: 1; min-width: 0; }
@@ -279,6 +279,7 @@
   </div>
   <div id="timeline" class="campaign-only"></div>
   <button class="iconbtn" id="statsToggle" style="display:none">Stats</button>
+  <a class="iconbtn" id="ghLink" href="https://github.com/crizCraig/ai-safety-sim" target="_blank" rel="noopener" title="Source code on GitHub">GitHub ↗</a>
   <button class="iconbtn" id="modelBtn"><span class="long">How the model works</span><span class="short">About</span></button>
   <a class="iconbtn" id="builtLink" href="#" target="_blank" rel="noopener" hidden>How it was built ↗</a>
 </div>
@@ -361,7 +362,7 @@
     <h1>GAME OF AGI</h1>
     <p>You chair a newly formed council that steers frontier AI policy for the US-aligned bloc. Over the next 13 years, systems will likely become smarter than any human. Every year you face a decision about <b>racing China</b>, <b>releasing open weights</b>, <b>biodefense</b>, <b>neural interfaces</b> and <b>alignment</b>.</p>
     <p>Each year the dice are rolled against three catastrophes: an <span style="color:#7cff6b">engineered pandemic</span>, <span style="color:#ff3b5c">loss of control</span>, and <span style="color:#ff8a3d">great-power war</span>. Reach the superintelligence threshold with alignment ready, or reach 2040 on a careful path.</p>
-    <p>Some things nobody knows yet: whether AI turns out <b>aligned by default</b>, how hard alignment really is, and whether insiders would blow the whistle on a power grab. Each game draws them in secret. You find out at the end.</p>
+    <p>Some things nobody knows yet: how hard alignment really is (maybe easy enough to work out by default), and whether insiders would blow the whistle on a power grab. Each game draws them in secret. You find out at the end.</p>
     <p class="disclaimer">This is a toy model built to make trade-offs tangible, not a forecast. Every probability comes from transparent, adjustable assumptions (see "How the model works"). Reasonable experts disagree about nearly all of them.</p>
     <div class="btnrow">
       <button class="btn" id="startBtn">Begin in 2027</button>
@@ -439,8 +440,7 @@
     <div class="tablewrap"><table>
       <thead><tr><th>Symbol</th><th>Meaning</th><th>Distribution</th></tr></thead>
       <tbody>
-        <tr><td><span class="mi">S</span></td><td>Alignment is easy by default (1) or not (0). If 1, AI turns out aligned without a general solution and humans keep control: loss of control cannot happen</td><td><span class="mi">S \sim \text{Bernoulli}(p),\ p \sim \mathcal{N}(0.15,\ 0.10)</span> <span class="src own">Assumption</span></td></tr>
-        <tr><td><span class="mi">\delta</span></td><td>Alignment difficulty</td><td><span class="mi">\mathcal{N}(1,\ 0.5)</span>, clipped to [0.3, 2.5] <span class="src a2040">AI 2040</span> (spread calibrated)</td></tr>
+        <tr><td><span class="mi">\delta</span></td><td>Alignment difficulty. Below 0.3× alignment is easy by default (about 14% of worlds): fixing problems as they come up is enough and loss of control cannot happen</td><td><span class="mi">\log_{10}\delta \sim \mathcal{N}(-0.1,\ 0.4)</span>, median 0.79× <span class="src a2040">AI 2040</span> (calibrated)</td></tr>
         <tr><td><span class="mi">\varphi</span></td><td>AI progress speed</td><td><span class="mi">\mathcal{N}(1,\ 0.3)</span>, clipped to [0.3, 2.5] <span class="src a2040">AI 2040</span></td></tr>
         <tr><td><span class="mi">W</span></td><td>If humans lose control anyway, the AI still cares for humanity (1) or not (0). If 1, AI rather than humanity steers the future, but kindly</td><td><span class="mi">W \sim \text{Bernoulli}(w),\ w \sim \mathcal{N}(0.10,\ 0.08)</span> <span class="src own">Assumption</span></td></tr>
         <tr><td><span class="mi">\omega</span></td><td>Whistleblower odds</td><td><span class="mi">\mathcal{N}(0.25,\ 0.15)</span>, clipped to [0, 1] <span class="src own">Assumption</span></td></tr>
@@ -455,9 +455,9 @@
     <div class="math">k = \frac{-\ln\left(1-R_{\text{bio}}\right)}{G_{\text{ref}}}, \qquad G_{\text{ref}} = \sum_{t=2027}^{2036} g_t^{\text{default path}} \approx 3.32</div>
     <p>The first term in <span class="mi">g</span> is uplift from open weights, which dominates once open models pass expert level; the second is a small leakage from closed models. The scale <span class="mi">k</span> makes the default path reproduce the drawn decade risk exactly, and policy moves risk through <span class="mi">g</span>. <span class="src biodec">Bio decomposition</span> The thresholds and the leakage weight are <span class="src own">Assumption</span>. The risk panel shows the expectation over <span class="mi">R_{\text{bio}}</span>, about 57 times the median because rare bad worlds dominate it.</p>
     <p><b>Loss of control:</b></p>
-    <div class="math">P_{\text{loc}} = (1-S)\cdot\min\Big(0.6,\ 0.3\,\sigma\big(\tfrac{C-\hat{A}-36}{6}\big)\,\sigma\big(\tfrac{C-78}{4}\big)\Big(0.4+0.9\,\tfrac{H}{100}\Big)\Big)</div>
+    <div class="math">P_{\text{loc}} = h(\delta)\cdot\min\Big(0.6,\ 0.3\,\sigma\big(\tfrac{C-\hat{A}-36}{6}\big)\,\sigma\big(\tfrac{C-78}{4}\big)\Big(0.4+0.9\,\tfrac{H}{100}\Big)\Big), \qquad h(\delta) = \operatorname{clamp}\Big(\tfrac{\delta-0.3}{0.5}\Big)</div>
     <div class="math">\hat{A} = \begin{cases} A & C_{\text{US}} \ge C_{\text{CN}} \\ A\cdot\min\big(1,\ 0.55+0.45\,\tfrac{K}{100}+0.3\,\tau\big) & \text{otherwise} \end{cases}</div>
-    <p>Risk grows once capability passes top-expert level and outruns alignment. Hidden internal AI amplifies it, since AI 2040 argues most takeover risk comes from models run inside labs <span class="src a2040">AI 2040</span>. When control is lost, the future ends as a Benevolent Takeover if <span class="mi">W = 1</span> and as Loss of Control otherwise. <span class="mi">\hat{A}</span> is effective alignment: if China leads, its lab uses US-bloc alignment work only as far as coordination and published research allow. Coefficients are <span class="src own">Assumption</span>.</p>
+    <p>Risk grows once capability passes top-expert level and outruns alignment. It is zero in worlds where alignment is easy by default (<span class="mi">\delta \le 0.3</span>) and fades in up to <span class="mi">\delta = 0.8</span>. Hidden internal AI amplifies it, since AI 2040 argues most takeover risk comes from models run inside labs <span class="src a2040">AI 2040</span>. When control is lost, the future ends as a Benevolent Takeover if <span class="mi">W = 1</span> and as Loss of Control otherwise. <span class="mi">\hat{A}</span> is effective alignment: if China leads, its lab uses US-bloc alignment work only as far as coordination and published research allow. Coefficients are <span class="src own">Assumption</span>.</p>
     <p><b>Great-power war:</b></p>
     <div class="math">P_{\text{war}} = \Big[0.055\Big(1-\tfrac{K}{100}\Big)^{2}(0.3+0.7\,q)(1+1.5\,g) + 0.07\,g\,(0.4+0.6\,z)\Big]\,\sigma\big(\tfrac{C-60}{8}\big)</div>
     <div class="math">q = \operatorname{clamp}\Big(1-\tfrac{|C_{\text{US}}-C_{\text{CN}}|}{25}\Big), \qquad z = \operatorname{clamp}\Big(\tfrac{C_{\text{US}}-C_{\text{CN}}}{20}\Big)</div>
@@ -465,7 +465,7 @@
 
     <h3>4. Endings</h3>
     <p><b>Superintelligence handoff.</b> When <span class="mi">C</span> reaches 100:</p>
-    <div class="math">\Pr(\text{handoff goes well}) = \begin{cases} 1 & S = 1 \\ \sigma\big(\tfrac{\hat{A}-\beta}{6}\big) & S = 0 \end{cases}, \qquad \beta = 45 + 32\,\delta + 0.2\,(H-30) - 10\,\tfrac{N}{100}</div>
+    <div class="math">\Pr(\text{handoff goes well}) = \begin{cases} 1 & \delta \le 0.3 \\ \sigma\big(\tfrac{\hat{A}-\beta}{6}\big) & \text{otherwise} \end{cases}, \qquad \beta = 45 + 32\,\delta + 0.2\,(H-30) - 10\,\tfrac{N}{100}</div>
     <p>The bar <span class="mi">\beta</span> rises with hidden difficulty and with hidden internal AI, and falls when BCIs let humans check AI reasoning directly. A failed handoff is loss of control, which ends as a Benevolent Takeover if <span class="mi">W = 1</span>. A successful one ends in lock-in with probability</p>
     <div class="math">P_{\text{lock}} = \sigma\big(\tfrac{P-64}{6}\big)\,(1-0.6\,v)\,(1-\omega)\,(1-0.6\,\rho), \qquad \rho = \max\Big(\operatorname{clamp}\big(1-\tfrac{|C_{\text{US}}-C_{\text{CN}}|}{15}\big),\ \operatorname{clamp}\big(\tfrac{O-80}{20}\big),\ 0.85\,\tau\Big)</div>
     <p>and otherwise in an Aligned Transition. Plurality <span class="mi">\rho</span> is high when a rival can replicate AGI before takeoff completes, open weights are near the frontier, or research is public so many labs can follow (the last from <span class="src a2040">AI 2040</span>). <b>In 2040</b>, a future that has not ended becomes Locked-In Power if <span class="mi">T &lt; 45</span> and a lock-in roll succeeds, The Careful Path if <span class="mi">A \ge C</span> and <span class="mi">K &gt; 55</span>, and Muddling Through otherwise.</p>
@@ -499,10 +499,10 @@
       <tbody>
         <tr><td>Automated Coder, default path</td><td>~2030 (AI 2040 median)</td><td>2030 (median)</td></tr>
         <tr><td>Superintelligence after Automated Coder</td><td>~1 year (AI 2040)</td><td>1–2 years</td></tr>
-        <tr><td>p(alignment), race to superintelligence</td><td>25% (AI 2040 median)</td><td>17%</td></tr>
-        <tr><td>p(alignment), Plan B: fight China</td><td>50% (AI 2040 median)</td><td>49%</td></tr>
-        <tr><td>p(alignment), burn the lead</td><td>40% (AI 2040 median)</td><td>40%</td></tr>
-        <tr><td>p(alignment), Plan A</td><td>72% (AI 2040 median)</td><td>81%</td></tr>
+        <tr><td>p(alignment), race to superintelligence</td><td>25% (AI 2040 median)</td><td>15%</td></tr>
+        <tr><td>p(alignment), Plan B: fight China</td><td>50% (AI 2040 median)</td><td>50%</td></tr>
+        <tr><td>p(alignment), burn the lead</td><td>40% (AI 2040 median)</td><td>44%</td></tr>
+        <tr><td>p(alignment), Plan A</td><td>72% (AI 2040 median)</td><td>72%</td></tr>
         <tr><td>Bio decade risk, default path: median</td><td>1.2e-4</td><td>1.2e-4</td></tr>
         <tr><td>Bio decade risk: 95% interval</td><td>5e-7 to 3e-2</td><td>5.1e-7 to 2.9e-2</td></tr>
         <tr><td>Bio decade risk: P(&gt; 1%), P(&gt; 10%)</td><td>0.055, 0.007</td><td>0.054, 0.009</td></tr>
@@ -513,7 +513,8 @@
     <h3>7. What it leaves out</h3>
     <p>Covert projects and cheating on the deal (beyond a flat collapse rate), cyberattacks, countries other than the two blocs, misuse beyond bio, conflict between AGIs, anything after 2040, plans that change over time in the Futures Lab, and whether capability can really be put on one axis at all. Treat it as an argument you can poke at, not an oracle.</p>
 
-    <h3 class="no-copy">How it was built</h3>
+    <h3 class="no-copy">Source and how it was built</h3>
+    <p class="no-copy">The code is open source on <a href="https://github.com/crizCraig/ai-safety-sim" target="_blank" rel="noopener">GitHub</a> (MIT license).</p>
     <p class="no-copy">This game was built in conversation with Claude Code. Each session's full history is browsable as a memtree:</p>
     <ol class="treelist no-copy" id="treeList"></ol>
     <p class="note">This version extends the original <a href="https://gist.github.com/crizCraig/f4c583f0ca535ce5565f3aa66353cf99" target="_blank" rel="noopener">Game of AGI</a>, a Monte Carlo of AGI risk driven by safe-by-default odds, safety spending, oversight, the number of labs that originate AGI, whistleblowers, and takeoff vs. replication time.</p>
@@ -867,7 +868,7 @@ function setHover(hit) {
     <div class="tip-row"><span>z · alignment</span><b>${Math.round(q.align)}</b></div>
     <div class="tip-row"><span>coordination</span><b>${Math.round(q.coord)}</b></div>
     <div class="tip-end" style="color:${o.color}">Ends ${end.year}: ${o.title}</div>
-    <div class="tip-world">Hidden world: ${path.world.safe ? 'aligned by default' : 'not aligned by default'} · alignment ${path.world.difficulty.toFixed(1)}× as hard · progress ${path.world.speed.toFixed(1)}× speed · bio risk ${pct(path.world.bioDecade, 2)}/decade</div>`;
+    <div class="tip-world">Hidden world: alignment ${path.world.difficulty.toFixed(1)}× as hard${path.world.safe ? ' (easy by default)' : ''} · progress ${path.world.speed.toFixed(1)}× speed · bio risk ${pct(path.world.bioDecade, 2)}/decade</div>`;
   const tip = $('fanTip'), x = hit.x + 16, y = hit.y + 16;
   tip.style.left = Math.min(x, innerWidth - tip.offsetWidth - 16) + 'px';
   tip.style.top = Math.min(y, innerHeight - tip.offsetHeight - 16) + 'px';
@@ -1245,7 +1246,7 @@ function showEnding() {
   $('endDecisions').innerHTML = decisionItems();
   const mc = M.monteCarlo(game.L, 1500, 0, Date.now() % 100000);
   const w = s.world;
-  $('endWorld').innerHTML = `<b>The hidden world, revealed:</b> AGI ${w.safe ? '<span style="color:var(--good)">was aligned by default</span>' : '<span style="color:var(--bad)">was not aligned by default</span>'} (you'd been told ${pct(w.pSafe, 0)} odds) · alignment was <b>${w.difficulty.toFixed(2)}×</b> as hard as baseline · whistleblower odds <b>${pct(w.whistle, 0)}</b> · an uncontrolled AI ${w.benevolent ? '<span style="color:#ff9ecf">would have been benevolent</span>' : 'would not have been benevolent'} · open-weights bio risk <b>${pct(w.bioDecade, 2)}</b> per decade.`;
+  $('endWorld').innerHTML = `<b>The hidden world, revealed:</b> alignment was <b>${w.difficulty.toFixed(2)}×</b> as hard as baseline${w.safe ? ' (<span style="color:var(--good)">easy enough to work out by default</span>)' : ''}, against a ${pct(w.pSafe, 0)} chance of that · whistleblower odds <b>${pct(w.whistle, 0)}</b> · an uncontrolled AI ${w.benevolent ? '<span style="color:#ff9ecf">would have been benevolent</span>' : 'would not have been benevolent'} · open-weights bio risk <b>${pct(w.bioDecade, 2)}</b> per decade.`;
   $('endMC').innerHTML = `<p class="mcline">If the whole decade had run under your <i>final</i> policy settings, 1,500 simulated futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
 }
@@ -1297,7 +1298,7 @@ function renderRisks(prev) {
   const s = game.s, r = M.risks(s, game.L);
   const why = {
     bio: `Open-model capability ${Math.round(s.openCap)} (danger zone ≈ 60+), biodefense ${Math.round(s.bio)}.`,
-    misalign: `Capability ${Math.round(M.maxCap(s))} vs alignment ${Math.round(s.align)}. Hidden internal AI ${Math.round(s.internal)} raises it. Includes a ${pct(s.world.pSafe, 0)} chance AGI is aligned by default.`,
+    misalign: `Capability ${Math.round(M.maxCap(s))} vs alignment ${Math.round(s.align)}. Hidden internal AI ${Math.round(s.internal)} raises it. Allows a ${pct(s.world.pSafe, 0)} chance alignment is easy by default.`,
     war: `Coordination ${Math.round(s.coord)}; the race is ${Math.abs(s.capUS - s.capCN) < 8 ? 'neck and neck' : 'lopsided'}.`,
   };
   const rows = [['bio', 'Engineered pandemic', '#7cff6b'], ['misalign', 'Loss of control', '#ff3b5c'], ['war', 'Great-power war', '#ff8a3d']];
@@ -1325,6 +1326,16 @@ function renderLevers() {
  * ===================================================================== */
 const P = (o) => ({ ...M.defaultLevers(), ...o });
 const AI2040_PLANS = 'https://ai-2040.com/supplements/comparing-possible-plans';
+// Short descriptions for the non-AI-2040 presets.
+const PRESET_INFO = {
+  'Status quo': 'Today\'s trajectory: a moderately intense race, 5% of AI compute on safety, partly open weights and little diplomacy.',
+  'Open everything': 'Release frontier weights and most research. Power spreads out, but capable models reach anyone, including would-be bioterrorists.',
+  'Open + biodefense': 'Open everything, plus heavy investment in DNA synthesis screening, surveillance and stockpiles to offset the bio risk.',
+  'IAEA for AI': 'An independent international agency inspects every frontier lab, publishes safety scores and protects whistleblowers.',
+  'Neuralink bet': 'Keep racing, and push brain-computer interfaces hard so humans can keep up with AI and oversee it.',
+  'BCI-first': 'Slow the AI race and point AI at neurotech, so augmented humans are ready to oversee AI before it gets much stronger.',
+  'All compute on safety': 'The US bloc spends 100% of AI compute on safety, a unilateral pause. China only partly slows down in response.',
+};
 const PLAN_INFO = {
   'Plan A: Verified slowdown': { align: '72%', great: '42%', text: 'A verified US–China deal slows frontier AI, makes all research public and lets many labs keep up, pausing at top-expert level until 2040.' },
   'Plan B: Fight China': { align: '50%', great: '25%', text: 'Sabotage China\'s AI program (cyber or kinetic) to win a lead, then burn that lead on safety. Nationalization concentrates power.' },
@@ -1359,8 +1370,9 @@ function buildLabUI() {
     Object.assign(labL, PRESETS[p]); syncSliders(); runLab();
     $('presets').querySelectorAll('[data-p]').forEach((b) => b.classList.toggle('on', b.dataset.p === p));
     const info = PLAN_INFO[p];
-    $('planNote').hidden = !info;
-    if (info) $('planNote').innerHTML = `${info.text} <span class="pn-src">AI 2040's median estimates: ${info.align ? `p(alignment) ${info.align}, p(great future) ${info.great}` : 'not given'}. These sliders are a fixed-lever approximation; AI 2040's plans change over time.</span> <a href="${AI2040_PLANS}" target="_blank" rel="noopener">Read the comparison ↗</a>`;
+    $('planNote').hidden = false;
+    if (!info) { $('planNote').textContent = PRESET_INFO[p] || ''; return; }
+    $('planNote').innerHTML = `${info.text} <span class="pn-src">AI 2040's median estimates: ${info.align ? `p(alignment) ${info.align}, p(great future) ${info.great}` : 'not given'}. These sliders are a fixed-lever approximation; AI 2040's plans change over time.</span> <a href="${AI2040_PLANS}" target="_blank" rel="noopener">Read the comparison ↗</a>`;
   };
   $('sliders').innerHTML = Object.entries(M.LEVER_INFO).map(([k, info]) =>
     `<div class="slider"><div class="row"><span>${info.label}</span><span id="sv-${k}"></span></div><input type="range" min="0" max="100" id="sl-${k}" aria-label="${info.label}"><div class="ends"><span>${info.low}</span><span>${info.high}</span></div></div>`
@@ -1376,6 +1388,7 @@ const labA = M.defaultAssumptions();
 const fmtA = (k, v, isSd = false) => {
   const f = M.ASSUMPTION_INFO[k].fmt;
   if (f === 'log') return isSd ? '×' + Math.round(Math.pow(10, v)) : pct(Math.pow(10, v), 2);
+  if (f === 'logx') return isSd ? '×' + Math.pow(10, v).toFixed(1) : Math.pow(10, v).toFixed(2) + '×';
   return f === 'pct' ? Math.round(v * 100) + '%' : v.toFixed(2) + '×';
 };
 function buildAssumptionUI() {
@@ -1397,7 +1410,7 @@ function buildAssumptionUI() {
 function syncAssumptions(setInputs) {
   for (const k in M.ASSUMPTION_INFO) {
     if (setInputs) { $('am-' + k).value = labA[k].mean; $('as-' + k).value = labA[k].sd; }
-    $('av-' + k).textContent = M.ASSUMPTION_INFO[k].fmt === 'log'
+    $('av-' + k).textContent = M.ASSUMPTION_INFO[k].fmt.startsWith('log')
       ? `${fmtA(k, labA[k].mean)} (${fmtA(k, labA[k].sd, true)} spread)`
       : `${fmtA(k, labA[k].mean)} ± ${fmtA(k, labA[k].sd)}`;
   }
@@ -1506,7 +1519,7 @@ Quote the model code when it matters. Treat every number as an assumption of thi
 |---|---|---|
 ${levers}
 
-## Hidden unknowns (each future draws these from a normal distribution; bio risk is lognormal)
+## Hidden unknowns (each future draws these from a normal distribution; alignment difficulty and bio risk are lognormal, set in log10 units)
 
 | Unknown | Mean | Spread (sd) | Meaning |
 |---|---|---|---|

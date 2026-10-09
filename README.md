@@ -25,7 +25,7 @@ has presets for all five plans in AI 2040's [plan comparison](https://ai-2040.co
 
 ## Two modes
 
-- **Futures Lab** (opens first). Set nine policy levers and six uncertain
+- **Futures Lab** (opens first). Set nine policy levers and five uncertain
   assumptions (mean ± spread, as in the original), run 2,000 Monte Carlo futures,
   and see every trajectory as a 3D fan, colored by how it ends. Hover a line to
   read its values; click an outcome to read it and isolate its futures.

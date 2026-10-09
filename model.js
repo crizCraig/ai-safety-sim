@@ -32,10 +32,11 @@
   // Hidden facts about the world nobody knows in advance. As in the original
   // Game of AGI, each simulated future samples them from Gaussians (mean ± sd).
   const ASSUMPTION_INFO = {
-    safeByDefault: { label: 'Alignment easy by default', mean: 0.15, sd: 0.1, min: 0, max: 1, fmt: 'pct',
-      help: 'Chance AI turns out aligned without a general solution, because fixing problems as they come up is enough. Humans keep control, so loss of control cannot happen.' },
-    difficulty: { label: 'Alignment difficulty', mean: 1, sd: 0.5, min: 0.3, max: 2.5, fmt: 'x',
-      help: 'How much research alignment really needs, relative to this model\'s baseline. 2× means progress comes at half the speed.' },
+    // Lognormal, set in log10 units: median 10^mean, spread ×10^sd. The easy tail
+    // (below 0.3×) is "aligned by default": fixing problems as they come up is
+    // enough, and loss of control cannot happen.
+    difficulty: { label: 'Alignment difficulty', mean: -0.1, sd: 0.4, min: -0.7, max: 0.6, fmt: 'logx',
+      help: 'How much research alignment really needs, relative to this model\'s baseline. 2× means progress comes at half the speed. Below 0.3× alignment works out by default; loss-of-control risk fades in between 0.3× and 0.8×.' },
     speed: { label: 'AI progress speed', mean: 1, sd: 0.3, min: 0.3, max: 2.5, fmt: 'x',
       help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2034.' },
     benevolent: { label: 'Kind even if uncontrolled', mean: 0.1, sd: 0.08, min: 0, max: 1, fmt: 'pct',
@@ -65,8 +66,8 @@
       const info = ASSUMPTION_INFO[k];
       return Math.max(info.min, Math.min(info.max, A[k].mean + A[k].sd * gauss(rng)));
     };
-    const pSafe = draw('safeByDefault');
-    const w = { pSafe: A.safeByDefault.mean, safe: rng() < pSafe, difficulty: draw('difficulty'), speed: draw('speed'), whistle: draw('whistle') };
+    const difficulty = Math.min(5, Math.max(0.1, Math.pow(10, A.difficulty.mean + A.difficulty.sd * gauss(rng))));
+    const w = Object.assign({ difficulty, speed: draw('speed'), whistle: draw('whistle') }, difficultyWorld(difficulty, A.difficulty));
     const pBen = draw('benevolent');
     Object.assign(w, { pBenevolent: A.benevolent.mean, benevolent: rng() < pBen });
     // Bio: the decade risk is unclamped in log space (the tails are the point), capped below 1.
@@ -76,9 +77,26 @@
 
   function meanWorld() {
     const A = defaultAssumptions();
-    return Object.assign({ pSafe: A.safeByDefault.mean, safe: false, difficulty: A.difficulty.mean, speed: A.speed.mean, whistle: A.whistle.mean,
-      pBenevolent: A.benevolent.mean, benevolent: false },
+    const d = Math.pow(10, A.difficulty.mean);
+    return Object.assign({ difficulty: d, speed: A.speed.mean, whistle: A.whistle.mean,
+      pBenevolent: A.benevolent.mean, benevolent: false }, difficultyWorld(d, A.difficulty),
       bioWorld(Math.pow(10, A.bioDecade.mean), A.bioDecade));
+  }
+
+  // Loss-of-control exposure from alignment difficulty: none below 0.3× (aligned
+  // by default), full above 0.8×. `hazardBelief` and `pSafe` are expectations
+  // over the difficulty distribution, used for what players are shown.
+  const lossHazard = (d) => clamp((d - 0.3) / 0.5, 0, 1);
+  const DIFF_Z = Array.from({ length: 41 }, (_, i) => -4 + i * 0.2);
+  const zWeight = (z) => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI) * 0.2;
+  function difficultyWorld(d, dist) {
+    let hb = 0, ps = 0;
+    for (const z of DIFF_Z) {
+      const dz = Math.pow(10, dist.mean + dist.sd * z);
+      hb += zWeight(z) * lossHazard(dz);
+      ps += zWeight(z) * (dz <= 0.3 ? 1 : 0);
+    }
+    return { hazard: lossHazard(d), safe: d <= 0.3, hazardBelief: hb, pSafe: ps, diffDist: { mean: dist.mean, sd: dist.sd } };
   }
 
   // Turn a decade bio risk into a hazard scale. On the reference path (default
@@ -109,7 +127,7 @@
   let BIO_REF = null;
   function bioRefExposure() {
     if (BIO_REF !== null) return BIO_REF;
-    const s = initialState({ pSafe: 0, safe: true, difficulty: 1, speed: 1, whistle: 0, bioScale: 0, bioBelief: 0 });
+    const s = initialState({ pSafe: 0, safe: true, hazard: 0, hazardBelief: 0, diffDist: { mean: 0, sd: 0 }, difficulty: 1, speed: 1, whistle: 0, bioScale: 0, bioBelief: 0 });
     const L = defaultLevers(), still = () => 0.5;
     let sum = 0;
     for (let y = 0; y < 10; y++) { sum += bioShape(s); step(s, L, still, false); }
@@ -202,12 +220,13 @@
 
     // Loss of control: grows when capability outruns alignment near the top.
     const gap = mc - effAlign(s);
-    // Shown as an expectation over whether AGI is safe by default; the roll
-    // uses the hidden truth (misalignIfUnsafe, or zero in a safe world).
+    // Scaled by how hard alignment is: zero in worlds where it is easy by
+    // default. Shown as the expectation over difficulty; the roll uses the truth.
     // AI 2040: most takeover risk comes from AIs deployed inside labs, out of view.
     const internalF = 0.4 + 0.9 * s.internal / 100;
-    const misalignIfUnsafe = Math.min(0.6, 0.3 * sig((gap - 36) / 6) * sig((mc - 78) / 4) * internalF);
-    const misalign = (1 - s.world.pSafe) * misalignIfUnsafe;
+    const lossBase = Math.min(0.6, 0.3 * sig((gap - 36) / 6) * sig((mc - 78) / 4) * internalF);
+    const misalign = s.world.hazardBelief * lossBase;
+    const misalignTrue = s.world.hazard * lossBase;
 
     // Great-power conflict: tight race + low trust + high strategic stakes.
     const closeness = clamp(1 - Math.abs(s.capUS - s.capCN) / 25, 0, 1);
@@ -219,7 +238,7 @@
       + 0.07 * L.aggression * (0.4 + 0.6 * behind) * stakes;
 
     const total = 1 - (1 - bio) * (1 - misalign) * (1 - war);
-    return { bio, bioTrue, misalign, misalignIfUnsafe, war, total };
+    return { bio, bioTrue, misalign, misalignTrue, war, total };
   }
 
   // Probability that crossing the superintelligence threshold goes well.
@@ -232,7 +251,12 @@
     const bar = (d) => 45 + 32 * d + 0.2 * (s.internal - 30) - 10 * (s.bci / 100);
     const a = effAlign(s);
     if (truth) return s.world.safe ? 1 : sig((a - bar(s.world.difficulty)) / 6);
-    return s.world.pSafe + (1 - s.world.pSafe) * sig((a - bar(1)) / 6);
+    let p = 0;
+    for (const z of DIFF_Z) {
+      const dz = Math.pow(10, s.world.diffDist.mean + s.world.diffDist.sd * z);
+      p += zWeight(z) * (dz <= 0.3 ? 1 : sig((a - bar(dz)) / 6));
+    }
+    return p;
   }
 
   // Probability that whoever controls superintelligence locks in their power.
@@ -259,7 +283,7 @@
     if (roll) {
       const u = rng();
       if (u < r.bioTrue) return finish(s, 'bio', r);
-      const mis = s.world.safe ? 0 : r.misalignIfUnsafe;
+      const mis = r.misalignTrue;
       if (u < r.bioTrue + mis) return finish(s, lostControl(s), r);
       if (u < r.bioTrue + mis + r.war) return finish(s, 'war', r);
     }
