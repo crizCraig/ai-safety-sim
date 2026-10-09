@@ -143,6 +143,24 @@
   #toast { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); z-index: 20; background: var(--panel-solid); border: 1px solid var(--accent); border-radius: 10px; padding: 10px 16px; font-size: 13px; max-width: calc(100vw - 32px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
   #copyText { width: 100%; height: 40vh; background: rgba(255,255,255,0.04); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font-family: var(--mono); font-size: 11px; padding: 10px; }
   .treelist { padding-left: 18px; }
+  .modal .box.doc { width: min(880px, 100%); }
+  .doc h3 { font-size: 15px; margin: 26px 0 8px; color: var(--text); letter-spacing: 0.01em; }
+  .doc p, .doc li { font-size: 14px; line-height: 1.65; }
+  .doc ol { padding-left: 20px; }
+  .doc a { color: var(--accent); }
+  .doc code { font-family: var(--mono); font-size: 12.5px; background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px; }
+  .doc .math { margin: 10px 0; padding: 12px 14px; background: rgba(255,255,255,0.035); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; font-size: 15px; color: var(--text); }
+  .doc .math:not(.rendered), .doc .mi:not(.rendered) { font-family: var(--mono); font-size: 12px; white-space: pre-wrap; }
+  .doc math { font-size: 1.08em; color: var(--text); }
+  .doc .tablewrap { overflow-x: auto; margin: 6px 0 12px; }
+  .doc table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .doc th, .doc td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--line); line-height: 1.5; }
+  .doc th { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  .doc td:first-child { white-space: nowrap; }
+  .src { display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em; padding: 0 6px; border-radius: 5px; border: 1px solid currentColor; line-height: 1.6; white-space: nowrap; vertical-align: 1px; }
+  .src.a2040 { color: #7fe3ff; }
+  .src.biodec { color: #9be15d; }
+  .src.own { color: #b8c4d6; }
   .treelist li { font-size: 13px; }
   /* ---------- labels ---------- */
   .glabel { position: fixed; z-index: 3; pointer-events: none; font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 5px; background: rgba(0,0,0,0.55); border: 1px solid currentColor; white-space: nowrap; transform: translate(-50%, -140%); transition: opacity .3s; }
@@ -222,6 +240,11 @@
     body.deciding #card { top: calc(50% + 40px); max-height: calc(100vh - 128px); }
     #card { bottom: 12px; padding: 16px; }
     #card h2 { font-size: 18px; }
+    .modal .box { padding: 20px 18px; }
+    .doc p, .doc li { font-size: 13.5px; }
+    .doc table { font-size: 12px; min-width: 540px; }
+    .doc .tablewrap { margin-right: -18px; padding-right: 18px; }
+    .doc .math { font-size: 13px; padding: 10px; }
     #card p { font-size: 12.5px; }
     .modal h1 { font-size: 26px; }
   }
@@ -232,6 +255,7 @@
   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
 } }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
 <script src="model.js"></script>
 <script src="events.js"></script>
 <script src="landmask.js"></script>
@@ -359,30 +383,129 @@
 
 <!-- Model explainer -->
 <div class="modal hidden" id="modelInfo">
-  <div class="box">
+  <div class="box doc">
     <div class="kicker">Under the hood</div>
     <h2>How the model works</h2>
-    <p>The world has ten state variables (0–100) and eight policy levers (0–1). Each year the simulator rolls once against three annual hazards, then advances the world. All code is in <code>model.js</code>, which is short enough to read in one sitting.</p>
-    <p><b>Timelines follow AI 2040.</b> Capability 70 is an Automated Coder (AC), 90 an AI that dominates top human experts (TED-AI), 100 superintelligence (ASI). Under today's policies the model reaches AC around 2030 and ASI about a year later, matching <a href="https://ai-2040.com/supplements/takeoff-forecast" target="_blank" rel="noopener" style="color:var(--accent)">AI 2040's takeoff forecast</a>. AI labor speeds up AI research 3× at AC and ~40× at TED-AI. Effective speed scales with compute<sup>0.74</sup> (10× less compute, 5.5× slower), and a hidden progress-speed factor spreads timelines out.</p>
-    <div class="eq">Pandemic risk  = 1 − exp(−k · [σ((open-model capability − 62)/6) + leakage from closed models] · (1 − biodefense)²),
-               k set so the default path gives this world's hidden decade risk (median 0.012%)
-Loss of control ≈ (not safe by default) × 30% × σ((capability − alignment − 36)/6) × σ((capability − 78)/4) × (0.4 + 0.9·hidden internal AI)
-War risk       ≈ 5.5% × (1 − coordination)² × race closeness × strategic stakes
-Superintelligence (capability = 100): goes well if safe by default, else with probability σ((alignment − bar)/6),
-               bar = 45 + 32·(hidden alignment difficulty) + 0.2·(hidden internal AI − 30) − 10·(BCI adoption)
-Lock-in        ≈ σ((power concentration − 64)/6) × (1 − 0.6·oversight) × (1 − whistleblower odds) × (1 − 0.6·plurality)</div>
-    <p><b>Bio risk calibration.</b> The pandemic outcome means 100M+ deaths that open-weights models made possible. Its size comes from a separate factored Monte Carlo decomposition: on the default path the decade risk has a median of about 1 in 8,000 (0.012%), a 95% range of 0.00005% to 3%, a 5.5% chance of exceeding 1% and a 0.7% chance of exceeding 10%. Each future draws its decade risk from that heavy-tailed distribution (a hidden unknown). Policy then scales it: bigger open models raise it, biodefense lowers it. The risk panel shows the expected value, which the rare bad worlds dominate (about 0.6% per decade); the dice use the hidden draw.</p>
-    <p><b>Research vs. weights.</b> As in AI 2040, publishing research is separate from releasing weights. <i>Research transparency</i> spreads power (dozens of labs can follow the frontier), speeds up shared alignment work, pulls internal AI into view and builds trust, but it also helps China catch up. <i>Open-weights releases</i> spread power too, but they also put capable models into anyone's hands, which drives the bio risk.</p>
-    <p><b>Safety share.</b> The safety lever is the share of AI compute and AI labor spent on safety, from 0% to 100%. Its value is linear up to 30% and then diminishes, because people and ideas become the bottleneck. At 100% the US bloc trains no new capabilities, which is a unilateral pause. China only partly slows down in response, and if China takes the lead its lab uses US alignment work only as far as coordination and published research allow.</p>
-    <p><b>Neural interfaces.</b> BCIs help in three speculative ways. Augmented researchers do alignment work up to 1.5× faster. Augmented overseers can follow what thousands of AI copies are doing, which shrinks hidden internal AI. And humans who can check AI reasoning directly lower the alignment bar at the handoff by up to 10 points. Pointing AI labor at neurotech speeds BCIs up, but surgery, approval and rollout cap adoption at about 20 points a year. A BCI push without diplomacy concentrates power.</p>
-    <p><b>Hidden internal AI.</b> AI 2040 argues most takeover risk comes from models labs run internally, before anyone outside can see them. Racing grows that gap, especially once AI automates R&amp;D. Transparency and inspections shrink it. A large gap raises the yearly loss-of-control risk and the bar alignment must clear at the handoff.</p>
-    <p><b>The deal.</b> When coordination is at least 60 and diplomacy is high, a verified deal holds frontier capability at top-expert level (78), like Plan A's 2035 pause. As in AI 2040 (about 48% collapse risk over ten years), a deal can collapse, about 6% a year, and stays dead once it does.</p>
-    <p><b>Hidden unknowns.</b> Each future first draws five facts nobody knows yet, each from a bell curve (mean ± spread): whether AGI is <b>safe by default</b>, how <b>difficult alignment</b> really is, how <b>fast AI progresses</b>, the odds that <b>whistleblowers</b> stop a power grab, and how much <b>bio risk</b> open weights carry (on a log scale, since it spans orders of magnitude). The risk panel shows risks averaged over those unknowns. The dice use the hidden truth.</p>
-    <p><b>Calibration.</b> Holding each plan's levers fixed, the model's chance of getting alignment right is about 18% for racing to ASI (AI 2040's median estimate: 25%), 40% for burning the lead (40%) and 79% for Plan A (72%).</p>
-    <p><b>What it leaves out.</b> Covert projects, cyberattacks, other countries, misuse beyond bio, conflict between AGIs, and whether "capability" can really be put on one axis at all. Treat it as an argument you can poke at, not an oracle.</p>
-    <p class="note">This version extends the original <a href="https://gist.github.com/crizCraig/f4c583f0ca535ce5565f3aa66353cf99" target="_blank" rel="noopener" style="color:var(--accent)">Game of AGI</a>, a Monte Carlo of AGI risk driven by safe-by-default odds, safety spending, oversight, the number of labs that originate AGI, whistleblowers, and takeoff vs. replication time. It adds time, geopolitics, open weights and bio risk, and calibrates timelines to <a href="https://ai-2040.com/" target="_blank" rel="noopener" style="color:var(--accent)">AI 2040</a>.</p>
-    <p><b>How it was built.</b> This game was built in conversation with Claude Code. Each session's full history is browsable as a memtree:</p>
-    <ol class="treelist" id="treeList"></ol>
+    <p>Game of AGI is a yearly Monte Carlo model of 2027–2040. Every equation and constant below is the one <code>model.js</code> runs. Tags show where each number comes from: <span class="src a2040">AI 2040</span> is taken from or calibrated to <a href="https://ai-2040.com/" target="_blank" rel="noopener">AI 2040: Plan A</a>, <span class="src biodec">Bio decomposition</span> is calibrated to a separate factored Monte Carlo estimate of bio risk, and <span class="src own">Assumption</span> is a judgment call in this model.</p>
+
+    <h3>1. One simulated year</h3>
+    <ol>
+      <li>Compute this year's three catastrophe hazards from the current state (section 3).</li>
+      <li>Draw one number <span class="mi">u \sim U(0,1)</span>. If <span class="mi">u &lt; P_{\text{bio}}</span>, a pandemic ends the future; else if <span class="mi">u &lt; P_{\text{bio}} + P_{\text{loc}}</span>, loss of control; else if <span class="mi">u &lt; P_{\text{bio}} + P_{\text{loc}} + P_{\text{war}}</span>, great-power war.</li>
+      <li>Otherwise apply the yearly updates (section 5), clamp every state variable to 0–100 and move to the next year.</li>
+      <li>If frontier capability reaches 100, resolve the superintelligence handoff; in 2040, resolve the ending (section 4).</li>
+    </ol>
+    <p>The Futures Lab runs 2,000 futures with the levers held fixed. In the campaign, each decision card also moves levers and state directly (<code>events.js</code>).</p>
+
+    <h3>2. Notation</h3>
+    <p><b>State variables</b>, each on a 0–100 scale:</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Symbol</th><th>Meaning</th><th>2027</th></tr></thead>
+      <tbody>
+        <tr><td><span class="mi">C_{\text{US}},\ C_{\text{CN}}</span></td><td>Frontier capability of the US bloc and China. <span class="mi">C = \max(C_{\text{US}}, C_{\text{CN}})</span>. Anchors: 70 Automated Coder, 78 top human expert, 90 dominates top experts, 100 superintelligence. <span class="src a2040">AI 2040</span></td><td>44, 37</td></tr>
+        <tr><td><span class="mi">A</span></td><td>Alignment and control maturity</td><td>16</td></tr>
+        <tr><td><span class="mi">O</span></td><td>Capability of the best open-weights model</td><td>32</td></tr>
+        <tr><td><span class="mi">B</span></td><td>Biodefense: synthesis screening, surveillance, stockpiles</td><td>14</td></tr>
+        <tr><td><span class="mi">K</span></td><td>International coordination</td><td>22</td></tr>
+        <tr><td><span class="mi">N</span></td><td>Neural-interface (BCI) adoption</td><td>4</td></tr>
+        <tr><td><span class="mi">H</span></td><td>Hidden internal AI: how far AI used inside labs is ahead of what outsiders can see</td><td>30</td></tr>
+        <tr><td><span class="mi">P</span></td><td>Power concentration</td><td>45</td></tr>
+        <tr><td><span class="mi">T</span></td><td>Public trust and stability</td><td>55</td></tr>
+      </tbody>
+    </table></div>
+    <p><b>Policy levers</b>, each from 0 to 1:</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Symbol</th><th>Lever</th><th>0 → 1</th><th>Default</th></tr></thead>
+      <tbody>
+        <tr><td><span class="mi">r</span></td><td>Race intensity</td><td>pause → all-out sprint</td><td>0.55</td></tr>
+        <tr><td><span class="mi">s</span></td><td>Safety share of AI compute and AI labor</td><td>0% → 100% (a unilateral pause)</td><td>0.05</td></tr>
+        <tr><td><span class="mi">o</span></td><td>Open-weights releases</td><td>closed → release frontier weights</td><td>0.45</td></tr>
+        <tr><td><span class="mi">\tau</span></td><td>Research transparency</td><td>secret labs → all research public</td><td>0.20</td></tr>
+        <tr><td><span class="mi">b</span></td><td>Biodefense investment</td><td>minimal → Manhattan-scale</td><td>0.20</td></tr>
+        <tr><td><span class="mi">d</span></td><td>US–China diplomacy</td><td>cold war → joint project</td><td>0.25</td></tr>
+        <tr><td><span class="mi">n</span></td><td>Neural-interface push</td><td>market pace → AI-driven moonshot</td><td>0.10</td></tr>
+        <tr><td><span class="mi">v</span></td><td>Independent oversight</td><td>self-audits → an IAEA for AI</td><td>0.10</td></tr>
+      </tbody>
+    </table></div>
+    <p><b>Hidden unknowns</b>, drawn once per future. The risk panel shows risks averaged over them; the dice use the hidden draw.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Symbol</th><th>Meaning</th><th>Distribution</th></tr></thead>
+      <tbody>
+        <tr><td><span class="mi">S</span></td><td>AGI is safe by default (1) or not (0)</td><td><span class="mi">S \sim \text{Bernoulli}(p),\ p \sim \mathcal{N}(0.15,\ 0.10)</span> <span class="src own">Assumption</span></td></tr>
+        <tr><td><span class="mi">\delta</span></td><td>Alignment difficulty</td><td><span class="mi">\mathcal{N}(1,\ 0.5)</span>, clipped to [0.3, 2.5] <span class="src a2040">AI 2040</span> (spread calibrated)</td></tr>
+        <tr><td><span class="mi">\varphi</span></td><td>AI progress speed</td><td><span class="mi">\mathcal{N}(1,\ 0.3)</span>, clipped to [0.3, 2.5] <span class="src a2040">AI 2040</span></td></tr>
+        <tr><td><span class="mi">\omega</span></td><td>Whistleblower odds</td><td><span class="mi">\mathcal{N}(0.25,\ 0.15)</span>, clipped to [0, 1] <span class="src own">Assumption</span></td></tr>
+        <tr><td><span class="mi">R_{\text{bio}}</span></td><td>Decade risk of a 100M+ death pandemic enabled by open weights, on the default path</td><td><span class="mi">\log_{10} R_{\text{bio}} \sim \mathcal{N}(-3.92,\ 1.2)</span> <span class="src biodec">Bio decomposition</span></td></tr>
+      </tbody>
+    </table></div>
+    <p>Throughout, <span class="mi">\sigma(x) = 1/(1+e^{-x})</span> and <span class="mi">\operatorname{clamp}(x)</span> limits <span class="mi">x</span> to [0, 1].</p>
+
+    <h3>3. Annual hazards</h3>
+    <p><b>Engineered pandemic</b> (100M+ deaths):</p>
+    <div class="math">P_{\text{bio}} = 1 - e^{-k\,g}, \qquad g = \Big[\sigma\big(\tfrac{O-62}{6}\big) + 0.15\,\sigma\big(\tfrac{C-75}{6}\big)\big(1-\tfrac{A}{100}\big)\Big]\Big(1-\tfrac{B}{100}\Big)^{2}</div>
+    <div class="math">k = \frac{-\ln\left(1-R_{\text{bio}}\right)}{G_{\text{ref}}}, \qquad G_{\text{ref}} = \sum_{t=2027}^{2036} g_t^{\text{default path}} \approx 3.32</div>
+    <p>The first term in <span class="mi">g</span> is uplift from open weights, which dominates once open models pass expert level; the second is a small leakage from closed models. The scale <span class="mi">k</span> makes the default path reproduce the drawn decade risk exactly, and policy moves risk through <span class="mi">g</span>. <span class="src biodec">Bio decomposition</span> The thresholds and the leakage weight are <span class="src own">Assumption</span>. The risk panel shows the expectation over <span class="mi">R_{\text{bio}}</span>, about 57 times the median because rare bad worlds dominate it.</p>
+    <p><b>Loss of control:</b></p>
+    <div class="math">P_{\text{loc}} = (1-S)\cdot\min\Big(0.6,\ 0.3\,\sigma\big(\tfrac{C-\hat{A}-36}{6}\big)\,\sigma\big(\tfrac{C-78}{4}\big)\Big(0.4+0.9\,\tfrac{H}{100}\Big)\Big)</div>
+    <div class="math">\hat{A} = \begin{cases} A & C_{\text{US}} \ge C_{\text{CN}} \\ A\cdot\min\big(1,\ 0.55+0.45\,\tfrac{K}{100}+0.3\,\tau\big) & \text{otherwise} \end{cases}</div>
+    <p>Risk grows once capability passes top-expert level and outruns alignment. Hidden internal AI amplifies it, since AI 2040 argues most takeover risk comes from models run inside labs <span class="src a2040">AI 2040</span>. <span class="mi">\hat{A}</span> is effective alignment: if China leads, its lab uses US-bloc alignment work only as far as coordination and published research allow. Coefficients are <span class="src own">Assumption</span>.</p>
+    <p><b>Great-power war:</b></p>
+    <div class="math">P_{\text{war}} = 0.055\Big(1-\tfrac{K}{100}\Big)^{2}(0.3+0.7\,q)\,\sigma\big(\tfrac{C-60}{8}\big), \qquad q = \operatorname{clamp}\Big(1-\tfrac{|C_{\text{US}}-C_{\text{CN}}|}{25}\Big)</div>
+    <p>A close race, low trust and high strategic stakes raise it. <span class="src own">Assumption</span></p>
+
+    <h3>4. Endings</h3>
+    <p><b>Superintelligence handoff.</b> When <span class="mi">C</span> reaches 100:</p>
+    <div class="math">\Pr(\text{handoff goes well}) = \begin{cases} 1 & S = 1 \\ \sigma\big(\tfrac{\hat{A}-\beta}{6}\big) & S = 0 \end{cases}, \qquad \beta = 45 + 32\,\delta + 0.2\,(H-30) - 10\,\tfrac{N}{100}</div>
+    <p>The bar <span class="mi">\beta</span> rises with hidden difficulty and with hidden internal AI, and falls when BCIs let humans check AI reasoning directly. A failed handoff is loss of control. A successful one ends in lock-in with probability</p>
+    <div class="math">P_{\text{lock}} = \sigma\big(\tfrac{P-64}{6}\big)\,(1-0.6\,v)\,(1-\omega)\,(1-0.6\,\rho), \qquad \rho = \max\Big(\operatorname{clamp}\big(1-\tfrac{|C_{\text{US}}-C_{\text{CN}}|}{15}\big),\ \operatorname{clamp}\big(\tfrac{O-80}{20}\big),\ 0.85\,\tau\Big)</div>
+    <p>and otherwise in an Aligned Transition. Plurality <span class="mi">\rho</span> is high when a rival can replicate AGI before takeoff completes, open weights are near the frontier, or research is public so many labs can follow (the last from <span class="src a2040">AI 2040</span>). <b>In 2040</b>, a future that has not ended becomes Locked-In Power if <span class="mi">T &lt; 45</span> and a lock-in roll succeeds, The Careful Path if <span class="mi">A \ge C</span> and <span class="mi">K &gt; 55</span>, and Muddling Through otherwise.</p>
+
+    <h3>5. Yearly updates</h3>
+    <p><b>Capability</b>:</p>
+    <div class="math">\Delta C_{\text{US}} = 7\,\kappa(r)\,\varphi\,(1-s-0.08\,v)\,U(C_{\text{US}}) + \varepsilon</div>
+    <div class="math">\Delta C_{\text{CN}} = 7\,\kappa(r_{\text{CN}})\,\varphi\,m\,U(C_{\text{CN}}) + \varepsilon + 0.25\,\tau\,\max(0,\ C_{\text{US}}-C_{\text{CN}})</div>
+    <div class="math">U(c) = \begin{cases} 1 & c < 50 \\ 3^{(c-50)/20} & 50 \le c < 70 \\ \min\big(40,\ 3\,(40/3)^{(c-70)/20}\big) & c \ge 70 \end{cases} \qquad \kappa(r) = \Big(\frac{\max(0,\ r-0.03)}{0.52}\Big)^{0.74}</div>
+    <div class="math">r_{\text{CN}} = \min\Big(1,\ \max\Big(0.05,\ 0.6 + 0.45\big(r(1-0.5\,s)-0.5\big) - 0.55\,\tfrac{K}{100}\Big)\Big)</div>
+    <p><span class="mi">U</span> is the AI R&amp;D speed-up from AI labor: 3× at Automated Coder and about 40× near top-expert-dominating AI <span class="src a2040">AI 2040</span>. The compute exponent 0.74 encodes "10× less compute makes the intelligence explosion 5.5× slower" <span class="src a2040">AI 2040</span>, and the base rate 7 puts the default path at Automated Coder around 2030 and superintelligence about a year later <span class="src a2040">AI 2040</span>. Safety spending and oversight take compute away from capabilities. China's race intensity responds to the US posture and falls with coordination; publishing research helps China close the gap <span class="src own">Assumption</span>. Here <span class="mi">\varepsilon \sim U(-1,1)</span>, <span class="mi">m</span> is the export-control multiplier set by campaign choices (1 in the Lab), and each year a surprise breakthrough adds 3–8 points to the US and 2–6 to China with probability 0.15.</p>
+    <p><b>The deal.</b> A verified US–China deal is in force when <span class="mi">K \ge 60</span> and <span class="mi">d \ge 0.5</span> and no deal has collapsed. It holds both blocs at 78, top-human-expert level, like Plan A's 2035 pause. Each year it collapses with probability 0.06, about 46% over ten years against AI 2040's roughly 48%; a collapse cuts <span class="mi">K</span> by 40 and the deal never returns <span class="src a2040">AI 2040</span>.</p>
+    <p><b>Alignment</b>:</p>
+    <div class="math">\Delta A = \frac{0.55\,\big(1.9 + 10\,e(s) + 1.5\,v\big)\,\big(1 + (U(C_{\text{US}})-1)\,\ell(s)\big)\,\big(1 + 0.35\,\tfrac{K}{100} + 0.4\,\tau\big)\,\big(1 + 0.5\,\tfrac{N}{100}\big)}{\delta} + \varepsilon_A</div>
+    <div class="math">e(s) = \begin{cases} \frac{s-0.01}{0.29} & s \le 0.3 \\ 1 + 0.6\,\frac{s-0.3}{0.7} & s > 0.3 \end{cases} \qquad \ell(s) = 0.08 + 0.35\,\min\big(1,\ e(s)\big) + 0.5\,\frac{\max(0,\ s-0.3)}{0.7}</div>
+    <p>The factors are: research effort (safety share, with diminishing returns past 30%, plus oversight); AI labor pointed at safety, so alignment also speeds up during takeoff, using the US bloc's own AI; shared international and public research; augmented researchers through BCIs; and the hidden difficulty <span class="mi">\delta</span>. Here <span class="mi">\varepsilon_A \sim U(-0.5,0.5)</span>, and with probability 0.12 a year an alignment insight adds 3 to 12 points (more with a higher safety share). The 0.55 scale and the spread of <span class="mi">\delta</span> are set so fixed-lever versions of AI 2040's plans reproduce its p(alignment) estimates <span class="src a2040">AI 2040</span>; the other coefficients are <span class="src own">Assumption</span>.</p>
+    <p><b>Everything else</b>:</p>
+    <div class="math">\Delta H = 4\,r\,\sqrt{U(C)} - 9\,\tau - 5\,v - 6\,\tfrac{N}{100} - 0.5</div>
+    <div class="math">\Delta K = 13\,d + 2\,v + 3\,\tau - 6\,r - 0.5 + \varepsilon_K, \qquad \varepsilon_K \sim U(-1.5,\ 1.5)</div>
+    <div class="math">O \leftarrow O + 0.45\,\big(C\,(0.62 + 0.36\,o + 0.06\,\tau) - O\big)</div>
+    <div class="math">\Delta B = 9\,b + 1.2\,o - 1.6</div>
+    <div class="math">\Delta N = \min\big(20,\ (11\,n + 0.6)\,(1 + 0.4\,n\,(U(C)-1))\big)</div>
+    <div class="math">\Delta P = 10\,r\,(1 - 0.5\,o - 0.5\,\tau) + 0.06\,\max(0,\ C-60) - 2.5\,o - 4\,\tau + 2.2\,n\,(1-d) - 4\,v - 0.8</div>
+    <div class="math">\Delta T = -0.04\,\max(0,\ C-55) + 2.5\,\min\big(1,\ e(s)\big) + 1.5\,v + 1.5\,\tau - 1.5\,r\,\tfrac{P}{100} + 0.3</div>
+    <p>Racing grows hidden internal AI, faster once AI automates R&amp;D; transparency, inspections and augmented overseers pull it into view. Open-weights capability chases a policy-set share of the frontier. Biodefense decays without investment, and open tools help it a little. AI labor speeds BCIs up, but surgery, approval and rollout cap adoption at 20 points a year. Racing on closed models concentrates power; openness, transparency and oversight spread it. All coefficients in this block are <span class="src own">Assumption</span>.</p>
+
+    <h3>6. Calibration</h3>
+    <p>Holding each plan's levers fixed from 2027 to 2040 (<code>node test-model.js</code>):</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Check</th><th>Target</th><th>Model</th></tr></thead>
+      <tbody>
+        <tr><td>Automated Coder, default path</td><td>~2030 (AI 2040 median)</td><td>2030 (median)</td></tr>
+        <tr><td>Superintelligence after Automated Coder</td><td>~1 year (AI 2040)</td><td>1–2 years</td></tr>
+        <tr><td>p(alignment), race to superintelligence</td><td>25% (AI 2040 median)</td><td>17%</td></tr>
+        <tr><td>p(alignment), burn the lead</td><td>40% (AI 2040 median)</td><td>41%</td></tr>
+        <tr><td>p(alignment), Plan A</td><td>72% (AI 2040 median)</td><td>79%</td></tr>
+        <tr><td>Bio decade risk, default path: median</td><td>1.2e-4</td><td>1.2e-4</td></tr>
+        <tr><td>Bio decade risk: 95% interval</td><td>5e-7 to 3e-2</td><td>5.1e-7 to 2.9e-2</td></tr>
+        <tr><td>Bio decade risk: P(&gt; 1%), P(&gt; 10%)</td><td>0.055, 0.007</td><td>0.057, 0.008</td></tr>
+      </tbody>
+    </table></div>
+    <p>p(alignment) counts aligned handoffs as 1 and loss of control as 0; futures still short of superintelligence in 2040 count their handoff odds given the hidden world; pandemic and war futures are left out.</p>
+
+    <h3>7. What it leaves out</h3>
+    <p>Covert projects and cheating on the deal (beyond a flat collapse rate), cyberattacks, countries other than the two blocs, misuse beyond bio, conflict between AGIs, anything after 2040, plans that change over time in the Futures Lab, and whether capability can really be put on one axis at all. Treat it as an argument you can poke at, not an oracle.</p>
+
+    <h3 class="no-copy">How it was built</h3>
+    <p class="no-copy">This game was built in conversation with Claude Code. Each session's full history is browsable as a memtree:</p>
+    <ol class="treelist no-copy" id="treeList"></ol>
+    <p class="note">This version extends the original <a href="https://gist.github.com/crizCraig/f4c583f0ca535ce5565f3aa66353cf99" target="_blank" rel="noopener">Game of AGI</a>, a Monte Carlo of AGI risk driven by safe-by-default odds, safety spending, oversight, the number of labs that originate AGI, whistleblowers, and takeoff vs. replication time.</p>
     <p class="disclaimer">All parameters are illustrative. The lab, company and leaders in this game are fictional composites.</p>
     <div class="btnrow"><button class="btn" data-close="modelInfo">Close</button></div>
   </div>
@@ -1266,6 +1389,28 @@ let modelSource = null;
 fetch('model.js').then((r) => (r.ok ? r.text() : null)).then((t) => { modelSource = t; }).catch(() => {});
 
 const SITE = 'https://agi.memtree.dev', REPO = 'https://github.com/crizCraig/ai-safety-sim';
+// The model reference as Markdown with LaTeX math, for Copy page.
+function docMarkdown(box) {
+  const inline = (el) => {
+    const c = el.cloneNode(true);
+    c.querySelectorAll('.mi').forEach((m) => m.replaceWith('$' + (m.dataset.tex || m.textContent).trim() + '$'));
+    return c.textContent.replace(/\s+/g, ' ').trim();
+  };
+  const out = [];
+  for (const el of box.children) {
+    if (el.classList.contains('no-copy') || el.classList.contains('kicker') || el.classList.contains('btnrow') || el.tagName === 'H2') continue;
+    if (el.tagName === 'H3') out.push('### ' + el.textContent.trim());
+    else if (el.classList.contains('math')) out.push('$$\n' + (el.dataset.tex || el.textContent).trim() + '\n$$');
+    else if (el.classList.contains('tablewrap')) {
+      const rows = [...el.querySelectorAll('tr')].map((tr) => '| ' + [...tr.children].map(inline).join(' | ') + ' |');
+      rows.splice(1, 0, '|' + ' --- |'.repeat(el.querySelector('tr').children.length));
+      out.push(rows.join('\n'));
+    } else if (el.tagName === 'OL' || el.tagName === 'UL') out.push([...el.children].map((li, i) => `${i + 1}. ${inline(li)}`).join('\n'));
+    else out.push(inline(el));
+  }
+  return out.join('\n\n');
+}
+
 function scenarioText() {
   const r = M.summarize(labL, labA, 2000, 42);
   const p1 = (x) => (x * 100).toFixed(1) + '%';
@@ -1277,14 +1422,7 @@ function scenarioText() {
   const start = Object.entries(M.STAT_INFO).map(([k, i]) => `${i.label} ${s0[k]}`).join(', ');
   const outcomes = Object.entries(M.OUTCOMES).sort((a, b) => r.counts[b[0]] - r.counts[a[0]])
     .map(([k, o]) => `| ${o.title} | ${p1(r.counts[k] / r.n)} | ${o.text} |`).join('\n');
-  const explain = [...$('modelInfo').querySelectorAll('.box > p, .box > .eq')]
-    .filter((el) => !el.classList.contains('note') && !el.textContent.trim().startsWith('How it was built'))
-    .map((el) => {
-      const c = el.cloneNode(true);
-      c.querySelectorAll('sup').forEach((x) => { x.textContent = '^' + x.textContent; });
-      return el.classList.contains('eq') ? '```\n' + c.textContent.trim() + '\n```' : c.textContent.trim().replace(/\s+/g, ' ');
-    })
-    .join('\n\n');
+  const explain = docMarkdown($('modelInfo').querySelector('.box'));
   return `# Game of AGI: Futures Lab scenario
 
 Below is a scenario from Game of AGI, a toy Monte Carlo simulator of AI-safety policy from 2027 to 2040 (${SITE}, code: ${REPO}). It is meant to make trade-offs tangible, not to forecast. Please help me understand and critique it:
@@ -1389,7 +1527,16 @@ $('labBtn').onclick = () => { closeIntro(); setMode('lab'); };
 $('againBtn').onclick = () => { setMode('campaign'); newGame(); };
 $('toLabBtn').onclick = () => { $('ending').classList.add('hidden'); Object.assign(labL, game.L); syncSliders(); setMode('lab'); };
 $('viewBtn').onclick = () => $('ending').classList.add('hidden');
-$('modelBtn').onclick = () => $('modelInfo').classList.remove('hidden');
+// Typeset the reference's LaTeX as native MathML the first time it opens. If
+// Temml didn't load, the LaTeX source stays visible as a readable fallback.
+function renderMath() {
+  if (!window.temml) return;
+  document.querySelectorAll('#modelInfo .math:not(.rendered), #modelInfo .mi:not(.rendered)').forEach((el) => {
+    el.dataset.tex = el.dataset.tex || el.textContent;
+    try { temml.render(el.dataset.tex, el, { displayMode: el.classList.contains('math') }); el.classList.add('rendered'); } catch (e) { /* keep the source */ }
+  });
+}
+$('modelBtn').onclick = () => { renderMath(); $('modelInfo').classList.remove('hidden'); };
 $('statsToggle').onclick = () => {
   const open = document.body.classList.toggle('compact-open');
   $('statsToggle').textContent = open ? 'Back to decision' : 'Stats';
