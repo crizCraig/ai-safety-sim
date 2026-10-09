@@ -140,6 +140,10 @@
   .note { font-size: 11px; color: var(--muted); line-height: 1.45; }
   #axisHelp { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; font-size: 12px; color: var(--muted); z-index: 4; text-align: center; max-width: calc(100vw - 640px); }
 
+  #catBig { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 3; pointer-events: none; text-align: center; text-shadow: 0 0 18px #03060d, 0 0 6px #03060d; }
+  #catBig .cb-num { font-family: var(--mono); font-size: 52px; font-weight: 600; line-height: 1; transition: color .3s; }
+  #catBig .cb-lbl { font-size: 13px; color: var(--muted); margin-top: 4px; letter-spacing: 0.04em; }
+  .lever-note { margin: 2px 0 14px; font-size: 11px; line-height: 1.45; color: var(--muted); }
   #fanTip { position: fixed; z-index: 6; pointer-events: none; min-width: 200px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
   #fanTip .tip-year { font-family: var(--mono); font-size: 15px; font-weight: 600; margin-bottom: 4px; }
   #fanTip .tip-row { display: flex; justify-content: space-between; gap: 14px; color: var(--muted); line-height: 1.6; }
@@ -239,6 +243,9 @@
     body.mode-lab { overflow-y: auto; display: flex; flex-direction: column; }
     body.mode-lab .panel { position: static; width: auto; max-height: none; overflow: visible; flex-shrink: 0; margin: 0 16px 16px; }
     body.mode-lab #right { order: 1; margin-top: calc(var(--graph-bottom, 50vh) + 12px); }
+    #catBig { top: calc(var(--graph-top, 53px) + 8px); z-index: 5; }
+    #catBig .cb-num { font-size: 34px; }
+    #catBig .cb-lbl { font-size: 11px; }
     body.mode-lab canvas#gl { z-index: 4; border-bottom: 1px solid var(--line); }
     body.mode-lab #left, body.mode-lab #right { position: relative; z-index: 1; top: auto; left: auto; right: auto; bottom: auto; }
     body.mode-lab #left { order: 2; }
@@ -267,10 +274,10 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261009165427"></script>
-<script src="events.js?v=20261009165427"></script>
-<script src="landmask.js?v=20261009165427"></script>
-<script src="trees.js?v=20261009165427"></script>
+<script src="model.js?v=20261009165804"></script>
+<script src="events.js?v=20261009165804"></script>
+<script src="landmask.js?v=20261009165804"></script>
+<script src="trees.js?v=20261009165804"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -300,8 +307,8 @@
   </div>
   <div class="lab-only">
     <h3>Policy levers</h3>
-    <div class="sub">Held fixed 2027–2040 across every simulated future. Timelines are calibrated to <a href="https://ai-2040.com/" target="_blank" rel="noopener" style="color:var(--accent)">AI 2040</a>.</div>
     <div class="presets" id="presets"></div>
+    <div class="sub lever-note">Held fixed 2027–2040 across every simulated future. Timelines are calibrated to <a href="https://ai-2040.com/" target="_blank" rel="noopener" style="color:var(--accent)">AI 2040</a>.</div>
     <div id="sliders"></div>
     <div class="divider"></div>
     <h3>Unknowns about the world</h3>
@@ -328,7 +335,7 @@
     <h3>2,000 simulated futures</h3>
     <div class="sub" id="labSub"></div>
     <div id="outcomes"></div>
-    <button class="btn copybtn" id="copyPage" title="Copies these settings, the model's formulas and source, and the results as a prompt for an AI assistant">Copy page</button>
+    <button class="btn copybtn" id="copyPage" title="Copies these settings, the model's formulas and source, and the results as a prompt for an AI assistant">Copy for LLMs</button>
     <div class="note">Copies these settings, the formulas, the model's code and the results as one prompt. Paste it into Claude or another AI and ask it to poke holes in the assumptions.</div>
     <div class="divider"></div>
     <p class="note">Each line in the 3D view is one simulated future, 2027 → its outcome. Height is frontier capability and depth is alignment. Each line ends at the state its future reached; a ringed dot marks a catastrophe (pandemic, loss of control or war) at the year it struck. Hover or tap a line to read its values.</p>
@@ -350,13 +357,14 @@
 <div id="toast" role="status" hidden></div>
 <div class="modal hidden" id="copyFallback">
   <div class="box">
-    <div class="kicker">Copy page</div>
+    <div class="kicker">Copy for LLMs</div>
     <h2>Copy this text</h2>
     <p>Your browser blocked automatic copying. The text is selected below. Press Ctrl+C or ⌘C, then paste it into an AI assistant.</p>
     <textarea id="copyText" readonly></textarea>
     <div class="btnrow"><button class="btn" data-close="copyFallback">Done</button></div>
   </div>
 </div>
+<div id="catBig" class="lab-only" aria-live="polite"><div class="cb-num" id="catNum"></div><div class="cb-lbl">of futures end in catastrophe</div></div>
 <div id="fanTip" class="lab-only" role="status" hidden></div>
 
 <!-- Intro -->
@@ -537,7 +545,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261009165427';
+const ASSET_VERSION = '20261009165804';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1063,6 +1071,7 @@ function resizeView() {
   canvas.style.height = h + 'px';
   canvas.style.bottom = phoneLab ? 'auto' : '';
   document.documentElement.style.setProperty('--graph-bottom', (hdr + h) + 'px');
+  document.documentElement.style.setProperty('--graph-top', hdr + 'px');
   camera.aspect = innerWidth / h; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, h); composer.setSize(innerWidth, h);
 }
@@ -1464,6 +1473,8 @@ function runLab() {
   lastMC = mc;
   renderOutcomeRows(mc);
   const cat = (mc.counts.bio + mc.counts.misalign + mc.counts.war) / mc.n;
+  $('catNum').textContent = pct(cat, cat < 0.1 ? 1 : 0);
+  $('catNum').style.color = cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)';
   $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, 0)}</b> of futures · outcome reached after ${mc.meanYears.toFixed(1)} years on average · click an outcome to isolate it`;
   buildFan(mc.paths);
   applyFocus();
@@ -1478,7 +1489,7 @@ function renderOutcomeRows(mc) {
 }
 
 /* =====================================================================
- * Memtree links and "Copy page"
+ * Memtree links and "Copy for LLMs"
  * ===================================================================== */
 const TREES = (window.MEMTREES || []).filter((t) => t.url);
 if (TREES.length) {
@@ -1492,7 +1503,7 @@ let modelSource = null;
 fetch('model.js?v=' + ASSET_VERSION).then((r) => (r.ok ? r.text() : null)).then((t) => { modelSource = t; }).catch(() => {});
 
 const SITE = 'https://agi.memtree.dev', REPO = 'https://github.com/crizCraig/ai-safety-sim';
-// The model reference as Markdown with LaTeX math, for Copy page.
+// The model reference as Markdown with LaTeX math, for Copy for LLMs.
 function docMarkdown(box) {
   const inline = (el) => {
     const c = el.cloneNode(true);
