@@ -333,6 +333,36 @@
     return { counts, n, paths, meanYears: yearsSum / n };
   }
 
+  // Summary statistics for a policy: outcome mix, milestone years and
+  // p(alignment) (aligned handoffs count 1, loss of control 0, futures still
+  // short of ASI in 2040 count their odds at the eventual handoff given the
+  // hidden world; pandemic and war futures are excluded).
+  function summarize(L, A = defaultAssumptions(), n = 2000, seed = 7) {
+    const rng = mulberry32(seed);
+    const counts = {}; for (const k in OUTCOMES) counts[k] = 0;
+    const acYears = [], asiYears = [];
+    let pAlign = 0, nAlign = 0;
+    for (let i = 0; i < n; i++) {
+      const s = initialState(sampleWorld(A, rng));
+      let ev = null, ac = null;
+      while (!ev) { ev = step(s, L, rng, true).event; if (!ac && maxCap(s) >= AC) ac = s.year; }
+      counts[ev]++;
+      if (ac) acYears.push(ac);
+      if (maxCap(s) >= 100) asiYears.push(s.year);
+      if (ev === 'bio' || ev === 'war') continue;
+      nAlign++;
+      pAlign += ev === 'misalign' ? 0 : maxCap(s) >= 100 ? 1 : transitionOdds(s, true);
+    }
+    const median = (a) => { if (!a.length) return null; a.sort((x, y) => x - y); return a[a.length >> 1]; };
+    return {
+      n, counts,
+      catastrophe: (counts.bio + counts.misalign + counts.war) / n,
+      acShare: acYears.length / n, acMedian: median(acYears),
+      asiShare: asiYears.length / n, asiMedian: median(asiYears),
+      pAlignment: nAlign ? pAlign / nAlign : null,
+    };
+  }
+
   function mulberry32(a) {
     return function () {
       a |= 0; a = (a + 0x6D2B79F5) | 0;
@@ -346,6 +376,6 @@
     START_YEAR, END_YEAR, LEVER_INFO, STAT_INFO, OUTCOMES, ASSUMPTION_INFO,
     AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, safetyEffect,
     clamp, sig, defaultLevers, defaultAssumptions, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
-    risks, transitionOdds, lockinOdds, step, monteCarlo, mulberry32,
+    risks, transitionOdds, lockinOdds, step, monteCarlo, summarize, mulberry32,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

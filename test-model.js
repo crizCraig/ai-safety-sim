@@ -18,25 +18,9 @@ const presets = {
   'Safety 100%': [P({ safety: 1 }), null],
   'Safety 30%': [P({ safety: 0.3 }), null],
 };
-const median = (a) => { if (!a.length) return NaN; a.sort((x, y) => x - y); return a[a.length >> 1]; };
 for (const [name, [L, theirs]] of Object.entries(presets)) {
-  const rng = M.mulberry32(7), A = M.defaultAssumptions(), n = 4000;
-  const counts = {}; for (const k in M.OUTCOMES) counts[k] = 0;
-  const acY = [], asiY = []; let pAlign = 0, nAlign = 0;
-  for (let i = 0; i < n; i++) {
-    const s = M.initialState(M.sampleWorld(A, rng));
-    let ev = null, ac = null;
-    while (!ev) { ev = M.step(s, L, rng, true).event; if (!ac && M.maxCap(s) >= M.AC) ac = s.year; }
-    counts[ev]++;
-    if (ac) acY.push(ac);
-    if (M.maxCap(s) >= 100) asiY.push(s.year);
-    // p(alignment): aligned handoffs count 1, loss of control 0; futures still
-    // short of ASI in 2040 count their odds at the eventual handoff, given the hidden world.
-    if (ev === 'bio' || ev === 'war') continue;
-    nAlign++;
-    pAlign += ev === 'misalign' ? 0 : M.maxCap(s) >= 100 ? 1 : M.transitionOdds(s, true);
-  }
-  const pct = Object.entries(counts).filter(([, v]) => v).map(([k, v]) => `${k} ${(100 * v / n).toFixed(0)}`).join(' ');
-  console.log(name.padEnd(18), `AC~${median(acY)} ASI~${median(asiY) || '-'}(${(100 * asiY.length / n).toFixed(0)}%)`,
-    `p(align)=${(100 * pAlign / nAlign).toFixed(0)}%` + (theirs ? ` [AI 2040: ${theirs * 100}%]` : ''), '|', pct);
+  const r = M.summarize(L, M.defaultAssumptions(), 4000, 7);
+  const mix = Object.entries(r.counts).filter(([, v]) => v).map(([k, v]) => `${k} ${(100 * v / r.n).toFixed(0)}`).join(' ');
+  console.log(name.padEnd(18), `AC~${r.acMedian} ASI~${r.asiMedian || '-'}(${(100 * r.asiShare).toFixed(0)}%)`,
+    `p(align)=${(100 * r.pAlignment).toFixed(0)}%` + (theirs ? ` [AI 2040: ${theirs * 100}%]` : ''), '|', mix);
 }

@@ -50,6 +50,7 @@
   #timeline .yr.now::before { background: var(--accent); box-shadow: 0 0 10px var(--accent); transform: scale(1.4); }
   #timeline .yr.end::before { background: var(--endc, var(--bad)); box-shadow: 0 0 12px var(--endc, var(--bad)); transform: scale(1.6); }
   #modelBtn { margin-left: auto; }
+  a.iconbtn { text-decoration: none; }
   .iconbtn { background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 6px 11px; font-size: 13px; color: var(--muted); backdrop-filter: blur(8px); }
   .iconbtn:hover { color: var(--text); }
 
@@ -136,6 +137,11 @@
   #fanTip .tip-row b { font-family: var(--mono); font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
   #fanTip .tip-end { margin-top: 5px; font-weight: 500; }
   #fanTip .tip-world { margin-top: 3px; font-size: 11px; color: var(--muted); max-width: 240px; }
+  .copybtn { width: 100%; margin: 6px 0 6px; font-size: 13px; padding: 8px 12px; }
+  #toast { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); z-index: 20; background: var(--panel-solid); border: 1px solid var(--accent); border-radius: 10px; padding: 10px 16px; font-size: 13px; max-width: calc(100vw - 32px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  #copyText { width: 100%; height: 40vh; background: rgba(255,255,255,0.04); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font-family: var(--mono); font-size: 11px; padding: 10px; }
+  .treelist { padding-left: 18px; }
+  .treelist li { font-size: 13px; }
   /* ---------- labels ---------- */
   .glabel { position: fixed; z-index: 3; pointer-events: none; font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 5px; background: rgba(0,0,0,0.55); border: 1px solid currentColor; white-space: nowrap; transform: translate(-50%, -140%); transition: opacity .3s; }
 
@@ -210,6 +216,7 @@
 <script src="model.js"></script>
 <script src="events.js"></script>
 <script src="landmask.js"></script>
+<script src="trees.js"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -223,6 +230,7 @@
   <div id="timeline" class="campaign-only"></div>
   <button class="iconbtn" id="statsToggle" style="display:none">Stats</button>
   <button class="iconbtn" id="modelBtn">How the model works</button>
+  <a class="iconbtn" id="builtLink" href="#" target="_blank" rel="noopener" hidden>How it was built ↗</a>
 </div>
 
 <!-- Left: world state (campaign) / sliders (lab) -->
@@ -265,6 +273,8 @@
     <h3>2,000 simulated futures</h3>
     <div class="sub" id="labSub"></div>
     <div id="outcomes"></div>
+    <button class="btn copybtn" id="copyPage" title="Copies these settings, the model's formulas and source, and the results as a prompt for an AI assistant">Copy page</button>
+    <div class="note">Copies these settings, the formulas, the model's code and the results as one prompt. Paste it into Claude or another AI and ask it to poke holes in the assumptions.</div>
     <div class="divider"></div>
     <p class="note">Each line in the 3D view is one simulated future, 2027 → its outcome. Height is frontier capability; depth is alignment minus capability (positive means alignment is ahead). Futures that end in catastrophe fall to the floor in the year it strikes; dots mark where each future ends. Hover or tap a line to read its values.</p>
   </div>
@@ -282,6 +292,16 @@
 <div id="axisHelp" class="lab-only">Drag to orbit · scroll to zoom · <span style="color:#fff">x</span> = year · <span style="color:#fff">y</span> = capability · <span style="color:#fff">z</span> = alignment − capability</div>
 
 <div id="labels"></div>
+<div id="toast" role="status" hidden></div>
+<div class="modal hidden" id="copyFallback">
+  <div class="box">
+    <div class="kicker">Copy page</div>
+    <h2>Copy this text</h2>
+    <p>Your browser blocked automatic copying. The text is selected below. Press Ctrl+C or ⌘C, then paste it into an AI assistant.</p>
+    <textarea id="copyText" readonly></textarea>
+    <div class="btnrow"><button class="btn" data-close="copyFallback">Done</button></div>
+  </div>
+</div>
 <div id="fanTip" class="lab-only" role="status" hidden></div>
 
 <!-- Intro -->
@@ -340,6 +360,8 @@ Lock-in        ≈ σ((power concentration − 64)/6) × (1 − 0.6·oversight) 
     <p><b>Calibration.</b> Holding each plan's levers fixed, the model's chance of getting alignment right is about 18% for racing to ASI (AI 2040's median estimate: 25%), 40% for burning the lead (40%) and 79% for Plan A (72%).</p>
     <p><b>What it leaves out.</b> Covert projects, cyberattacks, other countries, misuse beyond bio, conflict between AGIs, and whether "capability" can really be put on one axis at all. Treat it as an argument you can poke at, not an oracle.</p>
     <p class="note">This version extends the original <a href="https://gist.github.com/crizCraig/f4c583f0ca535ce5565f3aa66353cf99" target="_blank" rel="noopener" style="color:var(--accent)">Game of AGI</a>, a Monte Carlo of AGI risk driven by safe-by-default odds, safety spending, oversight, the number of labs that originate AGI, whistleblowers, and takeoff vs. replication time. It adds time, geopolitics, open weights and bio risk, and calibrates timelines to <a href="https://ai-2040.com/" target="_blank" rel="noopener" style="color:var(--accent)">AI 2040</a>.</p>
+    <p><b>How it was built.</b> This game was built in conversation with Claude Code. Each session's full history is browsable as a memtree:</p>
+    <ol class="treelist" id="treeList"></ol>
     <p class="disclaimer">All parameters are illustrative. The lab, company and leaders in this game are fictional composites.</p>
     <div class="btnrow"><button class="btn" data-close="modelInfo">Close</button></div>
   </div>
@@ -1184,6 +1206,104 @@ function renderOutcomeRows(mc) {
     return `<button class="orow${open ? ' open' : ''}" data-outcome="${k}" aria-expanded="${open}"><span class="dot" style="background:${o.color}"></span><span>${o.title}</span><span class="v">${pct(p)}</span><span class="bar"><i style="width:${p * 100}%;background:${o.color}"></i></span>${open ? `<span class="odesc">${o.text}</span>` : ''}</button>`;
   }).join('');
 }
+
+/* =====================================================================
+ * Memtree links and "Copy page"
+ * ===================================================================== */
+const TREES = window.MEMTREES || [];
+if (TREES.length) {
+  $('builtLink').href = TREES[TREES.length - 1].url;
+  $('builtLink').hidden = false;
+  $('treeList').innerHTML = TREES.map((t, i) => `<li><a href="${t.url}" target="_blank" rel="noopener" style="color:var(--accent)">${t.title}</a> · updated ${t.updated}${i === TREES.length - 1 ? ' (latest)' : ''}</li>`).join('');
+}
+
+// Fetched up front so the copy happens synchronously inside the click.
+let modelSource = null;
+fetch('model.js').then((r) => (r.ok ? r.text() : null)).then((t) => { modelSource = t; }).catch(() => {});
+
+const SITE = 'https://agi.memtree.dev', REPO = 'https://github.com/crizCraig/ai-safety-sim';
+function scenarioText() {
+  const r = M.summarize(labL, labA, 2000, 42);
+  const p1 = (x) => (x * 100).toFixed(1) + '%';
+  const levers = Object.entries(M.LEVER_INFO).map(([k, i]) =>
+    `| ${i.label} | ${leverText(k, labL[k])}${i.pct ? '' : ' / 100'} | ${i.low} → ${i.high} |`).join('\n');
+  const unknowns = Object.entries(M.ASSUMPTION_INFO).map(([k, i]) =>
+    `| ${i.label} | ${fmtA(k, labA[k].mean)} | ${fmtA(k, labA[k].sd)} | ${i.help} |`).join('\n');
+  const s0 = M.initialState();
+  const start = Object.entries(M.STAT_INFO).map(([k, i]) => `${i.label} ${s0[k]}`).join(', ');
+  const outcomes = Object.entries(M.OUTCOMES).sort((a, b) => r.counts[b[0]] - r.counts[a[0]])
+    .map(([k, o]) => `| ${o.title} | ${p1(r.counts[k] / r.n)} | ${o.text} |`).join('\n');
+  const explain = [...$('modelInfo').querySelectorAll('.box > p, .box > .eq')]
+    .filter((el) => !el.classList.contains('note') && !el.textContent.trim().startsWith('How it was built'))
+    .map((el) => {
+      const c = el.cloneNode(true);
+      c.querySelectorAll('sup').forEach((x) => { x.textContent = '^' + x.textContent; });
+      return el.classList.contains('eq') ? '```\n' + c.textContent.trim() + '\n```' : c.textContent.trim().replace(/\s+/g, ' ');
+    })
+    .join('\n\n');
+  return `# Game of AGI: Futures Lab scenario
+
+Below is a scenario from Game of AGI, a toy Monte Carlo simulator of AI-safety policy from 2027 to 2040 (${SITE}, code: ${REPO}). It is meant to make trade-offs tangible, not to forecast. Please help me understand and critique it:
+
+- Explain why these settings produce these outcomes.
+- Point out assumptions that look weak or unjustified, and say how the conclusions would change if they were wrong.
+- Suggest lever or assumption changes worth trying, and what you'd expect them to do.
+
+Quote the model code when it matters. Treat every number as an assumption of this model, not as evidence about the real world.
+
+## Policy levers (held fixed 2027–2040 in every future)
+
+| Lever | Setting | Scale |
+|---|---|---|
+${levers}
+
+## Hidden unknowns (each future draws these from a normal distribution)
+
+| Unknown | Mean | Spread (sd) | Meaning |
+|---|---|---|---|
+${unknowns}
+
+## Starting state (2027, scales 0–100)
+
+${start}.
+
+## Results from ${r.n.toLocaleString()} simulated futures
+
+| Outcome | Share | Description |
+|---|---|---|
+${outcomes}
+
+- Catastrophe (pandemic, loss of control or war): ${p1(r.catastrophe)}
+- Automated Coder (capability 70) reached in ${p1(r.acShare)} of futures${r.acMedian ? `, median year ${r.acMedian}` : ''}
+- Superintelligence (capability 100) reached in ${p1(r.asiShare)} of futures${r.asiMedian ? `, median year ${r.asiMedian}` : ''}
+- p(alignment), excluding pandemic and war futures: ${r.pAlignment == null ? 'n/a' : p1(r.pAlignment)}
+
+## How the model works
+
+${explain}
+
+## Full model source (model.js)
+
+${modelSource ? '```js\n' + modelSource.trim() + '\n```' : `The source is at ${REPO}/blob/main/model.js`}
+`;
+}
+
+let toastTimer;
+function toast(msg) {
+  $('toast').textContent = msg; $('toast').hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4000);
+}
+function copyFallback(text) {
+  $('copyText').value = text;
+  $('copyFallback').classList.remove('hidden');
+  $('copyText').focus(); $('copyText').select();
+}
+$('copyPage').onclick = () => {
+  const text = scenarioText();
+  const ok = () => toast('Copied. Paste it into Claude or another AI and ask it to poke holes in the model.');
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(ok, () => copyFallback(text));
+  else copyFallback(text);
+};
 
 /* =====================================================================
  * Mode switching & wiring
