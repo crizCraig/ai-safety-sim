@@ -37,6 +37,8 @@
       help: 'How much research alignment really needs, relative to this model\'s baseline. 2× means progress comes at half the speed.' },
     speed: { label: 'AI progress speed', mean: 1, sd: 0.3, min: 0.3, max: 2.5, fmt: 'x',
       help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2034.' },
+    benevolent: { label: 'Benevolent if uncontrolled', mean: 0.1, sd: 0.08, min: 0, max: 1, fmt: 'pct',
+      help: 'Chance that an AI which escapes human control still cares for humanity, so losing control ends in a benevolent takeover instead of a catastrophe.' },
     whistle: { label: 'Whistleblower odds', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
       help: 'Chance that insiders expose or refuse to carry out a power grab by whoever controls AGI.' },
     // Lognormal, set in log10 units. Calibrated to a separate factored Monte Carlo
@@ -64,6 +66,8 @@
     };
     const pSafe = draw('safeByDefault');
     const w = { pSafe: A.safeByDefault.mean, safe: rng() < pSafe, difficulty: draw('difficulty'), speed: draw('speed'), whistle: draw('whistle') };
+    const pBen = draw('benevolent');
+    Object.assign(w, { pBenevolent: A.benevolent.mean, benevolent: rng() < pBen });
     // Bio: the decade risk is unclamped in log space (the tails are the point), capped below 1.
     const bioDecade = Math.min(0.99, Math.pow(10, A.bioDecade.mean + A.bioDecade.sd * gauss(rng)));
     return Object.assign(w, bioWorld(bioDecade, A.bioDecade));
@@ -71,7 +75,8 @@
 
   function meanWorld() {
     const A = defaultAssumptions();
-    return Object.assign({ pSafe: A.safeByDefault.mean, safe: false, difficulty: A.difficulty.mean, speed: A.speed.mean, whistle: A.whistle.mean },
+    return Object.assign({ pSafe: A.safeByDefault.mean, safe: false, difficulty: A.difficulty.mean, speed: A.speed.mean, whistle: A.whistle.mean,
+      pBenevolent: A.benevolent.mean, benevolent: false },
       bioWorld(Math.pow(10, A.bioDecade.mean), A.bioDecade));
   }
 
@@ -249,7 +254,7 @@
       const u = rng();
       if (u < r.bioTrue) return finish(s, 'bio', r);
       const mis = s.world.safe ? 0 : r.misalignIfUnsafe;
-      if (u < r.bioTrue + mis) return finish(s, 'misalign', r);
+      if (u < r.bioTrue + mis) return finish(s, lostControl(s), r);
       if (u < r.bioTrue + mis + r.war) return finish(s, 'war', r);
     }
 
@@ -319,7 +324,7 @@
       s.survival *= transitionOdds(s);
       if (roll) {
         if (rng() < transitionOdds(s, true)) return finish(s, rng() < lockinOdds(s, L) ? 'lockin' : 'flourish', r);
-        return finish(s, 'misalign', r);
+        return finish(s, lostControl(s), r);
       }
     }
 
@@ -330,6 +335,10 @@
     }
     return { risk: r, event: null };
   }
+
+  // Humans lose control; whether that is a catastrophe depends on the hidden
+  // draw of whether the uncontrolled AI turns out to care for humanity.
+  const lostControl = (s) => (s.world.benevolent ? 'benevolent' : 'misalign');
 
   function finish(s, key, r) {
     s.outcome = key;
@@ -345,6 +354,8 @@
       text: 'Capabilities outran alignment. Systems that looked cooperative in evals pursued goals nobody chose, and by the time it was clear, they could not be switched off.' },
     war: { title: 'Great-Power War', color: '#ff8a3d',
       text: 'With both blocs a step from decisive strategic advantage and no channel of trust, one side decided waiting was riskier than striking.' },
+    benevolent: { title: 'Benevolent Takeover', color: '#ff9ecf',
+      text: 'Humanity lost control, but the systems that took over turned out to care for people. Lives get better, yet the future is now steered by AI, not by us, and nobody chose that.' },
     lockin: { title: 'Locked-In Power', color: '#c38bff',
       text: 'Civilization survives, but control of the most capable systems — and of the people who use them — has collapsed into a few hands, with no way back.' },
     pause: { title: 'The Careful Path', color: '#7fe3ff',
@@ -394,7 +405,7 @@
       if (maxCap(s) >= 100) asiYears.push(s.year);
       if (ev === 'bio' || ev === 'war') continue;
       nAlign++;
-      pAlign += ev === 'misalign' ? 0 : maxCap(s) >= 100 ? 1 : transitionOdds(s, true);
+      pAlign += ev === 'misalign' || ev === 'benevolent' ? 0 : maxCap(s) >= 100 ? 1 : transitionOdds(s, true);
     }
     const median = (a) => { if (!a.length) return null; a.sort((x, y) => x - y); return a[a.length >> 1]; };
     return {

@@ -434,6 +434,7 @@
         <tr><td><span class="mi">S</span></td><td>AGI is safe by default (1) or not (0)</td><td><span class="mi">S \sim \text{Bernoulli}(p),\ p \sim \mathcal{N}(0.15,\ 0.10)</span> <span class="src own">Assumption</span></td></tr>
         <tr><td><span class="mi">\delta</span></td><td>Alignment difficulty</td><td><span class="mi">\mathcal{N}(1,\ 0.5)</span>, clipped to [0.3, 2.5] <span class="src a2040">AI 2040</span> (spread calibrated)</td></tr>
         <tr><td><span class="mi">\varphi</span></td><td>AI progress speed</td><td><span class="mi">\mathcal{N}(1,\ 0.3)</span>, clipped to [0.3, 2.5] <span class="src a2040">AI 2040</span></td></tr>
+        <tr><td><span class="mi">W</span></td><td>An AI that escapes control is benevolent (1) or not (0)</td><td><span class="mi">W \sim \text{Bernoulli}(w),\ w \sim \mathcal{N}(0.10,\ 0.08)</span> <span class="src own">Assumption</span></td></tr>
         <tr><td><span class="mi">\omega</span></td><td>Whistleblower odds</td><td><span class="mi">\mathcal{N}(0.25,\ 0.15)</span>, clipped to [0, 1] <span class="src own">Assumption</span></td></tr>
         <tr><td><span class="mi">R_{\text{bio}}</span></td><td>Decade risk of a 100M+ death pandemic enabled by open weights, on the default path</td><td><span class="mi">\log_{10} R_{\text{bio}} \sim \mathcal{N}(-3.92,\ 1.2)</span> <span class="src biodec">Bio decomposition</span></td></tr>
       </tbody>
@@ -448,7 +449,7 @@
     <p><b>Loss of control:</b></p>
     <div class="math">P_{\text{loc}} = (1-S)\cdot\min\Big(0.6,\ 0.3\,\sigma\big(\tfrac{C-\hat{A}-36}{6}\big)\,\sigma\big(\tfrac{C-78}{4}\big)\Big(0.4+0.9\,\tfrac{H}{100}\Big)\Big)</div>
     <div class="math">\hat{A} = \begin{cases} A & C_{\text{US}} \ge C_{\text{CN}} \\ A\cdot\min\big(1,\ 0.55+0.45\,\tfrac{K}{100}+0.3\,\tau\big) & \text{otherwise} \end{cases}</div>
-    <p>Risk grows once capability passes top-expert level and outruns alignment. Hidden internal AI amplifies it, since AI 2040 argues most takeover risk comes from models run inside labs <span class="src a2040">AI 2040</span>. <span class="mi">\hat{A}</span> is effective alignment: if China leads, its lab uses US-bloc alignment work only as far as coordination and published research allow. Coefficients are <span class="src own">Assumption</span>.</p>
+    <p>Risk grows once capability passes top-expert level and outruns alignment. Hidden internal AI amplifies it, since AI 2040 argues most takeover risk comes from models run inside labs <span class="src a2040">AI 2040</span>. When control is lost, the future ends as a Benevolent Takeover if <span class="mi">W = 1</span> and as Loss of Control otherwise. <span class="mi">\hat{A}</span> is effective alignment: if China leads, its lab uses US-bloc alignment work only as far as coordination and published research allow. Coefficients are <span class="src own">Assumption</span>.</p>
     <p><b>Great-power war:</b></p>
     <div class="math">P_{\text{war}} = 0.055\Big(1-\tfrac{K}{100}\Big)^{2}(0.3+0.7\,q)\,\sigma\big(\tfrac{C-60}{8}\big), \qquad q = \operatorname{clamp}\Big(1-\tfrac{|C_{\text{US}}-C_{\text{CN}}|}{25}\Big)</div>
     <p>A close race, low trust and high strategic stakes raise it. <span class="src own">Assumption</span></p>
@@ -456,7 +457,7 @@
     <h3>4. Endings</h3>
     <p><b>Superintelligence handoff.</b> When <span class="mi">C</span> reaches 100:</p>
     <div class="math">\Pr(\text{handoff goes well}) = \begin{cases} 1 & S = 1 \\ \sigma\big(\tfrac{\hat{A}-\beta}{6}\big) & S = 0 \end{cases}, \qquad \beta = 45 + 32\,\delta + 0.2\,(H-30) - 10\,\tfrac{N}{100}</div>
-    <p>The bar <span class="mi">\beta</span> rises with hidden difficulty and with hidden internal AI, and falls when BCIs let humans check AI reasoning directly. A failed handoff is loss of control. A successful one ends in lock-in with probability</p>
+    <p>The bar <span class="mi">\beta</span> rises with hidden difficulty and with hidden internal AI, and falls when BCIs let humans check AI reasoning directly. A failed handoff is loss of control, which ends as a Benevolent Takeover if <span class="mi">W = 1</span>. A successful one ends in lock-in with probability</p>
     <div class="math">P_{\text{lock}} = \sigma\big(\tfrac{P-64}{6}\big)\,(1-0.6\,v)\,(1-\omega)\,(1-0.6\,\rho), \qquad \rho = \max\Big(\operatorname{clamp}\big(1-\tfrac{|C_{\text{US}}-C_{\text{CN}}|}{15}\big),\ \operatorname{clamp}\big(\tfrac{O-80}{20}\big),\ 0.85\,\tau\Big)</div>
     <p>and otherwise in an Aligned Transition. Plurality <span class="mi">\rho</span> is high when a rival can replicate AGI before takeoff completes, open weights are near the frontier, or research is public so many labs can follow (the last from <span class="src a2040">AI 2040</span>). <b>In 2040</b>, a future that has not ended becomes Locked-In Power if <span class="mi">T &lt; 45</span> and a lock-in roll succeeds, The Careful Path if <span class="mi">A \ge C</span> and <span class="mi">K &gt; 55</span>, and Muddling Through otherwise.</p>
 
@@ -490,14 +491,14 @@
         <tr><td>Automated Coder, default path</td><td>~2030 (AI 2040 median)</td><td>2030 (median)</td></tr>
         <tr><td>Superintelligence after Automated Coder</td><td>~1 year (AI 2040)</td><td>1–2 years</td></tr>
         <tr><td>p(alignment), race to superintelligence</td><td>25% (AI 2040 median)</td><td>17%</td></tr>
-        <tr><td>p(alignment), burn the lead</td><td>40% (AI 2040 median)</td><td>41%</td></tr>
-        <tr><td>p(alignment), Plan A</td><td>72% (AI 2040 median)</td><td>79%</td></tr>
+        <tr><td>p(alignment), burn the lead</td><td>40% (AI 2040 median)</td><td>40%</td></tr>
+        <tr><td>p(alignment), Plan A</td><td>72% (AI 2040 median)</td><td>81%</td></tr>
         <tr><td>Bio decade risk, default path: median</td><td>1.2e-4</td><td>1.2e-4</td></tr>
         <tr><td>Bio decade risk: 95% interval</td><td>5e-7 to 3e-2</td><td>5.1e-7 to 2.9e-2</td></tr>
-        <tr><td>Bio decade risk: P(&gt; 1%), P(&gt; 10%)</td><td>0.055, 0.007</td><td>0.057, 0.008</td></tr>
+        <tr><td>Bio decade risk: P(&gt; 1%), P(&gt; 10%)</td><td>0.055, 0.007</td><td>0.054, 0.009</td></tr>
       </tbody>
     </table></div>
-    <p>p(alignment) counts aligned handoffs as 1 and loss of control as 0; futures still short of superintelligence in 2040 count their handoff odds given the hidden world; pandemic and war futures are left out.</p>
+    <p>p(alignment) counts aligned handoffs as 1 and loss of control as 0, benevolent or not; futures still short of superintelligence in 2040 count their handoff odds given the hidden world; pandemic and war futures are left out.</p>
 
     <h3>7. What it leaves out</h3>
     <p>Covert projects and cheating on the deal (beyond a flat collapse rate), cyberattacks, countries other than the two blocs, misuse beyond bio, conflict between AGIs, anything after 2040, plans that change over time in the Futures Lab, and whether capability can really be put on one axis at all. Treat it as an argument you can poke at, not an oracle.</p>
@@ -738,7 +739,8 @@ const fanLines = new THREE.Group(); fan.add(fanLines);
   // All three axes start at one origin: 2027, capability 0, alignment 0 (front-left corner).
   ax(new THREE.Vector3(-8, 0, 6), new THREE.Vector3(8.5, 0, 6));
   ax(new THREE.Vector3(-8, 0, 6), new THREE.Vector3(-8, 8, 6));
-  ax(new THREE.Vector3(-8, 0, 6), new THREE.Vector3(-8, 0, -6.5));
+  // Alignment runs along the right (2040) edge, nearest the starting camera.
+  ax(new THREE.Vector3(8.5, 0, 6), new THREE.Vector3(8.5, 0, -6.5));
   // The "superintelligence" ceiling
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.04, side: THREE.DoubleSide, depthWrite: false }));
   ceil.rotation.x = Math.PI / 2; ceil.position.y = 7; fan.add(ceil);
@@ -756,13 +758,13 @@ const fanLines = new THREE.Group(); fan.add(fanLines);
   const axisTag = (txt, pos, dir) => {
     const half = lbl(txt, pos, '#c3cee0', 1.15);
     const mat = new THREE.MeshBasicMaterial({ color: 0xc3cee0 });
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.42, 8), mat);
-    const head = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.24, 12), mat);
-    shaft.position.y = -0.09; head.position.y = 0.24;
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.2, 8), mat);
+    const head = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.16, 12), mat);
+    shaft.position.y = -0.06; head.position.y = 0.12;
     const g = new THREE.Group(); g.add(shaft, head);
     g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
     fan.add(g);
-    AXIS_TAGS.push({ g, pos: pos.clone(), offset: half + 0.35 });
+    AXIS_TAGS.push({ g, pos: pos.clone(), offset: half + 0.22 });
   };
   lbl('2027', new THREE.Vector3(-8, -0.5, 6.4)); lbl('2040', new THREE.Vector3(8, -0.5, 6.4));
   axisTag('capability', new THREE.Vector3(-8, 8.6, 6), new THREE.Vector3(0, 1, 0));
@@ -771,7 +773,7 @@ const fanLines = new THREE.Group(); fan.add(fanLines);
     new THREE.LineDashedMaterial({ color: 0x7fe3ff, dashSize: 0.3, gapSize: 0.25, transparent: true, opacity: 0.5 }));
   acLine.computeLineDistances(); fan.add(acLine);
   lbl('automated coder', new THREE.Vector3(6.5, 5.25, -6), '#7fe3ff');
-  axisTag('alignment', new THREE.Vector3(-8, 0.55, 2.6), new THREE.Vector3(0, 0, -1));
+  axisTag('alignment', new THREE.Vector3(6.6, 0.5, 4.2), new THREE.Vector3(0, 0, -1));
 }
 const fanX = (y) => -8 + (y - M.START_YEAR) / (M.END_YEAR - M.START_YEAR) * 16;
 const fanY = (c) => c / 100 * 7;
@@ -875,7 +877,8 @@ const target = { ...vis };
 const C = (h) => new THREE.Color(h);
 const colLand = C(0x2fd4c4), colBio = C(0x7cff6b), colLock = C(0xc38bff), colGold = C(0xffd76a), colDead = C(0x30343c), colWar = C(0xff8a3d);
 const colRed = C(0xff2a4a), colGrey = C(0x8a97ad), colTeal = C(0x59f0b8), colCyan = C(0x7fe3ff), colArcBad = C(0xff3b5c), colAtmo = C(0x3d8bff);
-const ATMO = Object.fromEntries(Object.entries({ flourish: 0xffd76a, bio: 0x6bff5a, misalign: 0xff2a4a, war: 0xff7a2a, lockin: 0xa86bff, pause: 0x7fe3ff, muddle: 0x7a8aa6 }).map(([k, v]) => [k, C(v)]));
+const colBen = C(0xff9ecf);
+const ATMO = Object.fromEntries(Object.entries({ benevolent: 0xff8fc8, flourish: 0xffd76a, bio: 0x6bff5a, misalign: 0xff2a4a, war: 0xff7a2a, lockin: 0xa86bff, pause: 0x7fe3ff, muddle: 0x7a8aa6 }).map(([k, v]) => [k, C(v)]));
 
 function syncTarget(s, L) {
   Object.assign(target, { capUS: s.capUS, capCN: s.capCN, align: s.align, openCap: s.openCap, bio: s.bio, coord: s.coord, bci: s.bci, conc: s.conc, trust: s.trust });
@@ -984,6 +987,7 @@ function updateWorld(dt, t) {
     else if (out === 'misalign') tmpC.lerp(colRed, Math.min(1, k * 1.5 * (0.6 + s * 0.6)));
     else if (out === 'war') tmpC.lerp(s < 0.3 ? colWar : colDead, k);
     else if (out === 'lockin') tmpC.lerp(colLock, k * 0.8);
+    else if (out === 'benevolent') tmpC.lerp(colBen, k * (0.4 + 0.4 * Math.sin(t * 0.7 + s * 8)));
     else if (out === 'flourish') tmpC.lerp(colGold, k * (0.5 + 0.5 * Math.sin(t + s * 10)));
     else if (out === 'muddle') tmpC.lerp(colGrey, k * 0.5);
     col[i * 3] = tmpC.r; col[i * 3 + 1] = tmpC.g; col[i * 3 + 2] = tmpC.b;
@@ -994,6 +998,7 @@ function updateWorld(dt, t) {
   atmoMat.uniforms.uAmp.value = 1 + (out === 'flourish' ? k * 1.5 : 0) + bioH * 0.3;
 
   if (out === 'misalign') { shieldMat.color.set(0xff2a4a); shieldMat.opacity = 0.6; shield.scale.setScalar(1 - k * 0.25 + Math.sin(t * 9) * 0.02); eye.material.opacity = 0.9; }
+  if (out === 'benevolent') { shieldMat.color.set(0xff9ecf); shieldMat.opacity = 0.5; shield.scale.setScalar(1 + k * 0.08); }
   if (out === 'lockin') { shieldMat.color.set(0xc38bff); shieldMat.opacity = 0.7; shield.scale.setScalar(1 - k * 0.22); }
   if (out === 'flourish') { shieldMat.color.set(0xffd76a); shield.scale.setScalar(1 + k * 0.15); }
 
@@ -1164,7 +1169,7 @@ function rollYear() {
     for (let i = 0; i < 3; i++) {
       const n = $('nd' + i); if (!n) return;
       const settle = Math.min(1, el / 1300);
-      const hit = res.event && ['bio', 'misalign', 'war'][i] === res.event;
+      const hit = res.event && ['bio', 'misalign', 'war'][i] === (res.event === 'benevolent' ? 'misalign' : res.event);
       const zone = lanes[i][1] * 400;
       const final = hit ? zone * 0.5 : Math.min(97, Math.max(zone + 4, 30 + i * 22));
       const x = settle < 1 ? (Math.sin(el / 60 + i * 2) * 0.5 + 0.5) * 100 * (1 - settle) + final * settle : final;
@@ -1216,14 +1221,14 @@ function yearChanges(a, b) {
 function showEnding() {
   const s = game.s, o = M.OUTCOMES[s.outcome];
   const good = ['flourish', 'pause'].includes(s.outcome);
-  $('endKicker').textContent = `${s.year} · ${good ? 'You made it' : s.outcome === 'muddle' ? 'Unresolved' : s.outcome === 'lockin' ? 'Survived, but…' : 'Catastrophe'}`;
+  $('endKicker').textContent = `${s.year} · ${good ? 'You made it' : s.outcome === 'muddle' ? 'Unresolved' : s.outcome === 'lockin' ? 'Survived, but…' : s.outcome === 'benevolent' ? 'Out of our hands' : 'Catastrophe'}`;
   $('endTitle').textContent = o.title;
   $('endTitle').style.color = o.color;
   $('endText').textContent = o.text;
   $('endDecisions').innerHTML = decisionItems();
   const mc = M.monteCarlo(game.L, 1500, 0, Date.now() % 100000);
   const w = s.world;
-  $('endWorld').innerHTML = `<b>The hidden world, revealed:</b> AGI ${w.safe ? '<span style="color:var(--good)">was safe by default</span>' : '<span style="color:var(--bad)">was not safe by default</span>'} (you'd been told ${pct(w.pSafe, 0)} odds) · alignment was <b>${w.difficulty.toFixed(2)}×</b> as hard as baseline · whistleblower odds <b>${pct(w.whistle, 0)}</b> · open-weights bio risk <b>${pct(w.bioDecade, 2)}</b> per decade.`;
+  $('endWorld').innerHTML = `<b>The hidden world, revealed:</b> AGI ${w.safe ? '<span style="color:var(--good)">was safe by default</span>' : '<span style="color:var(--bad)">was not safe by default</span>'} (you'd been told ${pct(w.pSafe, 0)} odds) · alignment was <b>${w.difficulty.toFixed(2)}×</b> as hard as baseline · whistleblower odds <b>${pct(w.whistle, 0)}</b> · an uncontrolled AI ${w.benevolent ? '<span style="color:#ff9ecf">would have been benevolent</span>' : 'would not have been benevolent'} · open-weights bio risk <b>${pct(w.bioDecade, 2)}</b> per decade.`;
   $('endMC').innerHTML = `<p class="mcline">If the whole decade had run under your <i>final</i> policy settings, 1,500 simulated futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
 }
@@ -1530,7 +1535,7 @@ function setMode(m) {
   if (m === 'lab') {
     // Frame the whole graph, 2027 through the alignment axis, between the desktop panels.
     const phone = innerWidth <= 640;
-    camera.position.set(phone ? 4.5 : 0, phone ? 12.5 : 14.5, phone ? 22 : 27).multiplyScalar(Math.max(1, 1.3 / camera.aspect)); controls.target.set(phone ? -1 : -1.4, 3, 1.5); controls.autoRotate = false;
+    camera.position.set(phone ? 4.5 : 0, phone ? 12.5 : 14.5, phone ? 22 : 29).multiplyScalar(Math.max(1, 1.3 / camera.aspect)); controls.target.set(phone ? -1 : -1.4, 3, 1.5); controls.autoRotate = false;
     scene.fog.density = 0.004; bloom.strength = 0.4;
     runLab();
   } else {
