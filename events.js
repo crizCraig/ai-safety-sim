@@ -169,6 +169,16 @@
       ],
     },
     {
+      id: 'sabotage', when: (s) => SimModel.maxCap(s) > 55 && s.coord < 50, tag: 'Geopolitics',
+      title: 'Sabotage Their Labs?',
+      text: 'Military planners brief you on options to set back China\'s frontier AI program: cyberattacks on training runs, covert hardware tampering, or strikes on datacenters. Each buys a lead to spend on safety. Each risks a war.',
+      choices: [
+        { label: 'Cyber and covert sabotage', note: 'Deniable, and it slows them down.', lev: { aggression: +0.4 }, st: { capCN: -4, coord: -10 } },
+        { label: 'Prepare strikes, hold for now', note: 'Signal capability without acting.', lev: { aggression: +0.1 }, st: { coord: -4 } },
+        { label: 'Rule it out', note: 'Pursue verification instead.', lev: { aggression: -0.3, diplomacy: +0.05 }, st: { coord: +4 } },
+      ],
+    },
+    {
       id: 'cern', when: (s) => SimModel.maxCap(s) > 70 && s.coord > 35, tag: 'Coordination',
       title: 'A CERN for AGI',
       text: 'Allies propose merging frontier efforts into one international, inspected project — with China invited. Labs would hand over their best researchers and compute.',

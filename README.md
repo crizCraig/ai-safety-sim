@@ -20,11 +20,12 @@ It extends the original [Game of AGI](https://gist.github.com/crizCraig/f4c583f0
 a Monte Carlo of AGI risk. That version's ideas carry over: safe-by-default odds,
 oversight, whistleblowers, and takeoff speed vs. how fast rivals replicate AGI. This
 version adds time, geopolitics, open weights, bio risk, and a 3D world, and
-calibrates its timelines and plan outcomes to [AI 2040: Plan A](https://ai-2040.com/).
+calibrates its timelines and plan outcomes to [AI 2040: Plan A](https://ai-2040.com/). The Futures Lab
+has presets for all five plans in AI 2040's [plan comparison](https://ai-2040.com/supplements/comparing-possible-plans).
 
 ## Two modes
 
-- **Futures Lab** (opens first). Set eight policy levers and five uncertain
+- **Futures Lab** (opens first). Set nine policy levers and six uncertain
   assumptions (mean ± spread, as in the original), run 2,000 Monte Carlo futures,
   and see every trajectory as a 3D fan, colored by how it ends. Hover a line to
   read its values; click an outcome to read it and isolate its futures.

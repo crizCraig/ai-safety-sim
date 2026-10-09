@@ -26,6 +26,7 @@
     diplomacy: { label: 'US–China diplomacy',    low: 'Cold war',     high: 'Joint project',   def: 0.25 },
     bci:       { label: 'Neural-interface push', low: 'Market pace',  high: 'AI-driven moonshot', def: 0.1 },
     oversight: { label: 'Independent oversight', low: 'Self-audits',  high: 'IAEA for AI',     def: 0.1 },
+    aggression: { label: 'Sabotage of China\'s AI', low: 'None',     high: 'Cyber + kinetic strikes', def: 0 },
   };
 
   // Hidden facts about the world nobody knows in advance. As in the original
@@ -210,7 +211,12 @@
 
     // Great-power conflict: tight race + low trust + high strategic stakes.
     const closeness = clamp(1 - Math.abs(s.capUS - s.capCN) / 25, 0, 1);
-    const war = 0.055 * Math.pow(1 - s.coord / 100, 2) * (0.3 + 0.7 * closeness) * sig((mc - 60) / 8);
+    const stakes = sig((mc - 60) / 8);
+    // Sabotage (AI 2040's Plan B) provokes: it raises baseline war risk, and
+    // a China falling behind under attack has a reason to strike first.
+    const behind = clamp((s.capUS - s.capCN) / 20, 0, 1);
+    const war = 0.055 * Math.pow(1 - s.coord / 100, 2) * (0.3 + 0.7 * closeness) * stakes * (1 + 1.5 * L.aggression)
+      + 0.07 * L.aggression * (0.4 + 0.6 * behind) * stakes;
 
     const total = 1 - (1 - bio) * (1 - misalign) * (1 - war);
     return { bio, bioTrue, misalign, misalignIfUnsafe, war, total };
@@ -270,6 +276,7 @@
     let gUS = BASE * computeSpeed(L.race) * w.speed * safetyTax * uplift(s.capUS) + noise();
     let gCN = BASE * computeSpeed(chinaRace(s, L)) * w.speed * s.cnMult * uplift(s.capCN) + noise()
       + 0.25 * L.transparency * Math.max(0, s.capUS - s.capCN);
+    gCN *= 1 - 0.35 * L.aggression; // sabotage slows China's labs
     if (rng() < 0.15) { gUS += 3 + rng() * 5; gCN += 2 + rng() * 4 * s.cnMult; }
     // AI 2040 puts the deal's cumulative collapse risk near 48% over ten years
     // (leadership change, a side caught cheating, ...), about 6% a year.
@@ -298,7 +305,7 @@
     // Augmented overseers (BCI) can follow what thousands of AI copies are doing.
     s.internal = clamp(s.internal + 4 * L.race * Math.sqrt(uplift(mc)) - 9 * L.transparency - 5 * L.oversight - 6 * (s.bci / 100) - 0.5);
 
-    s.coord = clamp(s.coord + 13 * L.diplomacy + 2 * L.oversight + 3 * L.transparency - 6 * L.race - 0.5 + noise() * 1.5);
+    s.coord = clamp(s.coord + 13 * L.diplomacy + 2 * L.oversight + 3 * L.transparency - 6 * L.race - 10 * L.aggression - 0.5 + noise() * 1.5);
 
     // Open-weights frontier tracks the closed frontier with a policy-set lag.
     const openTarget = maxCap(s) * (0.62 + 0.36 * L.openness + 0.06 * L.transparency);
@@ -312,7 +319,7 @@
     s.bci = clamp(s.bci + Math.min(20, (11 * L.bci + 0.6) * (1 + (uplift(mc) - 1) * 0.4 * L.bci)));
 
     s.conc = clamp(s.conc + 10 * L.race * (1 - 0.5 * L.openness - 0.5 * L.transparency) + 0.06 * Math.max(0, mc - 60)
-      - 2.5 * L.openness - 4 * L.transparency + 2.2 * L.bci * (1 - L.diplomacy) - 4 * L.oversight - 0.8);
+      - 2.5 * L.openness - 4 * L.transparency + 2.2 * L.bci * (1 - L.diplomacy) - 4 * L.oversight + 3 * L.aggression - 0.8);
 
     s.trust = clamp(s.trust - 0.04 * Math.max(0, mc - 55) + 2.5 * Math.min(1, sx) + 1.5 * L.oversight + 1.5 * L.transparency
       - 1.5 * L.race * (s.conc / 100) + 0.3);

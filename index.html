@@ -121,6 +121,13 @@
   .world-reveal { font-size: 13px !important; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
   .presets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
   .presets button { background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 7px; font-size: 11px; padding: 4px 8px; color: var(--muted); }
+  .pgroup { flex-basis: 100%; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 4px 0 1px; }
+  .pgroup a, .plannote a { color: var(--accent); text-decoration: none; }
+  .pgroup a:hover, .plannote a:hover { text-decoration: underline; }
+  .presets button.plan { border-color: rgba(127,227,255,0.3); }
+  .presets button.on { color: var(--text); border-color: var(--accent); background: rgba(127,227,255,0.12); }
+  .plannote { flex-basis: 100%; font-size: 11.5px; line-height: 1.45; color: #c3cee0; background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-top: 4px; }
+  .plannote .pn-src { color: var(--muted); }
   .presets button:hover { color: var(--text); border-color: var(--accent); }
   button.orow { background: none; border: 1px solid transparent; border-radius: 8px; padding: 4px 6px; margin: 0 -6px 4px; width: calc(100% + 12px); text-align: left; font: inherit; font-size: 12.5px; color: inherit; cursor: pointer; }
   button.orow:hover, button.orow:focus-visible { border-color: var(--line); background: rgba(255,255,255,0.03); outline: none; }
@@ -288,7 +295,7 @@
   </div>
   <div class="lab-only">
     <h3>Policy levers</h3>
-    <div class="sub">Held fixed 2027–2040 across every simulated future.</div>
+    <div class="sub">Held fixed 2027–2040 across every simulated future. Timelines are calibrated to <a href="https://ai-2040.com/" target="_blank" rel="noopener" style="color:var(--accent)">AI 2040</a>.</div>
     <div class="presets" id="presets"></div>
     <div id="sliders"></div>
     <div class="divider"></div>
@@ -425,6 +432,7 @@
         <tr><td><span class="mi">d</span></td><td>US–China diplomacy</td><td>cold war → joint project</td><td>0.25</td></tr>
         <tr><td><span class="mi">n</span></td><td>Neural-interface push</td><td>market pace → AI-driven moonshot</td><td>0.10</td></tr>
         <tr><td><span class="mi">v</span></td><td>Independent oversight</td><td>self-audits → an IAEA for AI</td><td>0.10</td></tr>
+        <tr><td><span class="mi">g</span></td><td>Sabotage of China's AI program (AI 2040's Plan B)</td><td>none → cyber and kinetic strikes</td><td>0</td></tr>
       </tbody>
     </table></div>
     <p><b>Hidden unknowns</b>, drawn once per future. The risk panel shows risks averaged over them; the dice use the hidden draw.</p>
@@ -451,8 +459,9 @@
     <div class="math">\hat{A} = \begin{cases} A & C_{\text{US}} \ge C_{\text{CN}} \\ A\cdot\min\big(1,\ 0.55+0.45\,\tfrac{K}{100}+0.3\,\tau\big) & \text{otherwise} \end{cases}</div>
     <p>Risk grows once capability passes top-expert level and outruns alignment. Hidden internal AI amplifies it, since AI 2040 argues most takeover risk comes from models run inside labs <span class="src a2040">AI 2040</span>. When control is lost, the future ends as a Benevolent Takeover if <span class="mi">W = 1</span> and as Loss of Control otherwise. <span class="mi">\hat{A}</span> is effective alignment: if China leads, its lab uses US-bloc alignment work only as far as coordination and published research allow. Coefficients are <span class="src own">Assumption</span>.</p>
     <p><b>Great-power war:</b></p>
-    <div class="math">P_{\text{war}} = 0.055\Big(1-\tfrac{K}{100}\Big)^{2}(0.3+0.7\,q)\,\sigma\big(\tfrac{C-60}{8}\big), \qquad q = \operatorname{clamp}\Big(1-\tfrac{|C_{\text{US}}-C_{\text{CN}}|}{25}\Big)</div>
-    <p>A close race, low trust and high strategic stakes raise it. <span class="src own">Assumption</span></p>
+    <div class="math">P_{\text{war}} = \Big[0.055\Big(1-\tfrac{K}{100}\Big)^{2}(0.3+0.7\,q)(1+1.5\,g) + 0.07\,g\,(0.4+0.6\,z)\Big]\,\sigma\big(\tfrac{C-60}{8}\big)</div>
+    <div class="math">q = \operatorname{clamp}\Big(1-\tfrac{|C_{\text{US}}-C_{\text{CN}}|}{25}\Big), \qquad z = \operatorname{clamp}\Big(\tfrac{C_{\text{US}}-C_{\text{CN}}}{20}\Big)</div>
+    <p>A close race, low trust and high strategic stakes raise it. Sabotage <span class="mi">g</span> adds provocation, and a second term where a China that is falling behind under attack has a reason to strike first. <span class="src own">Assumption</span></p>
 
     <h3>4. Endings</h3>
     <p><b>Superintelligence handoff.</b> When <span class="mi">C</span> reaches 100:</p>
@@ -464,7 +473,7 @@
     <h3>5. Yearly updates</h3>
     <p><b>Capability</b>:</p>
     <div class="math">\Delta C_{\text{US}} = 7\,\kappa(r)\,\varphi\,(1-s-0.08\,v)\,U(C_{\text{US}}) + \varepsilon</div>
-    <div class="math">\Delta C_{\text{CN}} = 7\,\kappa(r_{\text{CN}})\,\varphi\,m\,U(C_{\text{CN}}) + \varepsilon + 0.25\,\tau\,\max(0,\ C_{\text{US}}-C_{\text{CN}})</div>
+    <div class="math">\Delta C_{\text{CN}} = (1-0.35\,g)\Big[7\,\kappa(r_{\text{CN}})\,\varphi\,m\,U(C_{\text{CN}}) + \varepsilon + 0.25\,\tau\,\max(0,\ C_{\text{US}}-C_{\text{CN}})\Big]</div>
     <div class="math">U(c) = \begin{cases} 1 & c < 50 \\ 3^{(c-50)/20} & 50 \le c < 70 \\ \min\big(40,\ 3\,(40/3)^{(c-70)/20}\big) & c \ge 70 \end{cases} \qquad \kappa(r) = \Big(\frac{\max(0,\ r-0.03)}{0.52}\Big)^{0.74}</div>
     <div class="math">r_{\text{CN}} = \min\Big(1,\ \max\Big(0.05,\ 0.6 + 0.45\big(r(1-0.5\,s)-0.5\big) - 0.55\,\tfrac{K}{100}\Big)\Big)</div>
     <p><span class="mi">U</span> is the AI R&amp;D speed-up from AI labor: 3× at Automated Coder and about 40× near top-expert-dominating AI <span class="src a2040">AI 2040</span>. The compute exponent 0.74 encodes "10× less compute makes the intelligence explosion 5.5× slower" <span class="src a2040">AI 2040</span>, and the base rate 7 puts the default path at Automated Coder around 2030 and superintelligence about a year later <span class="src a2040">AI 2040</span>. Safety spending and oversight take compute away from capabilities. China's race intensity responds to the US posture and falls with coordination; publishing research helps China close the gap <span class="src own">Assumption</span>. Here <span class="mi">\varepsilon \sim U(-1,1)</span>, <span class="mi">m</span> is the export-control multiplier set by campaign choices (1 in the Lab), and each year a surprise breakthrough adds 3–8 points to the US and 2–6 to China with probability 0.15.</p>
@@ -475,11 +484,11 @@
     <p>The factors are: research effort (safety share, with diminishing returns past 30%, plus oversight); AI labor pointed at safety, so alignment also speeds up during takeoff, using the US bloc's own AI; shared international and public research; augmented researchers through BCIs; and the hidden difficulty <span class="mi">\delta</span>. Here <span class="mi">\varepsilon_A \sim U(-0.5,0.5)</span>, and with probability 0.12 a year an alignment insight adds 3 to 12 points (more with a higher safety share). The 0.55 scale and the spread of <span class="mi">\delta</span> are set so fixed-lever versions of AI 2040's plans reproduce its p(alignment) estimates <span class="src a2040">AI 2040</span>; the other coefficients are <span class="src own">Assumption</span>.</p>
     <p><b>Everything else</b>:</p>
     <div class="math">\Delta H = 4\,r\,\sqrt{U(C)} - 9\,\tau - 5\,v - 6\,\tfrac{N}{100} - 0.5</div>
-    <div class="math">\Delta K = 13\,d + 2\,v + 3\,\tau - 6\,r - 0.5 + \varepsilon_K, \qquad \varepsilon_K \sim U(-1.5,\ 1.5)</div>
+    <div class="math">\Delta K = 13\,d + 2\,v + 3\,\tau - 6\,r - 10\,g - 0.5 + \varepsilon_K, \qquad \varepsilon_K \sim U(-1.5,\ 1.5)</div>
     <div class="math">O \leftarrow O + 0.45\,\big(C\,(0.62 + 0.36\,o + 0.06\,\tau) - O\big)</div>
     <div class="math">\Delta B = 9\,b + 1.2\,o - 1.6</div>
     <div class="math">\Delta N = \min\big(20,\ (11\,n + 0.6)\,(1 + 0.4\,n\,(U(C)-1))\big)</div>
-    <div class="math">\Delta P = 10\,r\,(1 - 0.5\,o - 0.5\,\tau) + 0.06\,\max(0,\ C-60) - 2.5\,o - 4\,\tau + 2.2\,n\,(1-d) - 4\,v - 0.8</div>
+    <div class="math">\Delta P = 10\,r\,(1 - 0.5\,o - 0.5\,\tau) + 0.06\,\max(0,\ C-60) - 2.5\,o - 4\,\tau + 2.2\,n\,(1-d) - 4\,v + 3\,g - 0.8</div>
     <div class="math">\Delta T = -0.04\,\max(0,\ C-55) + 2.5\,\min\big(1,\ e(s)\big) + 1.5\,v + 1.5\,\tau - 1.5\,r\,\tfrac{P}{100} + 0.3</div>
     <p>Racing grows hidden internal AI, faster once AI automates R&amp;D; transparency, inspections and augmented overseers pull it into view. Open-weights capability chases a policy-set share of the frontier. Biodefense decays without investment, and open tools help it a little. AI labor speeds BCIs up, but surgery, approval and rollout cap adoption at 20 points a year. Racing on closed models concentrates power; openness, transparency and oversight spread it. All coefficients in this block are <span class="src own">Assumption</span>.</p>
 
@@ -491,7 +500,7 @@
         <tr><td>Automated Coder, default path</td><td>~2030 (AI 2040 median)</td><td>2030 (median)</td></tr>
         <tr><td>Superintelligence after Automated Coder</td><td>~1 year (AI 2040)</td><td>1–2 years</td></tr>
         <tr><td>p(alignment), race to superintelligence</td><td>25% (AI 2040 median)</td><td>17%</td></tr>
-        <tr><td>p(alignment), Plan B: fight China</td><td>50% (AI 2040 median)</td><td>51%</td></tr>
+        <tr><td>p(alignment), Plan B: fight China</td><td>50% (AI 2040 median)</td><td>49%</td></tr>
         <tr><td>p(alignment), burn the lead</td><td>40% (AI 2040 median)</td><td>40%</td></tr>
         <tr><td>p(alignment), Plan A</td><td>72% (AI 2040 median)</td><td>81%</td></tr>
         <tr><td>Bio decade risk, default path: median</td><td>1.2e-4</td><td>1.2e-4</td></tr>
@@ -1120,10 +1129,10 @@ function showCard(c) {
   $('card').classList.remove('hidden');
 }
 
-const SHORT = { race: 'race', safety: 'safety', openness: 'open', biodef: 'biodef', diplomacy: 'diplo', bci: 'BCI', oversight: 'oversight', transparency: 'transparency', internal: 'hidden AI',
+const SHORT = { race: 'race', safety: 'safety', openness: 'open', biodef: 'biodef', diplomacy: 'diplo', bci: 'BCI', oversight: 'oversight', aggression: 'sabotage', transparency: 'transparency', internal: 'hidden AI',
   capUS: 'US cap', capCN: 'CN cap', align: 'align', openCap: 'open cap', bio: 'bio readiness', coord: 'coord', conc: 'power conc', trust: 'trust', cnMult: 'CN speed' };
 const GOOD_UP = new Set(['safety', 'biodef', 'diplomacy', 'oversight', 'transparency', 'align', 'bio', 'coord', 'trust']);
-const BAD_UP = new Set(['conc', 'openCap', 'capCN', 'cnMult', 'race', 'internal']);
+const BAD_UP = new Set(['conc', 'openCap', 'capCN', 'cnMult', 'race', 'internal', 'aggression']);
 function chips(ch) {
   const out = [];
   const add = (k, v, isLev) => {
@@ -1315,11 +1324,19 @@ function renderLevers() {
  * Futures Lab
  * ===================================================================== */
 const P = (o) => ({ ...M.defaultLevers(), ...o });
+const AI2040_PLANS = 'https://ai-2040.com/supplements/comparing-possible-plans';
+const PLAN_INFO = {
+  'Plan A: Verified slowdown': { align: '72%', great: '42%', text: 'A verified US–China deal slows frontier AI, makes all research public and lets many labs keep up, pausing at top-expert level until 2040.' },
+  'Plan B: Fight China': { align: '50%', great: '25%', text: 'Sabotage China\'s AI program (cyber or kinetic) to win a lead, then burn that lead on safety. Nationalization concentrates power.' },
+  'Plan C: Burn the lead': { align: '40%', great: '20%', text: 'The leading AI project spends some of its lead on safety, perhaps coordinating with other frontier projects.' },
+  'Plan D: Race to ASI': { align: '25%', great: '10%', text: 'Frontier projects race through the intelligence explosion at nearly maximum speed.' },
+  'Plan S: Shut it down': { text: 'An indefinite global halt to frontier AI development: a longer expected slowdown and more margin for error.' },
+};
 const PRESETS = {
   'Status quo': P({}),
   // AI 2040's five plans as fixed levers (their plans change over time; these are approximations).
   'Plan A: Verified slowdown': P({ race: 0.35, safety: 0.08, openness: 0.15, transparency: 0.9, biodef: 0.5, diplomacy: 0.85, oversight: 0.7 }),
-  'Plan B: Fight China': P({ race: 0.8, safety: 0.2, openness: 0.1, transparency: 0.05, diplomacy: 0, oversight: 0.15 }),
+  'Plan B: Fight China': P({ race: 0.8, safety: 0.2, openness: 0.1, transparency: 0.05, diplomacy: 0, oversight: 0.15, aggression: 0.7 }),
   'Plan C: Burn the lead': P({ race: 0.8, safety: 0.14, transparency: 0.15, diplomacy: 0.1, oversight: 0.3 }),
   'Plan D: Race to ASI': P({ race: 1, safety: 0.025, openness: 0.4, transparency: 0.05, biodef: 0.1, diplomacy: 0.05, oversight: 0 }),
   'Plan S: Shut it down': P({ race: 0, safety: 0.15, openness: 0.05, transparency: 0.4, biodef: 0.5, diplomacy: 1, oversight: 1 }),
@@ -1332,8 +1349,19 @@ const PRESETS = {
 };
 const labL = M.defaultLevers();
 function buildLabUI() {
-  $('presets').innerHTML = Object.keys(PRESETS).map((n) => `<button data-p="${n}">${n}</button>`).join('');
-  $('presets').onclick = (e) => { const p = e.target.dataset.p; if (!p) return; Object.assign(labL, PRESETS[p]); syncSliders(); runLab(); };
+  const btn = (n) => `<button data-p="${n}"${PLAN_INFO[n] ? ' class="plan"' : ''}>${n}</button>`;
+  const names = Object.keys(PRESETS), plans = names.filter((n) => PLAN_INFO[n]);
+  $('presets').innerHTML = `<div class="pgroup">Other scenarios</div>${names.filter((n) => !PLAN_INFO[n]).map(btn).join('')}
+    <div class="pgroup">Plans from <a href="${AI2040_PLANS}" target="_blank" rel="noopener">AI 2040 ↗</a></div>${plans.map(btn).join('')}
+    <div class="plannote" id="planNote" hidden></div>`;
+  $('presets').onclick = (e) => {
+    const p = e.target.closest('[data-p]')?.dataset.p; if (!p) return;
+    Object.assign(labL, PRESETS[p]); syncSliders(); runLab();
+    $('presets').querySelectorAll('[data-p]').forEach((b) => b.classList.toggle('on', b.dataset.p === p));
+    const info = PLAN_INFO[p];
+    $('planNote').hidden = !info;
+    if (info) $('planNote').innerHTML = `${info.text} <span class="pn-src">AI 2040's median estimates: ${info.align ? `p(alignment) ${info.align}, p(great future) ${info.great}` : 'not given'}. These sliders are a fixed-lever approximation; AI 2040's plans change over time.</span> <a href="${AI2040_PLANS}" target="_blank" rel="noopener">Read the comparison ↗</a>`;
+  };
   $('sliders').innerHTML = Object.entries(M.LEVER_INFO).map(([k, info]) =>
     `<div class="slider"><div class="row"><span>${info.label}</span><span id="sv-${k}"></span></div><input type="range" min="0" max="100" id="sl-${k}" aria-label="${info.label}"><div class="ends"><span>${info.low}</span><span>${info.high}</span></div></div>`
   ).join('');
