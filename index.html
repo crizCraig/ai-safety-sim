@@ -730,7 +730,17 @@ const fanLines = new THREE.Group(); fan.add(fanLines);
   const ax = (a, b) => fan.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), axMat));
   ax(new THREE.Vector3(-8, 0, 0), new THREE.Vector3(8.5, 0, 0));
   ax(new THREE.Vector3(-8, 0, 0), new THREE.Vector3(-8, 8, 0));
-  ax(new THREE.Vector3(-8, 0, -6), new THREE.Vector3(-8, 0, 6));
+  ax(new THREE.Vector3(8.5, 0, 6), new THREE.Vector3(8.5, 0, -6.5)); // alignment axis on the 2040 side, clear of the fan
+  // Arrowheads are real 3D cones, so they turn with the axes; labels are
+  // sprites that keep facing the camera.
+  const arrowMat = new THREE.MeshBasicMaterial({ color: 0x6f8fc2 });
+  const arrow = (pos, rot) => {
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.5, 16), arrowMat);
+    cone.position.copy(pos); cone.rotation.set(rot.x || 0, 0, rot.z || 0); fan.add(cone);
+  };
+  arrow(new THREE.Vector3(8.75, 0, 0), { z: -Math.PI / 2 });     // year →
+  arrow(new THREE.Vector3(-8, 8.25, 0), {});                     // capability ↑
+  arrow(new THREE.Vector3(8.5, 0, -6.75), { x: -Math.PI / 2 });  // alignment, receding
   // The "superintelligence" ceiling
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.04, side: THREE.DoubleSide, depthWrite: false }));
   ceil.rotation.x = Math.PI / 2; ceil.position.y = 7; fan.add(ceil);
@@ -742,13 +752,13 @@ const fanLines = new THREE.Group(); fan.add(fanLines);
     s.scale.set(4 * scale, 0.5 * scale, 1); s.position.copy(pos); fan.add(s);
   };
   lbl('2027', new THREE.Vector3(-8, -0.5, 0)); lbl('2040', new THREE.Vector3(8, -0.5, 0));
-  lbl('capability ↑', new THREE.Vector3(-8, 8.5, 0));
+  lbl('capability', new THREE.Vector3(-8, 8.95, 0));
   lbl('superintelligence threshold', new THREE.Vector3(0, 7.35, -6), '#ffd76a');
   const acLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-8, 4.9, -6), new THREE.Vector3(8, 4.9, -6)]),
     new THREE.LineDashedMaterial({ color: 0x7fe3ff, dashSize: 0.3, gapSize: 0.25, transparent: true, opacity: 0.5 }));
   acLine.computeLineDistances(); fan.add(acLine);
   lbl('automated coder', new THREE.Vector3(6.5, 5.25, -6), '#7fe3ff');
-  lbl('alignment 0', new THREE.Vector3(9.8, -0.4, 6)); lbl('alignment 100', new THREE.Vector3(9.8, -0.4, -6));
+  lbl('alignment', new THREE.Vector3(8.5, 0.55, -7.45));
 }
 const fanX = (y) => -8 + (y - M.START_YEAR) / (M.END_YEAR - M.START_YEAR) * 16;
 const fanY = (c) => c / 100 * 7;
@@ -1504,9 +1514,9 @@ function setMode(m) {
   // Pull the camera back on narrow screens so the scene fits.
   const fit = camera.aspect < 1 ? 0.75 / camera.aspect : 1;
   if (m === 'lab') {
-    // Aim left of center so the 2027 origin clears the desktop's left panel.
+    // Frame the whole graph, 2027 through the alignment axis, between the desktop panels.
     const phone = innerWidth <= 640;
-    camera.position.set(phone ? 6 : 2, 12, 20).multiplyScalar(Math.max(1, 1.3 / camera.aspect)); controls.target.set(phone ? 0.5 : -2.5, 3, 0); controls.autoRotate = false;
+    camera.position.set(phone ? 6 : 1.5, phone ? 12 : 13.5, phone ? 20 : 24).multiplyScalar(Math.max(1, 1.3 / camera.aspect)); controls.target.set(phone ? 0.5 : -0.5, 3, 0); controls.autoRotate = false;
     scene.fog.density = 0.004; bloom.strength = 0.4;
     runLab();
   } else {
