@@ -719,6 +719,13 @@ for (let i = 0; i < 18; i++) {
 }
 
 /* ---------- Futures Lab fan chart ---------- */
+const AXIS_TAGS = [];
+const camRight = new THREE.Vector3();
+// Keep each axis arrow just right of its camera-facing label.
+function placeAxisTags() {
+  camRight.setFromMatrixColumn(camera.matrixWorld, 0);
+  for (const t of AXIS_TAGS) t.g.position.copy(t.pos).addScaledVector(camRight, t.offset);
+}
 const fan = new THREE.Group();
 fan.visible = false;
 scene.add(fan);
@@ -728,37 +735,43 @@ const fanLines = new THREE.Group(); fan.add(fanLines);
   grid.position.y = 0; fan.add(grid);
   const axMat = new THREE.LineBasicMaterial({ color: 0x4b6a9a });
   const ax = (a, b) => fan.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), axMat));
-  ax(new THREE.Vector3(-8, 0, 0), new THREE.Vector3(8.5, 0, 0));
-  ax(new THREE.Vector3(-8, 0, 0), new THREE.Vector3(-8, 8, 0));
-  ax(new THREE.Vector3(8.5, 0, 6), new THREE.Vector3(8.5, 0, -6.5)); // alignment axis on the 2040 side, clear of the fan
-  // Arrowheads are real 3D cones, so they turn with the axes; labels are
-  // sprites that keep facing the camera.
-  const arrowMat = new THREE.MeshBasicMaterial({ color: 0x6f8fc2 });
-  const arrow = (pos, rot) => {
-    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.5, 16), arrowMat);
-    cone.position.copy(pos); cone.rotation.set(rot.x || 0, 0, rot.z || 0); fan.add(cone);
-  };
-  arrow(new THREE.Vector3(8.75, 0, 0), { z: -Math.PI / 2 });     // year →
-  arrow(new THREE.Vector3(-8, 8.25, 0), {});                     // capability ↑
-  arrow(new THREE.Vector3(8.5, 0, -6.75), { x: -Math.PI / 2 });  // alignment, receding
+  // All three axes start at one origin: 2027, capability 0, alignment 0 (front-left corner).
+  ax(new THREE.Vector3(-8, 0, 6), new THREE.Vector3(8.5, 0, 6));
+  ax(new THREE.Vector3(-8, 0, 6), new THREE.Vector3(-8, 8, 6));
+  ax(new THREE.Vector3(-8, 0, 6), new THREE.Vector3(-8, 0, -6.5));
   // The "superintelligence" ceiling
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.04, side: THREE.DoubleSide, depthWrite: false }));
   ceil.rotation.x = Math.PI / 2; ceil.position.y = 7; fan.add(ceil);
   ceil.material.opacity = 0.025;
+  // Returns half the rendered text width in world units, for placing axis arrows.
   const lbl = (txt, pos, color = '#8a97ad', scale = 1) => {
     const c = document.createElement('canvas'); c.width = 512; c.height = 64;
     const x = c.getContext('2d'); x.font = '500 30px Space Grotesk, sans-serif'; x.fillStyle = color; x.textAlign = 'center'; x.fillText(txt, 256, 42);
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
     s.scale.set(4 * scale, 0.5 * scale, 1); s.position.copy(pos); fan.add(s);
+    return x.measureText(txt).width / 512 * 4 * scale / 2;
   };
-  lbl('2027', new THREE.Vector3(-8, -0.5, 0)); lbl('2040', new THREE.Vector3(8, -0.5, 0));
-  lbl('capability', new THREE.Vector3(-8, 8.95, 0));
+  // An axis name with a small 3D arrow beside it. The text faces the camera;
+  // the arrow points along the axis, so it turns as the graph is orbited.
+  const axisTag = (txt, pos, dir) => {
+    const half = lbl(txt, pos, '#c3cee0', 1.15);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xc3cee0 });
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.42, 8), mat);
+    const head = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.24, 12), mat);
+    shaft.position.y = -0.09; head.position.y = 0.24;
+    const g = new THREE.Group(); g.add(shaft, head);
+    g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    fan.add(g);
+    AXIS_TAGS.push({ g, pos: pos.clone(), offset: half + 0.35 });
+  };
+  lbl('2027', new THREE.Vector3(-8, -0.5, 6.4)); lbl('2040', new THREE.Vector3(8, -0.5, 6.4));
+  axisTag('capability', new THREE.Vector3(-8, 8.6, 6), new THREE.Vector3(0, 1, 0));
   lbl('superintelligence threshold', new THREE.Vector3(0, 7.35, -6), '#ffd76a');
   const acLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-8, 4.9, -6), new THREE.Vector3(8, 4.9, -6)]),
     new THREE.LineDashedMaterial({ color: 0x7fe3ff, dashSize: 0.3, gapSize: 0.25, transparent: true, opacity: 0.5 }));
   acLine.computeLineDistances(); fan.add(acLine);
   lbl('automated coder', new THREE.Vector3(6.5, 5.25, -6), '#7fe3ff');
-  lbl('alignment', new THREE.Vector3(8.5, 0.55, -7.45));
+  axisTag('alignment', new THREE.Vector3(-8, 0.55, 2.6), new THREE.Vector3(0, 0, -1));
 }
 const fanX = (y) => -8 + (y - M.START_YEAR) / (M.END_YEAR - M.START_YEAR) * 16;
 const fanY = (c) => c / 100 * 7;
@@ -880,6 +893,7 @@ function animate() {
 
   if (world.visible) updateWorld(dt, t);
   if (fan.visible) {
+    placeAxisTags();
     fanAnim = Math.min(1, fanAnim + dt * 0.55);
     for (const line of fanLines.children) {
       const n = line.userData.n;
@@ -1516,7 +1530,7 @@ function setMode(m) {
   if (m === 'lab') {
     // Frame the whole graph, 2027 through the alignment axis, between the desktop panels.
     const phone = innerWidth <= 640;
-    camera.position.set(phone ? 6 : 1.5, phone ? 12 : 13.5, phone ? 20 : 24).multiplyScalar(Math.max(1, 1.3 / camera.aspect)); controls.target.set(phone ? 0.5 : -0.5, 3, 0); controls.autoRotate = false;
+    camera.position.set(phone ? 4.5 : 0, phone ? 12.5 : 14.5, phone ? 22 : 27).multiplyScalar(Math.max(1, 1.3 / camera.aspect)); controls.target.set(phone ? -1 : -1.4, 3, 1.5); controls.autoRotate = false;
     scene.fog.density = 0.004; bloom.strength = 0.4;
     runLab();
   } else {
