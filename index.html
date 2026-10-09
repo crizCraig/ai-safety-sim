@@ -295,7 +295,7 @@
     <button class="btn copybtn" id="copyPage" title="Copies these settings, the model's formulas and source, and the results as a prompt for an AI assistant">Copy page</button>
     <div class="note">Copies these settings, the formulas, the model's code and the results as one prompt. Paste it into Claude or another AI and ask it to poke holes in the assumptions.</div>
     <div class="divider"></div>
-    <p class="note">Each line in the 3D view is one simulated future, 2027 → its outcome. Height is frontier capability; depth is alignment minus capability (positive means alignment is ahead). Futures that end in catastrophe fall to the floor in the year it strikes; dots mark where each future ends. Hover or tap a line to read its values.</p>
+    <p class="note">Each line in the 3D view is one simulated future, 2027 → its outcome. Height is frontier capability and depth is alignment. Each line ends at the state its future reached; a ringed dot marks a catastrophe (pandemic, loss of control or war) at the year it struck. Hover or tap a line to read its values.</p>
   </div>
 </div>
 
@@ -308,7 +308,7 @@
   <div class="roll" id="roll"></div>
 </div>
 
-<div id="axisHelp" class="lab-only">Drag to orbit · scroll to zoom · <span style="color:#fff">x</span> = year · <span style="color:#fff">y</span> = capability · <span style="color:#fff">z</span> = alignment − capability</div>
+<div id="axisHelp" class="lab-only">Drag to orbit · scroll to zoom · <span style="color:#fff">x</span> = year · <span style="color:#fff">y</span> = capability · <span style="color:#fff">z</span> = alignment</div>
 
 <div id="labels"></div>
 <div id="toast" role="status" hidden></div>
@@ -625,12 +625,19 @@ const fanLines = new THREE.Group(); fan.add(fanLines);
     new THREE.LineDashedMaterial({ color: 0x7fe3ff, dashSize: 0.3, gapSize: 0.25, transparent: true, opacity: 0.5 }));
   acLine.computeLineDistances(); fan.add(acLine);
   lbl('automated coder', new THREE.Vector3(6.5, 5.25, -6), '#7fe3ff');
-  lbl('alignment ahead', new THREE.Vector3(-8, -0.5, 6.4)); lbl('capability ahead', new THREE.Vector3(-8, -0.5, -6.4), '#ff6b80');
+  lbl('alignment 0', new THREE.Vector3(9.8, -0.4, 6)); lbl('alignment 100', new THREE.Vector3(9.8, -0.4, -6));
 }
 const fanX = (y) => -8 + (y - M.START_YEAR) / (M.END_YEAR - M.START_YEAR) * 16;
 const fanY = (c) => c / 100 * 7;
-const fanZ = (a, c) => THREE.MathUtils.clamp((a - c) / 100 * 16, -6, 6);
+// Higher alignment recedes into the scene, away from the default camera.
+const fanZ = (a) => 6 - THREE.MathUtils.clamp(a, 0, 100) / 100 * 12;
 let fanAnim = 0;
+const RING_TEX = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'); x.strokeStyle = '#fff'; x.lineWidth = 5;
+  x.beginPath(); x.arc(32, 32, 26, 0, Math.PI * 2); x.stroke();
+  return new THREE.CanvasTexture(c);
+})();
 function buildFan(paths) {
   setHover(null);
   for (const ch of [...fanLines.children]) {
@@ -639,14 +646,10 @@ function buildFan(paths) {
   }
   for (const p of paths) {
     const col = new THREE.Color(M.OUTCOMES[p.outcome].color);
-    const jit = (Math.random() - 0.5) * 0.6;
-    const pts = p.points.map((q) => new THREE.Vector3(fanX(q.year), fanY(q.cap), fanZ(q.align, q.cap) + jit));
-    // Catastrophes collapse to the floor in the year they strike.
-    if (['bio', 'misalign', 'war'].includes(p.outcome)) {
-      const last = pts[pts.length - 1];
-      pts.push(new THREE.Vector3(last.x + 0.35, last.y * 0.35, last.z), new THREE.Vector3(last.x + 0.5, 0.02, last.z));
-    }
-    const curve = new THREE.CatmullRomCurve3(pts);
+    const jit = (Math.random() - 0.5) * 0.3;
+    const pts = p.points.map((q) => new THREE.Vector3(fanX(q.year), fanY(q.cap), fanZ(q.align) + jit));
+    // Centripetal splines don't overshoot, so plateaus stay flat instead of looping.
+    const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
     const g = new THREE.BufferGeometry().setFromPoints(curve.getPoints(pts.length * 6));
     const line = new THREE.Line(g, new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.32, depthWrite: false }));
     line.userData.n = g.attributes.position.count;
@@ -655,7 +658,16 @@ function buildFan(paths) {
     line.userData.marks = p.points.map((q, i) => ({ q, v: pts[i] }));
     g.setDrawRange(0, 0);
     fanLines.add(line);
-    const end = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), new THREE.MeshBasicMaterial({ color: col }));
+    // Every line ends at the state it actually reached. Catastrophes get a
+    // larger dot with a ring, so they stand out without bending the axes.
+    const catastrophe = ['bio', 'misalign', 'war'].includes(p.outcome);
+    const end = new THREE.Mesh(new THREE.SphereGeometry(catastrophe ? 0.14 : 0.08, 10, 8), new THREE.MeshBasicMaterial({ color: col }));
+    if (catastrophe) {
+      const ring = new THREE.Sprite(new THREE.SpriteMaterial({ map: RING_TEX, color: col, transparent: true, depthWrite: false }));
+      ring.scale.setScalar(0.42);
+      ring.material.opacity = 0.85;
+      end.add(ring);
+    }
     end.position.copy(pts[pts.length - 1]); end.visible = false;
     line.add(end); line.userData.end = end;
   }
@@ -684,12 +696,10 @@ function setHover(hit) {
   const end = path.points[path.points.length - 1];
   hoverDot.position.copy(v);
   hoverDot.material.color.set(o.color);
-  const margin = Math.round(q.align - q.cap);
   $('fanTip').innerHTML = `<div class="tip-year">${q.year}</div>
     <div class="tip-row"><span>x · year</span><b>${q.year}</b></div>
     <div class="tip-row"><span>y · capability</span><b>${Math.round(q.cap)}</b></div>
-    <div class="tip-row"><span>z · alignment − capability</span><b style="color:${margin >= 0 ? 'var(--good)' : 'var(--bad)'}">${margin > 0 ? '+' : ''}${margin}</b></div>
-    <div class="tip-row"><span>alignment</span><b>${Math.round(q.align)}</b></div>
+    <div class="tip-row"><span>z · alignment</span><b>${Math.round(q.align)}</b></div>
     <div class="tip-row"><span>coordination</span><b>${Math.round(q.coord)}</b></div>
     <div class="tip-end" style="color:${o.color}">Ends ${end.year}: ${o.title}</div>
     <div class="tip-world">Hidden world: ${path.world.safe ? 'AGI safe by default' : 'not safe by default'} · alignment ${path.world.difficulty.toFixed(1)}× as hard · progress ${path.world.speed.toFixed(1)}× speed · bio risk ${pct(path.world.bioDecade, 2)}/decade</div>`;
@@ -1218,7 +1228,8 @@ function applyFocus() {
   for (const line of fanLines.children) {
     line.material.opacity = lineOpacity(line);
     line.userData.end.material.transparent = true;
-    line.userData.end.material.opacity = !labFocus || line.userData.path.outcome === labFocus ? 1 : 0.08;
+    const op = !labFocus || line.userData.path.outcome === labFocus ? 1 : 0.08;
+    line.userData.end.traverse((o) => { if (o.material) { o.material.transparent = true; o.material.opacity = op; } });
   }
 }
 
@@ -1355,7 +1366,9 @@ function setMode(m) {
   // Pull the camera back on narrow screens so the scene fits.
   const fit = camera.aspect < 1 ? 0.75 / camera.aspect : 1;
   if (m === 'lab') {
-    camera.position.set(5, 7, 21).multiplyScalar(Math.max(1, 1.3 / camera.aspect)); controls.target.set(1, 3, 0); controls.autoRotate = false;
+    // Aim left of center so the 2027 origin clears the desktop's left panel.
+    const phone = innerWidth <= 640;
+    camera.position.set(phone ? 6 : 2, 12, 20).multiplyScalar(Math.max(1, 1.3 / camera.aspect)); controls.target.set(phone ? 0.5 : -2.5, 3, 0); controls.autoRotate = false;
     scene.fog.density = 0.004; bloom.strength = 0.4;
     runLab();
   } else {
