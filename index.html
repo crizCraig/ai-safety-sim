@@ -267,10 +267,10 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261009164944"></script>
-<script src="events.js?v=20261009164944"></script>
-<script src="landmask.js?v=20261009164944"></script>
-<script src="trees.js?v=20261009164944"></script>
+<script src="model.js?v=20261009165427"></script>
+<script src="events.js?v=20261009165427"></script>
+<script src="landmask.js?v=20261009165427"></script>
+<script src="trees.js?v=20261009165427"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -537,7 +537,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261009164944';
+const ASSET_VERSION = '20261009165427';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1341,7 +1341,7 @@ const P = (o) => ({ ...M.defaultLevers(), ...o });
 const AI2040_PLANS = 'https://ai-2040.com/supplements/comparing-possible-plans';
 // Short descriptions for the non-AI-2040 presets.
 const PRESET_INFO = {
-  'Safest mix': 'Every safety lever turned up together: a slow race, 74% of AI compute on safety, closed weights but all research public, heavy biodefense, a joint project with China, a BCI moonshot and an IAEA for AI. About 2% of futures end in catastrophe; most reach 2040 on the careful path.',
+  'Safest mix': 'The safest settings a search over every lever could find: stop racing, put all AI compute on safety, keep weights closed but publish all research, and max out biodefense, diplomacy, neural interfaces and oversight. About 1% of futures still end badly, mostly in war, because China only partly slows down. Most futures reach 2040 on the careful path, with superintelligence still ahead.',
   'Status quo': 'Today\'s trajectory: an intense race, 5% of AI compute on safety, partly open weights and little diplomacy.',
   'Open everything': 'Release frontier weights and most research. Power spreads out, but capable models reach anyone, including would-be bioterrorists.',
   'Open + biodefense': 'Open everything, plus heavy investment in DNA synthesis screening, surveillance and stockpiles to offset the bio risk.',
@@ -1358,7 +1358,9 @@ const PLAN_INFO = {
   'Plan S: Shut it down': { text: 'An indefinite global halt to frontier AI development: a longer expected slowdown and more margin for error.' },
 };
 const PRESETS = {
-  'Safest mix': P({ race: 0.2, safety: 0.74, openness: 0.12, transparency: 1, biodef: 0.92, diplomacy: 1, bci: 1, oversight: 1, aggression: 0 }),
+  // Found by searching all levers to minimize catastrophe, benevolent takeover and lock-in
+  // (about 1.2% of futures, averaged over 60,000 held-out runs).
+  'Safest mix': P({ race: 0, safety: 1, openness: 0, transparency: 1, biodef: 1, diplomacy: 1, bci: 1, oversight: 1, aggression: 0 }),
   'Status quo': P({}),
   // AI 2040's five plans as fixed levers (their plans change over time; these are approximations).
   'Plan A: Verified slowdown': P({ race: 0.35, safety: 0.08, openness: 0.15, transparency: 0.9, biodef: 0.5, diplomacy: 0.85, oversight: 0.7 }),

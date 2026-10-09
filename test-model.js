@@ -42,3 +42,10 @@ for (const [name, [L, theirs]] of Object.entries(presets)) {
   console.log(`\nBio decade risk, default path: median ${q(0.5)} [target 1.2e-4], 95% ${q(0.025)}..${q(0.975)} [5e-7..3e-2],`,
     `P(>1%) ${over(0.01)} [0.055], P(>10%) ${over(0.1)} [0.007]`);
 }
+
+// Safest mix should stay the lowest-risk preset: catastrophe + benevolent takeover + lock-in.
+{
+  const L = { ...M.defaultLevers(), race: 0, safety: 1, openness: 0, transparency: 1, biodef: 1, diplomacy: 1, bci: 1, oversight: 1, aggression: 0 };
+  const r = M.summarize(L, M.defaultAssumptions(), 20000, 99), c = r.counts;
+  console.log(`Safest mix: bad outcomes ${((c.bio + c.misalign + c.war + c.benevolent + c.lockin) / r.n * 100).toFixed(2)}% [~1.2%]`);
+}
