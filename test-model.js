@@ -24,3 +24,20 @@ for (const [name, [L, theirs]] of Object.entries(presets)) {
   console.log(name.padEnd(18), `AC~${r.acMedian} ASI~${r.asiMedian || '-'}(${(100 * r.asiShare).toFixed(0)}%)`,
     `p(align)=${(100 * r.pAlignment).toFixed(0)}%` + (theirs ? ` [AI 2040: ${theirs * 100}%]` : ''), '|', mix);
 }
+
+// Bio calibration: decade risk (2027–2036) across worlds on the default path,
+// against the separate factored Monte Carlo decomposition.
+{
+  const rng = M.mulberry32(11), A = M.defaultAssumptions(), L = M.defaultLevers(), n = 20000, risks = [];
+  for (let i = 0; i < n; i++) {
+    const s = M.initialState(M.sampleWorld(A, rng));
+    let h = 0;
+    for (let y = 0; y < 10; y++) { h += s.world.bioScale * M.bioShape(s); M.step(s, L, rng, false); }
+    risks.push(1 - Math.exp(-h));
+  }
+  risks.sort((a, b) => a - b);
+  const q = (p) => risks[Math.floor(p * (n - 1))].toExponential(1);
+  const over = (x) => (risks.filter((r) => r > x).length / n).toFixed(3);
+  console.log(`\nBio decade risk, default path: median ${q(0.5)} [target 1.2e-4], 95% ${q(0.025)}..${q(0.975)} [5e-7..3e-2],`,
+    `P(>1%) ${over(0.01)} [0.055], P(>10%) ${over(0.1)} [0.007]`);
+}

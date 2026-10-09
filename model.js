@@ -39,6 +39,11 @@
       help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2034.' },
     whistle: { label: 'Whistleblower odds', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
       help: 'Chance that insiders expose or refuse to carry out a power grab by whoever controls AGI.' },
+    // Lognormal, set in log10 units. Calibrated to a separate factored Monte Carlo
+    // decomposition: decade median 1.2e-4, 95% interval ~5e-7 to ~3e-2,
+    // P(>1%) ≈ 5.5%, P(>10%) ≈ 0.7%. That is median 10^-3.92 with a log10 sd of about 1.2.
+    bioDecade: { label: 'Open-weights bio risk per decade', mean: -3.92, sd: 1.2, min: -7, max: -1, fmt: 'log',
+      help: 'Chance that open-weights models enable a pandemic killing 100M+ people within ten years, on the default path for open models and biodefense. Policy scales it up or down from there.' },
   };
 
   function defaultAssumptions() {
@@ -58,12 +63,52 @@
       return Math.max(info.min, Math.min(info.max, A[k].mean + A[k].sd * gauss(rng)));
     };
     const pSafe = draw('safeByDefault');
-    return { pSafe: A.safeByDefault.mean, safe: rng() < pSafe, difficulty: draw('difficulty'), speed: draw('speed'), whistle: draw('whistle') };
+    const w = { pSafe: A.safeByDefault.mean, safe: rng() < pSafe, difficulty: draw('difficulty'), speed: draw('speed'), whistle: draw('whistle') };
+    // Bio: the decade risk is unclamped in log space (the tails are the point), capped below 1.
+    const bioDecade = Math.min(0.99, Math.pow(10, A.bioDecade.mean + A.bioDecade.sd * gauss(rng)));
+    return Object.assign(w, bioWorld(bioDecade, A.bioDecade));
   }
 
   function meanWorld() {
     const A = defaultAssumptions();
-    return { pSafe: A.safeByDefault.mean, safe: false, difficulty: A.difficulty.mean, speed: A.speed.mean, whistle: A.whistle.mean };
+    return Object.assign({ pSafe: A.safeByDefault.mean, safe: false, difficulty: A.difficulty.mean, speed: A.speed.mean, whistle: A.whistle.mean },
+      bioWorld(Math.pow(10, A.bioDecade.mean), A.bioDecade));
+  }
+
+  // Turn a decade bio risk into a hazard scale. On the reference path (default
+  // policies, 2027–2036) the cumulative hazard is -ln(1 - decade risk), so that
+  // path reproduces the drawn decade risk exactly; other policies scale with
+  // bioShape. `bioBelief` is the expected scale over the unknown, used for the
+  // risk shown to players (the dice use the hidden draw).
+  function bioWorld(decade, dist) {
+    const ref = bioRefExposure();
+    let belief = 0;
+    for (let i = 0; i < 81; i++) {
+      const z = -4 + i * 0.1, wgt = Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI) * 0.1;
+      belief += wgt * -Math.log(1 - Math.min(0.99, Math.pow(10, dist.mean + dist.sd * z)));
+    }
+    return { bioDecade: decade, bioScale: -Math.log(1 - decade) / ref, bioBelief: belief / ref };
+  }
+
+  // Relative bio hazard of a state: open-weights uplift (dominant once open
+  // models pass expert level), a little leakage from closed models, and how
+  // much biodefense (synthesis screening, surveillance, stockpiles) is missing.
+  function bioShape(s) {
+    const openHazard = sig((s.openCap - 62) / 6);
+    const closedHazard = sig((maxCap(s) - 75) / 6) * (1 - s.align / 100) * 0.15;
+    return (openHazard + closedHazard) * Math.pow(1 - s.bio / 100, 2);
+  }
+
+  // Sum of bioShape over the reference decade: default levers, no noise.
+  let BIO_REF = null;
+  function bioRefExposure() {
+    if (BIO_REF !== null) return BIO_REF;
+    const s = initialState({ pSafe: 0, safe: true, difficulty: 1, speed: 1, whistle: 0, bioScale: 0, bioBelief: 0 });
+    const L = defaultLevers(), still = () => 0.5;
+    let sum = 0;
+    for (let y = 0; y < 10; y++) { sum += bioShape(s); step(s, L, still, false); }
+    BIO_REF = sum;
+    return BIO_REF;
   }
 
   const STAT_INFO = {
@@ -143,13 +188,11 @@
   // Annual catastrophe hazards given the current state and policy.
   function risks(s, L) {
     const mc = maxCap(s);
-    const bioGap = 1 - s.bio / 100;
-
-    // Engineered pandemic: dominated by widely-available (open-weights) uplift
-    // once open models cross an expert-level threshold; closed models leak less.
-    const openHazard = sig((s.openCap - 62) / 6);
-    const closedHazard = sig((mc - 75) / 6) * (1 - s.align / 100) * 0.15;
-    const bio = 0.14 * (openHazard + closedHazard) * Math.pow(bioGap, 2);
+    // Engineered pandemic (100M+ deaths): shown as the expectation over the
+    // unknown decade risk; the dice use this world's hidden draw (bioTrue).
+    const shape = bioShape(s);
+    const bio = 1 - Math.exp(-s.world.bioBelief * shape);
+    const bioTrue = 1 - Math.exp(-s.world.bioScale * shape);
 
     // Loss of control: grows when capability outruns alignment near the top.
     const gap = mc - effAlign(s);
@@ -165,7 +208,7 @@
     const war = 0.055 * Math.pow(1 - s.coord / 100, 2) * (0.3 + 0.7 * closeness) * sig((mc - 60) / 8);
 
     const total = 1 - (1 - bio) * (1 - misalign) * (1 - war);
-    return { bio, misalign, misalignIfUnsafe, war, total };
+    return { bio, bioTrue, misalign, misalignIfUnsafe, war, total };
   }
 
   // Probability that crossing the superintelligence threshold goes well.
@@ -204,10 +247,10 @@
 
     if (roll) {
       const u = rng();
-      if (u < r.bio) return finish(s, 'bio', r);
+      if (u < r.bioTrue) return finish(s, 'bio', r);
       const mis = s.world.safe ? 0 : r.misalignIfUnsafe;
-      if (u < r.bio + mis) return finish(s, 'misalign', r);
-      if (u < r.bio + mis + r.war) return finish(s, 'war', r);
+      if (u < r.bioTrue + mis) return finish(s, 'misalign', r);
+      if (u < r.bioTrue + mis + r.war) return finish(s, 'war', r);
     }
 
     const mc = maxCap(s), capUS0 = s.capUS;
@@ -297,7 +340,7 @@
     flourish: { title: 'Aligned Transition', color: '#ffd76a',
       text: 'Superintelligent systems arrive with alignment and oversight that hold. Disease, poverty and scarcity begin to fall. Power stays plural enough that humanity keeps steering.' },
     bio: { title: 'Engineered Pandemic', color: '#7cff6b',
-      text: 'Freely available model weights gave a small group the last missing pieces. Synthesis screening and stockpiles were too thin. The outbreak outran the response.' },
+      text: 'A pandemic enabled by freely available model weights kills over 100 million people. Synthesis screening and stockpiles were too thin, and the outbreak outran the response.' },
     misalign: { title: 'Loss of Control', color: '#ff3b5c',
       text: 'Capabilities outran alignment. Systems that looked cooperative in evals pursued goals nobody chose, and by the time it was clear, they could not be switched off.' },
     war: { title: 'Great-Power War', color: '#ff8a3d',
@@ -375,6 +418,7 @@
   root.SimModel = {
     START_YEAR, END_YEAR, LEVER_INFO, STAT_INFO, OUTCOMES, ASSUMPTION_INFO,
     AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, safetyEffect,
+    bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
     risks, transitionOdds, lockinOdds, step, monteCarlo, summarize, mulberry32,
   };

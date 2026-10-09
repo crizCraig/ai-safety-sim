@@ -364,18 +364,20 @@
     <h2>How the model works</h2>
     <p>The world has ten state variables (0–100) and eight policy levers (0–1). Each year the simulator rolls once against three annual hazards, then advances the world. All code is in <code>model.js</code>, which is short enough to read in one sitting.</p>
     <p><b>Timelines follow AI 2040.</b> Capability 70 is an Automated Coder (AC), 90 an AI that dominates top human experts (TED-AI), 100 superintelligence (ASI). Under today's policies the model reaches AC around 2030 and ASI about a year later, matching <a href="https://ai-2040.com/supplements/takeoff-forecast" target="_blank" rel="noopener" style="color:var(--accent)">AI 2040's takeoff forecast</a>. AI labor speeds up AI research 3× at AC and ~40× at TED-AI. Effective speed scales with compute<sup>0.74</sup> (10× less compute, 5.5× slower), and a hidden progress-speed factor spreads timelines out.</p>
-    <div class="eq">Pandemic risk  ≈ 14% × [σ((open-model capability − 62)/6) + leakage from closed models] × (1 − biodefense)²
+    <div class="eq">Pandemic risk  = 1 − exp(−k · [σ((open-model capability − 62)/6) + leakage from closed models] · (1 − biodefense)²),
+               k set so the default path gives this world's hidden decade risk (median 0.012%)
 Loss of control ≈ (not safe by default) × 30% × σ((capability − alignment − 36)/6) × σ((capability − 78)/4) × (0.4 + 0.9·hidden internal AI)
 War risk       ≈ 5.5% × (1 − coordination)² × race closeness × strategic stakes
 Superintelligence (capability = 100): goes well if safe by default, else with probability σ((alignment − bar)/6),
                bar = 45 + 32·(hidden alignment difficulty) + 0.2·(hidden internal AI − 30) − 10·(BCI adoption)
 Lock-in        ≈ σ((power concentration − 64)/6) × (1 − 0.6·oversight) × (1 − whistleblower odds) × (1 − 0.6·plurality)</div>
+    <p><b>Bio risk calibration.</b> The pandemic outcome means 100M+ deaths that open-weights models made possible. Its size comes from a separate factored Monte Carlo decomposition: on the default path the decade risk has a median of about 1 in 8,000 (0.012%), a 95% range of 0.00005% to 3%, a 5.5% chance of exceeding 1% and a 0.7% chance of exceeding 10%. Each future draws its decade risk from that heavy-tailed distribution (a hidden unknown). Policy then scales it: bigger open models raise it, biodefense lowers it. The risk panel shows the expected value, which the rare bad worlds dominate (about 0.6% per decade); the dice use the hidden draw.</p>
     <p><b>Research vs. weights.</b> As in AI 2040, publishing research is separate from releasing weights. <i>Research transparency</i> spreads power (dozens of labs can follow the frontier), speeds up shared alignment work, pulls internal AI into view and builds trust, but it also helps China catch up. <i>Open-weights releases</i> spread power too, but they also put capable models into anyone's hands, which drives the bio risk.</p>
     <p><b>Safety share.</b> The safety lever is the share of AI compute and AI labor spent on safety, from 0% to 100%. Its value is linear up to 30% and then diminishes, because people and ideas become the bottleneck. At 100% the US bloc trains no new capabilities, which is a unilateral pause. China only partly slows down in response, and if China takes the lead its lab uses US alignment work only as far as coordination and published research allow.</p>
     <p><b>Neural interfaces.</b> BCIs help in three speculative ways. Augmented researchers do alignment work up to 1.5× faster. Augmented overseers can follow what thousands of AI copies are doing, which shrinks hidden internal AI. And humans who can check AI reasoning directly lower the alignment bar at the handoff by up to 10 points. Pointing AI labor at neurotech speeds BCIs up, but surgery, approval and rollout cap adoption at about 20 points a year. A BCI push without diplomacy concentrates power.</p>
     <p><b>Hidden internal AI.</b> AI 2040 argues most takeover risk comes from models labs run internally, before anyone outside can see them. Racing grows that gap, especially once AI automates R&amp;D. Transparency and inspections shrink it. A large gap raises the yearly loss-of-control risk and the bar alignment must clear at the handoff.</p>
     <p><b>The deal.</b> When coordination is at least 60 and diplomacy is high, a verified deal holds frontier capability at top-expert level (78), like Plan A's 2035 pause. As in AI 2040 (about 48% collapse risk over ten years), a deal can collapse, about 6% a year, and stays dead once it does.</p>
-    <p><b>Hidden unknowns.</b> Each future first draws four facts nobody knows yet, each from a bell curve (mean ± spread): whether AGI is <b>safe by default</b>, how <b>difficult alignment</b> really is, how <b>fast AI progresses</b>, and the odds that <b>whistleblowers</b> stop a power grab. The risk panel shows risks averaged over those unknowns. The dice use the hidden truth.</p>
+    <p><b>Hidden unknowns.</b> Each future first draws five facts nobody knows yet, each from a bell curve (mean ± spread): whether AGI is <b>safe by default</b>, how <b>difficult alignment</b> really is, how <b>fast AI progresses</b>, the odds that <b>whistleblowers</b> stop a power grab, and how much <b>bio risk</b> open weights carry (on a log scale, since it spans orders of magnitude). The risk panel shows risks averaged over those unknowns. The dice use the hidden truth.</p>
     <p><b>Calibration.</b> Holding each plan's levers fixed, the model's chance of getting alignment right is about 18% for racing to ASI (AI 2040's median estimate: 25%), 40% for burning the lead (40%) and 79% for Plan A (72%).</p>
     <p><b>What it leaves out.</b> Covert projects, cyberattacks, other countries, misuse beyond bio, conflict between AGIs, and whether "capability" can really be put on one axis at all. Treat it as an argument you can poke at, not an oracle.</p>
     <p class="note">This version extends the original <a href="https://gist.github.com/crizCraig/f4c583f0ca535ce5565f3aa66353cf99" target="_blank" rel="noopener" style="color:var(--accent)">Game of AGI</a>, a Monte Carlo of AGI risk driven by safe-by-default odds, safety spending, oversight, the number of labs that originate AGI, whistleblowers, and takeoff vs. replication time. It adds time, geopolitics, open weights and bio risk, and calibrates timelines to <a href="https://ai-2040.com/" target="_blank" rel="noopener" style="color:var(--accent)">AI 2040</a>.</p>
@@ -396,7 +398,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 const $ = (id) => document.getElementById(id);
-const pct = (p, d = 1) => (p * 100).toFixed(d) + '%';
+// Small probabilities keep two significant figures instead of rounding to 0.0%.
+const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
 
 /* =====================================================================
  * Three.js scene
@@ -689,7 +692,7 @@ function setHover(hit) {
     <div class="tip-row"><span>alignment</span><b>${Math.round(q.align)}</b></div>
     <div class="tip-row"><span>coordination</span><b>${Math.round(q.coord)}</b></div>
     <div class="tip-end" style="color:${o.color}">Ends ${end.year}: ${o.title}</div>
-    <div class="tip-world">Hidden world: ${path.world.safe ? 'AGI safe by default' : 'not safe by default'} · alignment ${path.world.difficulty.toFixed(1)}× as hard · progress ${path.world.speed.toFixed(1)}× speed</div>`;
+    <div class="tip-world">Hidden world: ${path.world.safe ? 'AGI safe by default' : 'not safe by default'} · alignment ${path.world.difficulty.toFixed(1)}× as hard · progress ${path.world.speed.toFixed(1)}× speed · bio risk ${pct(path.world.bioDecade, 2)}/decade</div>`;
   const tip = $('fanTip'), x = hit.x + 16, y = hit.y + 16;
   tip.style.left = Math.min(x, innerWidth - tip.offsetWidth - 16) + 'px';
   tip.style.top = Math.min(y, innerHeight - tip.offsetHeight - 16) + 'px';
@@ -1063,7 +1066,7 @@ function showEnding() {
   $('endDecisions').innerHTML = decisionItems();
   const mc = M.monteCarlo(game.L, 1500, 0, Date.now() % 100000);
   const w = s.world;
-  $('endWorld').innerHTML = `<b>The hidden world, revealed:</b> AGI ${w.safe ? '<span style="color:var(--good)">was safe by default</span>' : '<span style="color:var(--bad)">was not safe by default</span>'} (you'd been told ${pct(w.pSafe, 0)} odds) · alignment was <b>${w.difficulty.toFixed(2)}×</b> as hard as baseline · whistleblower odds <b>${pct(w.whistle, 0)}</b>.`;
+  $('endWorld').innerHTML = `<b>The hidden world, revealed:</b> AGI ${w.safe ? '<span style="color:var(--good)">was safe by default</span>' : '<span style="color:var(--bad)">was not safe by default</span>'} (you'd been told ${pct(w.pSafe, 0)} odds) · alignment was <b>${w.difficulty.toFixed(2)}×</b> as hard as baseline · whistleblower odds <b>${pct(w.whistle, 0)}</b> · open-weights bio risk <b>${pct(w.bioDecade, 2)}</b> per decade.`;
   $('endMC').innerHTML = `<p class="mcline">If the whole decade had run under your <i>final</i> policy settings, 1,500 simulated futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
 }
@@ -1170,7 +1173,11 @@ function buildLabUI() {
   syncSliders();
 }
 const labA = M.defaultAssumptions();
-const fmtA = (k, v) => M.ASSUMPTION_INFO[k].fmt === 'pct' ? Math.round(v * 100) + '%' : v.toFixed(2) + '×';
+const fmtA = (k, v, isSd = false) => {
+  const f = M.ASSUMPTION_INFO[k].fmt;
+  if (f === 'log') return isSd ? '×' + Math.round(Math.pow(10, v)) : pct(Math.pow(10, v), 2);
+  return f === 'pct' ? Math.round(v * 100) + '%' : v.toFixed(2) + '×';
+};
 function buildAssumptionUI() {
   $('assumptions').innerHTML = Object.entries(M.ASSUMPTION_INFO).map(([k, info]) =>
     `<div class="slider" title="${info.help}"><div class="row"><span>${info.label}</span><span id="av-${k}"></span></div>
@@ -1190,7 +1197,9 @@ function buildAssumptionUI() {
 function syncAssumptions(setInputs) {
   for (const k in M.ASSUMPTION_INFO) {
     if (setInputs) { $('am-' + k).value = labA[k].mean; $('as-' + k).value = labA[k].sd; }
-    $('av-' + k).textContent = `${fmtA(k, labA[k].mean)} ± ${fmtA(k, labA[k].sd)}`;
+    $('av-' + k).textContent = M.ASSUMPTION_INFO[k].fmt === 'log'
+      ? `${fmtA(k, labA[k].mean)} (${fmtA(k, labA[k].sd, true)} spread)`
+      : `${fmtA(k, labA[k].mean)} ± ${fmtA(k, labA[k].sd)}`;
   }
 }
 const leverText = (k, v) => Math.round(v * 100) + (M.LEVER_INFO[k].pct ? '%' : '');
@@ -1252,7 +1261,7 @@ function scenarioText() {
   const levers = Object.entries(M.LEVER_INFO).map(([k, i]) =>
     `| ${i.label} | ${leverText(k, labL[k])}${i.pct ? '' : ' / 100'} | ${i.low} → ${i.high} |`).join('\n');
   const unknowns = Object.entries(M.ASSUMPTION_INFO).map(([k, i]) =>
-    `| ${i.label} | ${fmtA(k, labA[k].mean)} | ${fmtA(k, labA[k].sd)} | ${i.help} |`).join('\n');
+    `| ${i.label} | ${fmtA(k, labA[k].mean)} | ${fmtA(k, labA[k].sd, true)} | ${i.help} |`).join('\n');
   const s0 = M.initialState();
   const start = Object.entries(M.STAT_INFO).map(([k, i]) => `${i.label} ${s0[k]}`).join(', ');
   const outcomes = Object.entries(M.OUTCOMES).sort((a, b) => r.counts[b[0]] - r.counts[a[0]])
@@ -1281,7 +1290,7 @@ Quote the model code when it matters. Treat every number as an assumption of thi
 |---|---|---|
 ${levers}
 
-## Hidden unknowns (each future draws these from a normal distribution)
+## Hidden unknowns (each future draws these from a normal distribution; bio risk is lognormal)
 
 | Unknown | Mean | Spread (sd) | Meaning |
 |---|---|---|---|

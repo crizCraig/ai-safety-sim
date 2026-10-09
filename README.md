@@ -24,7 +24,7 @@ calibrates its timelines and plan outcomes to [AI 2040: Plan A](https://ai-2040.
 
 ## Two modes
 
-- **Futures Lab** (opens first). Set eight policy levers and four uncertain
+- **Futures Lab** (opens first). Set eight policy levers and five uncertain
   assumptions (mean ± spread, as in the original), run 2,000 Monte Carlo futures,
   and see every trajectory as a 3D fan, colored by how it ends. Hover a line to
   read its values; click an outcome to read it and isolate its futures.
