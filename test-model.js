@@ -7,6 +7,7 @@ const P = (o) => ({ ...M.defaultLevers(), ...o });
 const presets = {
   'Status quo': [P({}), null],
   'Race to ASI (D)': [P({ race: 1, safety: 0.025, openness: 0.4, transparency: 0.05, biodef: 0.1, diplomacy: 0.05, oversight: 0 }), 0.25],
+  'Fight China (B)': [P({ race: 0.8, safety: 0.2, openness: 0.1, transparency: 0.05, diplomacy: 0, oversight: 0.15 }), 0.50],
   'Burn the lead (C)': [P({ race: 0.8, safety: 0.14, transparency: 0.15, diplomacy: 0.1, oversight: 0.3 }), 0.40],
   'Plan A': [P({ race: 0.35, safety: 0.08, openness: 0.15, transparency: 0.9, biodef: 0.5, diplomacy: 0.85, oversight: 0.7 }), 0.72],
   'Open everything': [P({ race: 0.6, safety: 0.04, openness: 1, biodef: 0.05, diplomacy: 0.3 }), null],

@@ -163,10 +163,6 @@
   .src.own { color: #b8c4d6; }
   .treelist li { font-size: 13px; }
   /* ---------- labels ---------- */
-  .flabel { position: fixed; z-index: 3; pointer-events: none; transform: translate(-50%, -50%); font-family: var(--sans); font-size: 13px; font-weight: 500; white-space: nowrap; text-shadow: 0 0 6px #03060d, 0 0 3px #03060d, 0 0 1px #03060d; }
-  .flabel-left { transform: translate(-100%, -50%); }
-  body:not(.mode-lab) .flabel { display: none !important; }
-  @media (max-width: 640px) { .flabel { font-size: 11px; } }
   .glabel { position: fixed; z-index: 3; pointer-events: none; font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 5px; background: rgba(0,0,0,0.55); border: 1px solid currentColor; white-space: nowrap; transform: translate(-50%, -140%); transition: opacity .3s; }
 
   /* ---------- modals ---------- */
@@ -358,7 +354,7 @@
     <h1>GAME OF AGI</h1>
     <p>You chair a newly formed council that steers frontier AI policy for the US-aligned bloc. Over the next 13 years, systems will likely become smarter than any human. Every year you face a decision about <b>racing China</b>, <b>releasing open weights</b>, <b>biodefense</b>, <b>neural interfaces</b> and <b>alignment</b>.</p>
     <p>Each year the dice are rolled against three catastrophes: an <span style="color:#7cff6b">engineered pandemic</span>, <span style="color:#ff3b5c">loss of control</span>, and <span style="color:#ff8a3d">great-power war</span>. Reach the superintelligence threshold with alignment ready, or reach 2040 on a careful path.</p>
-    <p>Some things nobody knows yet: whether AGI turns out <b>safe by default</b>, how hard alignment really is, and whether insiders would blow the whistle on a power grab. Each game draws them in secret. You find out at the end.</p>
+    <p>Some things nobody knows yet: whether AI turns out <b>aligned by default</b>, how hard alignment really is, and whether insiders would blow the whistle on a power grab. Each game draws them in secret. You find out at the end.</p>
     <p class="disclaimer">This is a toy model built to make trade-offs tangible, not a forecast. Every probability comes from transparent, adjustable assumptions (see "How the model works"). Reasonable experts disagree about nearly all of them.</p>
     <div class="btnrow">
       <button class="btn" id="startBtn">Begin in 2027</button>
@@ -435,10 +431,10 @@
     <div class="tablewrap"><table>
       <thead><tr><th>Symbol</th><th>Meaning</th><th>Distribution</th></tr></thead>
       <tbody>
-        <tr><td><span class="mi">S</span></td><td>AGI is safe by default (1) or not (0)</td><td><span class="mi">S \sim \text{Bernoulli}(p),\ p \sim \mathcal{N}(0.15,\ 0.10)</span> <span class="src own">Assumption</span></td></tr>
+        <tr><td><span class="mi">S</span></td><td>Alignment is easy by default (1) or not (0). If 1, AI turns out aligned without a general solution and humans keep control: loss of control cannot happen</td><td><span class="mi">S \sim \text{Bernoulli}(p),\ p \sim \mathcal{N}(0.15,\ 0.10)</span> <span class="src own">Assumption</span></td></tr>
         <tr><td><span class="mi">\delta</span></td><td>Alignment difficulty</td><td><span class="mi">\mathcal{N}(1,\ 0.5)</span>, clipped to [0.3, 2.5] <span class="src a2040">AI 2040</span> (spread calibrated)</td></tr>
         <tr><td><span class="mi">\varphi</span></td><td>AI progress speed</td><td><span class="mi">\mathcal{N}(1,\ 0.3)</span>, clipped to [0.3, 2.5] <span class="src a2040">AI 2040</span></td></tr>
-        <tr><td><span class="mi">W</span></td><td>An AI that escapes control is benevolent (1) or not (0)</td><td><span class="mi">W \sim \text{Bernoulli}(w),\ w \sim \mathcal{N}(0.10,\ 0.08)</span> <span class="src own">Assumption</span></td></tr>
+        <tr><td><span class="mi">W</span></td><td>If humans lose control anyway, the AI still cares for humanity (1) or not (0). If 1, AI rather than humanity steers the future, but kindly</td><td><span class="mi">W \sim \text{Bernoulli}(w),\ w \sim \mathcal{N}(0.10,\ 0.08)</span> <span class="src own">Assumption</span></td></tr>
         <tr><td><span class="mi">\omega</span></td><td>Whistleblower odds</td><td><span class="mi">\mathcal{N}(0.25,\ 0.15)</span>, clipped to [0, 1] <span class="src own">Assumption</span></td></tr>
         <tr><td><span class="mi">R_{\text{bio}}</span></td><td>Decade risk of a 100M+ death pandemic enabled by open weights, on the default path</td><td><span class="mi">\log_{10} R_{\text{bio}} \sim \mathcal{N}(-3.92,\ 1.2)</span> <span class="src biodec">Bio decomposition</span></td></tr>
       </tbody>
@@ -495,6 +491,7 @@
         <tr><td>Automated Coder, default path</td><td>~2030 (AI 2040 median)</td><td>2030 (median)</td></tr>
         <tr><td>Superintelligence after Automated Coder</td><td>~1 year (AI 2040)</td><td>1–2 years</td></tr>
         <tr><td>p(alignment), race to superintelligence</td><td>25% (AI 2040 median)</td><td>17%</td></tr>
+        <tr><td>p(alignment), Plan B: fight China</td><td>50% (AI 2040 median)</td><td>51%</td></tr>
         <tr><td>p(alignment), burn the lead</td><td>40% (AI 2040 median)</td><td>40%</td></tr>
         <tr><td>p(alignment), Plan A</td><td>72% (AI 2040 median)</td><td>81%</td></tr>
         <tr><td>Bio decade risk, default path: median</td><td>1.2e-4</td><td>1.2e-4</td></tr>
@@ -727,26 +724,11 @@ for (let i = 0; i < 18; i++) {
 const AXIS_TAGS = [];
 const camRight = new THREE.Vector3();
 // Keep each axis arrow just right of its camera-facing label.
-const FAN_LABELS = [];
-const projV = new THREE.Vector3();
+// Keep each axis arrow just right of its camera-facing label.
 function placeAxisTags() {
   camRight.setFromMatrixColumn(camera.matrixWorld, 0);
-  // Arrows sit just right of their label's anchor at a constant screen size.
-  for (const t of AXIS_TAGS) {
-    const d = camera.position.distanceTo(t.pos);
-    t.g.scale.setScalar(d * 0.045);
-    t.g.position.copy(t.pos).addScaledVector(camRight, d * 0.012);
-  }
-  const rect = canvas.getBoundingClientRect();
-  for (const l of FAN_LABELS) {
-    projV.copy(l.pos).applyMatrix4(fan.matrixWorld).project(camera);
-    const vis = projV.z < 1 && Math.abs(projV.x) < 1.1 && Math.abs(projV.y) < 1.1;
-    l.el.style.display = vis ? '' : 'none';
-    l.el.style.left = (rect.left + (projV.x + 1) / 2 * rect.width) + 'px';
-    l.el.style.top = (rect.top + (1 - projV.y) / 2 * rect.height) + 'px';
-  }
+  for (const t of AXIS_TAGS) t.g.position.copy(t.pos).addScaledVector(camRight, t.offset);
 }
-function hideFanLabels() { for (const l of FAN_LABELS) l.el.style.display = 'none'; }
 const fan = new THREE.Group();
 fan.visible = false;
 scene.add(fan);
@@ -770,37 +752,35 @@ const fanLines = new THREE.Group(); fan.add(fanLines);
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.04, side: THREE.DoubleSide, depthWrite: false }));
   ceil.rotation.x = Math.PI / 2; ceil.position.y = 7; fan.add(ceil);
   ceil.material.opacity = 0.025;
-  // Labels are screen-space text pinned to a 3D point, so they stay readable at
-  // any distance. `align`: 'center', or 'left' to end the text at the point.
-  const lbl = (txt, pos, color = '#8a97ad', align = 'center') => {
-    const el = document.createElement('div');
-    el.className = 'flabel' + (align === 'left' ? ' flabel-left' : '');
-    el.textContent = txt; el.style.color = color;
-    $('labels').append(el);
-    FAN_LABELS.push({ el, pos: pos.clone() });
+  // Returns half the rendered text width in world units, for placing axis arrows.
+  const lbl = (txt, pos, color = '#8a97ad', scale = 1) => {
+    const c = document.createElement('canvas'); c.width = 768; c.height = 96;
+    const x = c.getContext('2d'); x.font = '500 45px Space Grotesk, sans-serif'; x.fillStyle = color; x.textAlign = 'center'; x.fillText(txt, 384, 63);
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+    s.scale.set(6 * scale, 0.75 * scale, 1); s.position.copy(pos); fan.add(s);
+    return x.measureText(txt).width / 768 * 6 * scale / 2;
   };
-  // An axis name with a small 3D arrow just right of the text. The arrow points
-  // along its axis, so it turns as the graph is orbited, and keeps a constant
-  // on-screen size.
+  // An axis name with a small 3D arrow beside it. The text faces the camera;
+  // the arrow points along the axis, so it turns as the graph is orbited.
   const axisTag = (txt, pos, dir) => {
-    lbl(txt, pos, '#dbe4f2', 'left');
-    const mat = new THREE.MeshBasicMaterial({ color: 0xdbe4f2 });
+    const half = lbl(txt, pos, '#c3cee0', 0.95);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xc3cee0 });
     const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.2, 8), mat);
     const head = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.16, 12), mat);
     shaft.position.y = -0.06; head.position.y = 0.12;
     const g = new THREE.Group(); g.add(shaft, head);
     g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
     fan.add(g);
-    AXIS_TAGS.push({ g, pos: pos.clone() });
+    AXIS_TAGS.push({ g, pos: pos.clone(), offset: half + 0.22 });
   };
-  lbl('2027', new THREE.Vector3(-8, -0.5, 6.4)); lbl('2040', new THREE.Vector3(8, -0.5, 6.4));
+  lbl('2027', new THREE.Vector3(-8, -0.5, 6.4), '#8a97ad', 0.67); lbl('2040', new THREE.Vector3(8, -0.5, 6.4), '#8a97ad', 0.67);
   axisTag('capability', new THREE.Vector3(-8, 8.6, 6), new THREE.Vector3(0, 1, 0));
-  lbl('superintelligence threshold', new THREE.Vector3(0, 7.3, -6), '#ffd76a');
+  lbl('superintelligence threshold', new THREE.Vector3(0, 7.45, -6), '#ffd76a', 1.15);
   const acLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-8, 4.9, -6), new THREE.Vector3(8, 4.9, -6)]),
     new THREE.LineDashedMaterial({ color: 0x7fe3ff, dashSize: 0.3, gapSize: 0.25, transparent: true, opacity: 0.5 }));
   acLine.computeLineDistances(); fan.add(acLine);
-  lbl('automated coder', new THREE.Vector3(6.2, 5.25, -6), '#7fe3ff');
-  axisTag('alignment', new THREE.Vector3(8.4, -0.4, 3.6), new THREE.Vector3(0, 0, -1));
+  lbl('automated coder', new THREE.Vector3(6.2, 5.35, -6), '#7fe3ff', 1.15);
+  axisTag('alignment', new THREE.Vector3(8.2, -2.6, 2.6), new THREE.Vector3(0, 0, -1));
 }
 const fanX = (y) => -8 + (y - M.START_YEAR) / (M.END_YEAR - M.START_YEAR) * 16;
 const fanY = (c) => c / 100 * 7;
@@ -877,7 +857,7 @@ function setHover(hit) {
     <div class="tip-row"><span>z · alignment</span><b>${Math.round(q.align)}</b></div>
     <div class="tip-row"><span>coordination</span><b>${Math.round(q.coord)}</b></div>
     <div class="tip-end" style="color:${o.color}">Ends ${end.year}: ${o.title}</div>
-    <div class="tip-world">Hidden world: ${path.world.safe ? 'AGI safe by default' : 'not safe by default'} · alignment ${path.world.difficulty.toFixed(1)}× as hard · progress ${path.world.speed.toFixed(1)}× speed · bio risk ${pct(path.world.bioDecade, 2)}/decade</div>`;
+    <div class="tip-world">Hidden world: ${path.world.safe ? 'aligned by default' : 'not aligned by default'} · alignment ${path.world.difficulty.toFixed(1)}× as hard · progress ${path.world.speed.toFixed(1)}× speed · bio risk ${pct(path.world.bioDecade, 2)}/decade</div>`;
   const tip = $('fanTip'), x = hit.x + 16, y = hit.y + 16;
   tip.style.left = Math.min(x, innerWidth - tip.offsetWidth - 16) + 'px';
   tip.style.top = Math.min(y, innerHeight - tip.offsetHeight - 16) + 'px';
@@ -1255,7 +1235,7 @@ function showEnding() {
   $('endDecisions').innerHTML = decisionItems();
   const mc = M.monteCarlo(game.L, 1500, 0, Date.now() % 100000);
   const w = s.world;
-  $('endWorld').innerHTML = `<b>The hidden world, revealed:</b> AGI ${w.safe ? '<span style="color:var(--good)">was safe by default</span>' : '<span style="color:var(--bad)">was not safe by default</span>'} (you'd been told ${pct(w.pSafe, 0)} odds) · alignment was <b>${w.difficulty.toFixed(2)}×</b> as hard as baseline · whistleblower odds <b>${pct(w.whistle, 0)}</b> · an uncontrolled AI ${w.benevolent ? '<span style="color:#ff9ecf">would have been benevolent</span>' : 'would not have been benevolent'} · open-weights bio risk <b>${pct(w.bioDecade, 2)}</b> per decade.`;
+  $('endWorld').innerHTML = `<b>The hidden world, revealed:</b> AGI ${w.safe ? '<span style="color:var(--good)">was aligned by default</span>' : '<span style="color:var(--bad)">was not aligned by default</span>'} (you'd been told ${pct(w.pSafe, 0)} odds) · alignment was <b>${w.difficulty.toFixed(2)}×</b> as hard as baseline · whistleblower odds <b>${pct(w.whistle, 0)}</b> · an uncontrolled AI ${w.benevolent ? '<span style="color:#ff9ecf">would have been benevolent</span>' : 'would not have been benevolent'} · open-weights bio risk <b>${pct(w.bioDecade, 2)}</b> per decade.`;
   $('endMC').innerHTML = `<p class="mcline">If the whole decade had run under your <i>final</i> policy settings, 1,500 simulated futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
 }
@@ -1307,7 +1287,7 @@ function renderRisks(prev) {
   const s = game.s, r = M.risks(s, game.L);
   const why = {
     bio: `Open-model capability ${Math.round(s.openCap)} (danger zone ≈ 60+), biodefense ${Math.round(s.bio)}.`,
-    misalign: `Capability ${Math.round(M.maxCap(s))} vs alignment ${Math.round(s.align)}. Hidden internal AI ${Math.round(s.internal)} raises it. Includes a ${pct(s.world.pSafe, 0)} chance AGI is safe by default.`,
+    misalign: `Capability ${Math.round(M.maxCap(s))} vs alignment ${Math.round(s.align)}. Hidden internal AI ${Math.round(s.internal)} raises it. Includes a ${pct(s.world.pSafe, 0)} chance AGI is aligned by default.`,
     war: `Coordination ${Math.round(s.coord)}; the race is ${Math.abs(s.capUS - s.capCN) < 8 ? 'neck and neck' : 'lopsided'}.`,
   };
   const rows = [['bio', 'Engineered pandemic', '#7cff6b'], ['misalign', 'Loss of control', '#ff3b5c'], ['war', 'Great-power war', '#ff8a3d']];
@@ -1336,13 +1316,15 @@ function renderLevers() {
 const P = (o) => ({ ...M.defaultLevers(), ...o });
 const PRESETS = {
   'Status quo': P({}),
-  'AI 2040 Plan A': P({ race: 0.35, safety: 0.08, openness: 0.15, transparency: 0.9, biodef: 0.5, diplomacy: 0.85, oversight: 0.7 }),
-  'Race to ASI': P({ race: 1, safety: 0.025, openness: 0.4, transparency: 0.05, biodef: 0.1, diplomacy: 0.05, oversight: 0 }),
-  'Burn the lead': P({ race: 0.8, safety: 0.14, transparency: 0.15, diplomacy: 0.1, oversight: 0.3 }),
+  // AI 2040's five plans as fixed levers (their plans change over time; these are approximations).
+  'Plan A: Verified slowdown': P({ race: 0.35, safety: 0.08, openness: 0.15, transparency: 0.9, biodef: 0.5, diplomacy: 0.85, oversight: 0.7 }),
+  'Plan B: Fight China': P({ race: 0.8, safety: 0.2, openness: 0.1, transparency: 0.05, diplomacy: 0, oversight: 0.15 }),
+  'Plan C: Burn the lead': P({ race: 0.8, safety: 0.14, transparency: 0.15, diplomacy: 0.1, oversight: 0.3 }),
+  'Plan D: Race to ASI': P({ race: 1, safety: 0.025, openness: 0.4, transparency: 0.05, biodef: 0.1, diplomacy: 0.05, oversight: 0 }),
+  'Plan S: Shut it down': P({ race: 0, safety: 0.15, openness: 0.05, transparency: 0.4, biodef: 0.5, diplomacy: 1, oversight: 1 }),
   'Open everything': P({ race: 0.6, safety: 0.04, openness: 1, transparency: 0.6, biodef: 0.05, diplomacy: 0.3 }),
   'Open + biodefense': P({ race: 0.6, safety: 0.05, openness: 1, transparency: 0.6, biodef: 0.8, diplomacy: 0.3, oversight: 0.2 }),
   'IAEA for AI': P({ race: 0.5, safety: 0.07, biodef: 0.3, diplomacy: 0.4, oversight: 0.9 }),
-  'Global pause': P({ race: 0.05, safety: 0.13, openness: 0.2, biodef: 0.5, diplomacy: 1, oversight: 0.7 }),
   'Neuralink bet': P({ race: 0.6, bci: 1 }),
   'BCI-first': P({ race: 0.25, safety: 0.1, bci: 1, transparency: 0.5, diplomacy: 0.5, oversight: 0.4 }),
   'All compute on safety': P({ safety: 1 }),
@@ -1562,7 +1544,7 @@ function setMode(m) {
   if (m === 'lab') {
     // Frame the whole graph, 2027 through the alignment axis, between the desktop panels.
     const phone = innerWidth <= 640;
-    camera.position.set(phone ? 4.5 : 0, phone ? 12.5 : 14.5, phone ? 22 : 29).multiplyScalar(Math.max(1, 1.3 / camera.aspect)); controls.target.set(phone ? -1 : -1.4, 3, 1.5); controls.autoRotate = false;
+    camera.position.set(phone ? 4.5 : 0, phone ? 12.5 : 14.5, phone ? 22 : 29).multiplyScalar(Math.max(1, 1.3 / camera.aspect)); controls.target.set(phone ? -0.6 : -0.6, 3, 1.5); controls.autoRotate = false;
     scene.fog.density = 0.004; bloom.strength = 0.4;
     runLab();
   } else {

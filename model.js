@@ -31,14 +31,14 @@
   // Hidden facts about the world nobody knows in advance. As in the original
   // Game of AGI, each simulated future samples them from Gaussians (mean ± sd).
   const ASSUMPTION_INFO = {
-    safeByDefault: { label: 'AGI safe by default', mean: 0.15, sd: 0.1, min: 0, max: 1, fmt: 'pct',
-      help: 'Chance alignment works out without a general solution, because fixing safety problems as they come up turns out to be enough.' },
+    safeByDefault: { label: 'Alignment easy by default', mean: 0.15, sd: 0.1, min: 0, max: 1, fmt: 'pct',
+      help: 'Chance AI turns out aligned without a general solution, because fixing problems as they come up is enough. Humans keep control, so loss of control cannot happen.' },
     difficulty: { label: 'Alignment difficulty', mean: 1, sd: 0.5, min: 0.3, max: 2.5, fmt: 'x',
       help: 'How much research alignment really needs, relative to this model\'s baseline. 2× means progress comes at half the speed.' },
     speed: { label: 'AI progress speed', mean: 1, sd: 0.3, min: 0.3, max: 2.5, fmt: 'x',
       help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2034.' },
-    benevolent: { label: 'Benevolent if uncontrolled', mean: 0.1, sd: 0.08, min: 0, max: 1, fmt: 'pct',
-      help: 'Chance that an AI which escapes human control still cares for humanity, so losing control ends in a benevolent takeover instead of a catastrophe.' },
+    benevolent: { label: 'Kind even if uncontrolled', mean: 0.1, sd: 0.08, min: 0, max: 1, fmt: 'pct',
+      help: 'If humans lose control anyway, the chance the AI still cares for humanity. The future is then steered by AI, kindly, instead of by people (Benevolent Takeover).' },
     whistle: { label: 'Whistleblower odds', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
       help: 'Chance that insiders expose or refuse to carry out a power grab by whoever controls AGI.' },
     // Lognormal, set in log10 units. Calibrated to a separate factored Monte Carlo
