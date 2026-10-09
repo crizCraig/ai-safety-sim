@@ -163,6 +163,10 @@
   .src.own { color: #b8c4d6; }
   .treelist li { font-size: 13px; }
   /* ---------- labels ---------- */
+  .flabel { position: fixed; z-index: 3; pointer-events: none; transform: translate(-50%, -50%); font-family: var(--sans); font-size: 13px; font-weight: 500; white-space: nowrap; text-shadow: 0 0 6px #03060d, 0 0 3px #03060d, 0 0 1px #03060d; }
+  .flabel-left { transform: translate(-100%, -50%); }
+  body:not(.mode-lab) .flabel { display: none !important; }
+  @media (max-width: 640px) { .flabel { font-size: 11px; } }
   .glabel { position: fixed; z-index: 3; pointer-events: none; font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 5px; background: rgba(0,0,0,0.55); border: 1px solid currentColor; white-space: nowrap; transform: translate(-50%, -140%); transition: opacity .3s; }
 
   /* ---------- modals ---------- */
@@ -723,10 +727,26 @@ for (let i = 0; i < 18; i++) {
 const AXIS_TAGS = [];
 const camRight = new THREE.Vector3();
 // Keep each axis arrow just right of its camera-facing label.
+const FAN_LABELS = [];
+const projV = new THREE.Vector3();
 function placeAxisTags() {
   camRight.setFromMatrixColumn(camera.matrixWorld, 0);
-  for (const t of AXIS_TAGS) t.g.position.copy(t.pos).addScaledVector(camRight, t.offset);
+  // Arrows sit just right of their label's anchor at a constant screen size.
+  for (const t of AXIS_TAGS) {
+    const d = camera.position.distanceTo(t.pos);
+    t.g.scale.setScalar(d * 0.045);
+    t.g.position.copy(t.pos).addScaledVector(camRight, d * 0.012);
+  }
+  const rect = canvas.getBoundingClientRect();
+  for (const l of FAN_LABELS) {
+    projV.copy(l.pos).applyMatrix4(fan.matrixWorld).project(camera);
+    const vis = projV.z < 1 && Math.abs(projV.x) < 1.1 && Math.abs(projV.y) < 1.1;
+    l.el.style.display = vis ? '' : 'none';
+    l.el.style.left = (rect.left + (projV.x + 1) / 2 * rect.width) + 'px';
+    l.el.style.top = (rect.top + (1 - projV.y) / 2 * rect.height) + 'px';
+  }
 }
+function hideFanLabels() { for (const l of FAN_LABELS) l.el.style.display = 'none'; }
 const fan = new THREE.Group();
 fan.visible = false;
 scene.add(fan);
@@ -750,35 +770,37 @@ const fanLines = new THREE.Group(); fan.add(fanLines);
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.04, side: THREE.DoubleSide, depthWrite: false }));
   ceil.rotation.x = Math.PI / 2; ceil.position.y = 7; fan.add(ceil);
   ceil.material.opacity = 0.025;
-  // Returns half the rendered text width in world units, for placing axis arrows.
-  const lbl = (txt, pos, color = '#8a97ad', scale = 1) => {
-    const c = document.createElement('canvas'); c.width = 512; c.height = 64;
-    const x = c.getContext('2d'); x.font = '500 30px Space Grotesk, sans-serif'; x.fillStyle = color; x.textAlign = 'center'; x.fillText(txt, 256, 42);
-    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
-    s.scale.set(4 * scale, 0.5 * scale, 1); s.position.copy(pos); fan.add(s);
-    return x.measureText(txt).width / 512 * 4 * scale / 2;
+  // Labels are screen-space text pinned to a 3D point, so they stay readable at
+  // any distance. `align`: 'center', or 'left' to end the text at the point.
+  const lbl = (txt, pos, color = '#8a97ad', align = 'center') => {
+    const el = document.createElement('div');
+    el.className = 'flabel' + (align === 'left' ? ' flabel-left' : '');
+    el.textContent = txt; el.style.color = color;
+    $('labels').append(el);
+    FAN_LABELS.push({ el, pos: pos.clone() });
   };
-  // An axis name with a small 3D arrow beside it. The text faces the camera;
-  // the arrow points along the axis, so it turns as the graph is orbited.
+  // An axis name with a small 3D arrow just right of the text. The arrow points
+  // along its axis, so it turns as the graph is orbited, and keeps a constant
+  // on-screen size.
   const axisTag = (txt, pos, dir) => {
-    const half = lbl(txt, pos, '#c3cee0', 1.15);
-    const mat = new THREE.MeshBasicMaterial({ color: 0xc3cee0 });
+    lbl(txt, pos, '#dbe4f2', 'left');
+    const mat = new THREE.MeshBasicMaterial({ color: 0xdbe4f2 });
     const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.2, 8), mat);
     const head = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.16, 12), mat);
     shaft.position.y = -0.06; head.position.y = 0.12;
     const g = new THREE.Group(); g.add(shaft, head);
     g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
     fan.add(g);
-    AXIS_TAGS.push({ g, pos: pos.clone(), offset: half + 0.22 });
+    AXIS_TAGS.push({ g, pos: pos.clone() });
   };
   lbl('2027', new THREE.Vector3(-8, -0.5, 6.4)); lbl('2040', new THREE.Vector3(8, -0.5, 6.4));
   axisTag('capability', new THREE.Vector3(-8, 8.6, 6), new THREE.Vector3(0, 1, 0));
-  lbl('superintelligence threshold', new THREE.Vector3(0, 7.35, -6), '#ffd76a');
+  lbl('superintelligence threshold', new THREE.Vector3(0, 7.3, -6), '#ffd76a');
   const acLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-8, 4.9, -6), new THREE.Vector3(8, 4.9, -6)]),
     new THREE.LineDashedMaterial({ color: 0x7fe3ff, dashSize: 0.3, gapSize: 0.25, transparent: true, opacity: 0.5 }));
   acLine.computeLineDistances(); fan.add(acLine);
-  lbl('automated coder', new THREE.Vector3(6.5, 5.25, -6), '#7fe3ff');
-  axisTag('alignment', new THREE.Vector3(8, -0.75, 3.4), new THREE.Vector3(0, 0, -1));
+  lbl('automated coder', new THREE.Vector3(6.2, 5.25, -6), '#7fe3ff');
+  axisTag('alignment', new THREE.Vector3(8.4, -0.4, 3.6), new THREE.Vector3(0, 0, -1));
 }
 const fanX = (y) => -8 + (y - M.START_YEAR) / (M.END_YEAR - M.START_YEAR) * 16;
 const fanY = (c) => c / 100 * 7;
