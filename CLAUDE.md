@@ -14,8 +14,11 @@ memtrees, and the page links them under "How it was built".
 2. Update `trees.js` with the **latest** tree of the current session. Trees are regenerated as
    a session grows, so the link from earlier in the session is stale. Get it with the memtree
    `list` tool (project `ai-safety-sim`) to find the session's latest tree, then use that
-   tree's **public share link**. The `app.polychat.co/usage/...` URL the tool prints needs
-   sign-in, so never put it in `trees.js`; leave `url: null` until a public link exists.
+   tree's **public share link**, which looks like
+   `https://app.polychat.co/usage/memtree/<tree-id>?share=<token>`. The `...-v1-served` URL the
+   tool prints needs sign-in, so never put it in `trees.js`. The share token comes from sharing
+   the tree in the polychat app; if the tree id changed and you have no token for it, ask the
+   user for the new share link. Check it returns HTTP 200 without cookies before committing.
    Update that session's entry if it exists, otherwise append a new entry (newest last), and
    set `updated` to today's date.
 3. Scan for sensitive info before pushing: no local paths, emails, keys or tokens.
