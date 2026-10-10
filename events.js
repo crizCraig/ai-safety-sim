@@ -174,7 +174,7 @@
       text: 'After months of back-channel talks, Beijing is ready to sign: both sides cap frontier training, declare every large chip cluster, and let inspectors and datacenter sensors verify it. AI 2040 puts the odds such a deal survives a decade at about one in two.',
       choices: [
         { label: 'Sign, with full verification', note: 'Caps, inspections, and a shared stockpile so neither side is tempted to defect. The deal takes effect now.', lev: { race: -0.15, oversight: +0.1 }, levMin: { diplomacy: 0.5 }, st: { coord: +14 }, stMin: { coord: 60 } },
-        { label: 'Sign a looser version', note: 'Caps on paper, verification later: no binding deal yet.', lev: { diplomacy: +0.15, race: -0.05 }, st: { coord: +6 } },
+        { label: 'Sign a looser version', note: 'Caps on paper, verification later. It binds only if trust is already high enough for a deal.', lev: { diplomacy: +0.15, race: -0.05 }, st: { coord: +6 } },
         { label: 'Walk away', note: 'Verification can be gamed; keep the lead.', lev: { diplomacy: -0.1, race: +0.1 }, st: { coord: -8 } },
       ],
     },

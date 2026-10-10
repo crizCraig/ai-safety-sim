@@ -128,6 +128,16 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const s = mk(1); s.capUS = 99.9; const L2 = { ...L, race: 1 };
   M.step(s, L2, () => 0.99, false);
   check('A kind failed handoff does not count against survival', s.survival > 0.5, s.survival.toFixed(3));
+  // Intermediate kindness: a kind takeover this year must not also face the handoff.
+  {
+    const u = mk(0.5); u.capUS = 99; const r = M.risks(u, L2);
+    M.step(u, L2, () => 0.99, false);
+    const q = M.transitionOdds(u, false, L2), k = 0.5;
+    const expect = (1 - r.bio) * r.misalign * k + (1 - r.bio) * (1 - r.misalign) * (1 - r.war) * (q + (1 - q) * k);
+    check('Survival through a takeover year and handoff is sequential (kindness 0.5)', Math.abs(u.survival - expect) < 1e-9, `${u.survival.toFixed(4)} vs ${expect.toFixed(4)}`);
+    const before = u.survival; M.step(u, L2, () => 0.99, false);
+    check('Survival stays put after the handoff', Math.abs(u.survival - before) < 1e-12, `${before.toFixed(4)} -> ${u.survival.toFixed(4)}`);
+  }
   const t = mk(0); t.capUS = 99.9; const res = M.step(t, L2, () => 0.99, true);
   check('Handoff endings report stage "handoff"', res.stage === 'handoff', String(res.stage));
 }

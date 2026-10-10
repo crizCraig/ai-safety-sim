@@ -205,6 +205,8 @@
       internal: 30,       // how far AI used inside labs is ahead of what outsiders can see
       cnMult: 1,          // modified by export controls
       survival: 1,        // cumulative probability of avoiding catastrophe so far (expected, not rolled)
+      alive: 1,           // ...of which: the future is still running
+      safeEnded: 0,       // ...of which: it already ended without catastrophe (kind takeover, handoff)
       outcome: null,
       log: [],
     };
@@ -328,7 +330,13 @@
    */
   function step(s, L, rng, roll = true) {
     const r = risks(s, L);
-    s.survival *= 1 - r.total;
+    // Expected accounting: only the share of futures still running faces this year's
+    // hazards. A kind takeover ends a future without catastrophe; it is set aside so the
+    // handoff and later years don't count against it again.
+    const kind = s.world.pBenevolent;
+    s.safeEnded += s.alive * (1 - r.bio) * r.misalign * kind;
+    s.alive *= (1 - r.bio) * (1 - r.misalign) * (1 - r.war);
+    s.survival = s.safeEnded + s.alive;
 
     // Every year draws the same fixed set of dice, each with one job, whether or
     // not it is used. Rewinding a campaign and choosing differently then keeps
@@ -413,7 +421,11 @@
     // Superintelligence threshold.
     if (maxCap(s) >= 100) {
       const good = transitionOdds(s, false, L);
-      s.survival *= good + (1 - good) * s.world.pBenevolent;
+      // Every future still running ends at the handoff; a failed handoff is a catastrophe
+      // only if the AI is not kind.
+      s.safeEnded += s.alive * (good + (1 - good) * s.world.pBenevolent);
+      s.alive = 0;
+      s.survival = s.safeEnded;
       if (roll) {
         if (d[13] < transitionOdds(s, true, L)) return finish(s, d[14] < lockinOdds(s, L) ? 'lockin' : 'flourish', r, 'handoff');
         return finish(s, lostControl(s), r, 'handoff');
