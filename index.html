@@ -275,11 +275,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261010154257"></script>
-<script src="events.js?v=20261010154257"></script>
-<script src="landmask.js?v=20261010154257"></script>
-<script src="presets.js?v=20261010154257"></script>
-<script src="trees.js?v=20261010154257"></script>
+<script src="model.js?v=20261010162602"></script>
+<script src="events.js?v=20261010162602"></script>
+<script src="landmask.js?v=20261010162602"></script>
+<script src="presets.js?v=20261010162602"></script>
+<script src="trees.js?v=20261010162602"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -548,7 +548,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261010154257';
+const ASSET_VERSION = '20261010162602';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1211,8 +1211,12 @@ function rollYear() {
   $('choices').style.display = 'none';
   const roll = $('roll'); roll.classList.add('on');
   const lanes = [['Pandemic', r.bio], ['Loss of control', r.misalign], ['Great-power war', r.war]];
-  roll.innerHTML = lanes.map(([n, p], i) => `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${Math.max(p * 100 * 4, p > 0 ? 0.6 : 0)}%"></div><div class="needle" id="nd${i}"></div></div></div>`).join('') +
-    `<div class="note">Zones drawn at 4× scale so small risks are visible.</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
+  // Zones are magnified (up to 4×) so small risks are visible, but never past 80% of the
+  // track, so a missed roll always has room to land outside its zone.
+  const maxP = Math.max(...lanes.map(([, p]) => p));
+  const scale = maxP > 0 ? Math.floor(Math.min(4, 0.8 / maxP) * 10) / 10 : 4;
+  roll.innerHTML = lanes.map(([n, p], i) => `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${Math.max(p * 100 * scale, p > 0 ? 0.6 : 0)}%"></div><div class="needle" id="nd${i}"></div></div></div>`).join('') +
+    `<div class="note">${scale === 1 ? 'Zones drawn to scale.' : `Zones drawn at ${scale}× scale so small risks are visible.`}</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
   const res = M.step(s, L, yearRng(2), true);
   const t0 = performance.now();
   const wiggle = () => {
@@ -1224,7 +1228,7 @@ function rollYear() {
       const hitLane = ['bio', 'loc', 'war'].indexOf(res.stage);
       const hit = hitLane === i;
       if (hitLane >= 0 && i > hitLane) { n.style.display = 'none'; n.parentElement.parentElement.classList.add('skipped'); continue; }
-      const zone = lanes[i][1] * 400;
+      const zone = lanes[i][1] * 100 * scale;
       const final = hit ? zone * 0.5 : Math.min(97, Math.max(zone + 4, 30 + i * 22));
       const x = settle < 1 ? (Math.sin(el / 60 + i * 2) * 0.5 + 0.5) * 100 * (1 - settle) + final * settle : final;
       n.style.left = Math.min(99, x) + '%';
