@@ -46,7 +46,7 @@
     // decomposition: decade median 1.2e-4, 95% interval ~5e-7 to ~3e-2,
     // P(>1%) ≈ 5.5%, P(>10%) ≈ 0.7%. That is median 10^-3.92 with a log10 sd of about 1.2.
     bioDecade: { label: 'Open-weights bio risk per decade', mean: -3.92, sd: 1.2, min: -7, max: -1, fmt: 'log',
-      help: 'Chance that open-weights models enable a pandemic killing 100M+ people within ten years, on the default path for open models and biodefense. Policy scales it up or down from there.' },
+      help: 'Chance that open-weights models enable a pandemic killing 100M+ people within ten years, on the default path for open models and biodefense under the default assumptions. Policy scales it up or down from there.' },
   };
 
   function defaultAssumptions() {
@@ -69,7 +69,7 @@
     const difficulty = Math.min(5, Math.max(0.1, Math.pow(10, dd.mean + dd.sd * gauss(rng))));
     const w = Object.assign({ difficulty, speed: draw('speed'), whistle: draw('whistle') }, difficultyWorld(difficulty, dd));
     const pBen = draw('benevolent');
-    Object.assign(w, { pBenevolent: A.benevolent.mean, benevolent: rng() < pBen });
+    Object.assign(w, { pBenevolent: clippedMean(A.benevolent), benevolent: rng() < pBen });
     // Bio: the decade risk is unclamped in log space (the tails are the point), capped below 1.
     const bioDecade = Math.min(0.99, Math.pow(10, A.bioDecade.mean + A.bioDecade.sd * gauss(rng)));
     if (skipBio) return w;
@@ -79,15 +79,24 @@
   // The same world without its bio draw (bio hazard off): used to measure exposure.
   function sampleBaseWorld(A, rng) {
     const w = sampleWorld.call(null, A, rng, true);
-    return Object.assign(w, { bioDecade: 0, bioScale: 0, bioBelief: 0 });
+    return Object.assign(w, { bioDecade: 0, bioScale: 0, bioNodes: null });
   }
 
   function meanWorld() {
     const A = defaultAssumptions();
     const dd = diffDistOf(A), d = Math.pow(10, dd.mean);
     return Object.assign({ difficulty: d, speed: A.speed.mean, whistle: A.whistle.mean,
-      pBenevolent: A.benevolent.mean, benevolent: false }, difficultyWorld(d, dd),
+      pBenevolent: clippedMean(A.benevolent), benevolent: false }, difficultyWorld(d, dd),
       bioWorld(Math.pow(10, A.bioDecade.mean), A.bioDecade));
+  }
+
+  // Expected value of a probability drawn from N(mean, sd) and clipped to [0, 1], which is
+  // what each world's draw averages to (the shown belief must match the sampled truth).
+  function clippedMean(p) {
+    if (!(p.sd > 0)) return clamp(p.mean, 0, 1);
+    let e = 0;
+    for (const z of DIFF_Z) e += zWeight(z) * clamp(p.mean + p.sd * z, 0, 1);
+    return e;
   }
 
   // Loss-of-control exposure from alignment difficulty: none below 0.3× (aligned
@@ -116,16 +125,32 @@
   // the bio exposure default-path futures actually go through in 2027–2036 (summed
   // until each future ends: most end at the superintelligence handoff). So on the
   // default path a world's realized decade risk is about its drawn R; other policies
-  // scale with bioShape. `bioBelief` is the expected scale over the unknown, used for
-  // the risk shown to players (the dice use the hidden draw).
+  // scale with bioShape. `bioNodes` describe the unknown risk, for the expected risk
+  // shown to players (the dice use the hidden draw).
   function bioWorld(decade, dist) {
-    const ref = bioRefExposure();
-    let belief = 0;
-    for (let i = 0; i < 81; i++) {
-      const z = -4 + i * 0.1, wgt = Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI) * 0.1;
-      belief += wgt * -Math.log(1 - Math.min(0.99, Math.pow(10, dist.mean + dist.sd * z)));
+    return { bioDecade: decade, bioScale: -Math.log(1 - decade) / bioRefExposure(), bioNodes: bioBeliefNodes(dist) };
+  }
+
+  // Quadrature nodes (weight, scale k) over the unknown decade risk. The shown risk is
+  // the expected probability E[1 - exp(-k g)], not 1 - exp(-E[k] g): the risk is concave
+  // in k and the distribution is heavy-tailed, so the two differ a lot at high exposure.
+  const BIO_NODE_CACHE = new Map();
+  function bioBeliefNodes(dist) {
+    const key = dist.mean + '|' + dist.sd;
+    if (BIO_NODE_CACHE.has(key)) return BIO_NODE_CACHE.get(key);
+    const ref = bioRefExposure(), nodes = [];
+    for (let i = 0; i < 121; i++) {
+      const z = -6 + i * 0.1, wgt = Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI) * 0.1;
+      nodes.push([wgt, -Math.log(1 - Math.min(0.99, Math.pow(10, dist.mean + dist.sd * z))) / ref]);
     }
-    return { bioDecade: decade, bioScale: -Math.log(1 - decade) / ref, bioBelief: belief / ref };
+    BIO_NODE_CACHE.set(key, nodes);
+    return nodes;
+  }
+  function expectedBio(nodes, g) {
+    if (!nodes || g <= 0) return 0;
+    let p = 0;
+    for (const [w, k] of nodes) p += w * (1 - Math.exp(-k * g));
+    return p;
   }
 
   // Relative bio hazard of a state: open-weights uplift (dominant once open models
@@ -222,7 +247,8 @@
 
   // Alignment research is done mostly in the US bloc. If China leads, its lab
   // uses that work only as far as coordination and published research allow.
-  // The discount phases in smoothly as China moves from even to clearly ahead.
+  // The discount is centred on a tie: half-strength when the blocs are even, rising
+  // smoothly as China's lead grows and fading as the US pulls ahead.
   function effAlign(s, L) {
     const share = Math.min(1, 0.55 + 0.45 * (s.coord / 100) + 0.3 * (L ? L.transparency : 0));
     const chinaLeads = sig((s.capCN - s.capUS) / 3);
@@ -235,7 +261,7 @@
     // Engineered pandemic (100M+ deaths): shown as the expectation over the
     // unknown decade risk; the dice use this world's hidden draw (bioTrue).
     const shape = bioShape(s);
-    const bio = 1 - Math.exp(-s.world.bioBelief * shape);
+    const bio = expectedBio(s.world.bioNodes, shape);
     const bioTrue = 1 - Math.exp(-s.world.bioScale * shape);
 
     // Loss of control: grows when capability outruns alignment near the top.
@@ -257,10 +283,11 @@
     const war = 0.055 * Math.pow(1 - s.coord / 100, 2) * (0.3 + 0.7 * closeness) * stakes * (1 + 1.5 * L.aggression)
       + 0.07 * L.aggression * (0.4 + 0.6 * behind) * stakes;
 
-    // Hazards are rolled one after another, so they combine as independent risks.
-    // `total` counts only catastrophes: losing control to a kind AI is not one.
-    const misalignCat = misalign * (1 - s.world.pBenevolent);
-    const total = 1 - (1 - bio) * (1 - misalignCat) * (1 - war);
+    // Hazards are rolled one after another: pandemic, then loss of control, then war.
+    // `total` is the chance of a catastrophe this year; losing control to a kind AI is not one.
+    // A kind takeover ends the future before the war roll, so it removes war risk too.
+    const kind = s.world.pBenevolent;
+    const total = bio + (1 - bio) * (misalign * (1 - kind) + (1 - misalign) * war);
     return { bio, bioTrue, misalign, misalignTrue, war, total };
   }
 
@@ -297,7 +324,7 @@
   /*
    * Advance one year. `rng` is a function returning [0,1). If `roll` is false
    * the step is purely expected-value (no catastrophe sampling).
-   * Returns { risk, event } where event is a terminal outcome key or null.
+   * Returns { risk, event, stage } where event is a terminal outcome key or null.
    */
   function step(s, L, rng, roll = true) {
     const r = risks(s, L);
@@ -311,9 +338,9 @@
 
     // Hazards are rolled one after another, so they combine as independent risks.
     if (roll) {
-      if (d[0] < r.bioTrue) return finish(s, 'bio', r);
-      if (d[1] < r.misalignTrue) return finish(s, lostControl(s), r);
-      if (d[2] < r.war) return finish(s, 'war', r);
+      if (d[0] < r.bioTrue) return finish(s, 'bio', r, 'bio');
+      if (d[1] < r.misalignTrue) return finish(s, lostControl(s), r, 'loc');
+      if (d[2] < r.war) return finish(s, 'war', r, 'war');
     }
 
     const mc = maxCap(s), capUS0 = s.capUS;
@@ -335,10 +362,13 @@
     if (d[5] < 0.15) { gUS += (3 + d[6] * 5) * jUS; gCN += (2 + d[7] * 4) * jCN; }
     // AI 2040 puts the deal's cumulative collapse risk near 48% over ten years
     // (leadership change, a side caught cheating, ...), about 6% a year.
-    if (dealActive(s, L) && d[8] < 0.06) { s.coord = clamp(s.coord - 40); s.dealCollapsed = s.year; }
-    if (dealActive(s, L)) {
+    // The deal holds capability through the year it collapses, so the race restarts the
+    // next year (and the campaign gets a turn to respond).
+    const dealThisYear = dealActive(s, L);
+    if (dealThisYear) {
       gUS = Math.min(gUS, Math.max(0, TOP_EXPERT - s.capUS));
       gCN = Math.min(gCN, Math.max(0, TOP_EXPERT - s.capCN));
+      if (d[8] < 0.06) { s.coord = clamp(s.coord - 40); s.dealCollapsed = s.year; }
     }
     s.capUS = clamp(s.capUS + Math.max(0, gUS));
     s.capCN = clamp(s.capCN + Math.max(0, gCN));
@@ -382,17 +412,18 @@
 
     // Superintelligence threshold.
     if (maxCap(s) >= 100) {
-      s.survival *= transitionOdds(s, false, L);
+      const good = transitionOdds(s, false, L);
+      s.survival *= good + (1 - good) * s.world.pBenevolent;
       if (roll) {
-        if (d[13] < transitionOdds(s, true, L)) return finish(s, d[14] < lockinOdds(s, L) ? 'lockin' : 'flourish', r);
-        return finish(s, lostControl(s), r);
+        if (d[13] < transitionOdds(s, true, L)) return finish(s, d[14] < lockinOdds(s, L) ? 'lockin' : 'flourish', r, 'handoff');
+        return finish(s, lostControl(s), r, 'handoff');
       }
     }
 
     if (s.year >= END_YEAR) {
-      if (s.trust < 45 && d[15] < lockinOdds(s, L)) return finish(s, 'lockin', r);
-      if (s.align >= maxCap(s) && s.coord > 55) return finish(s, 'pause', r);
-      return finish(s, 'muddle', r);
+      if (s.trust < 45 && d[15] < lockinOdds(s, L)) return finish(s, 'lockin', r, 'end');
+      if (s.align >= maxCap(s) && s.coord > 55) return finish(s, 'pause', r, 'end');
+      return finish(s, 'muddle', r, 'end');
     }
     return { risk: r, event: null };
   }
@@ -401,9 +432,11 @@
   // draw of whether the uncontrolled AI turns out to care for humanity.
   const lostControl = (s) => (s.world.benevolent ? 'benevolent' : 'misalign');
 
-  function finish(s, key, r) {
+  // `stage` says what resolved the future: an annual hazard ('bio', 'loc', 'war'), the
+  // superintelligence handoff ('handoff') or the 2040 ending ('end').
+  function finish(s, key, r, stage) {
     s.outcome = key;
-    return { risk: r, event: key };
+    return { risk: r, event: key, stage };
   }
 
   const OUTCOMES = {
@@ -466,7 +499,7 @@
       if (maxCap(s) >= 100) asiYears.push(s.year);
       if (ev === 'bio' || ev === 'war') continue;
       nAlign++;
-      pAlign += ev === 'misalign' || ev === 'benevolent' ? 0 : maxCap(s) >= 100 ? 1 : transitionOdds(s, true);
+      pAlign += ev === 'misalign' || ev === 'benevolent' ? 0 : maxCap(s) >= 100 ? 1 : transitionOdds(s, true, L);
     }
     const median = (a) => { if (!a.length) return null; a.sort((x, y) => x - y); return a[a.length >> 1]; };
     return {

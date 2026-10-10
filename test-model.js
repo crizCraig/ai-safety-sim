@@ -2,7 +2,8 @@
 // Prints each preset's outcome mix, then asserts calibration targets with tolerances.
 require('./model.js');
 require('./presets.js');
-const M = globalThis.SimModel, { PRESETS } = globalThis.SimPresets;
+require('./events.js');
+const M = globalThis.SimModel, E = globalThis.SimEvents, { PRESETS } = globalThis.SimPresets;
 const A0 = M.defaultAssumptions();
 let failed = 0;
 const check = (name, ok, detail) => {
@@ -78,18 +79,92 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('pSafe belief matches sampled share (±0.005)', near(shown, easy / n, 0.005), `${shown.toFixed(4)} vs ${(easy / n).toFixed(4)}`);
 }
 
-// --- Optimized presets keep their promises ---
+// --- Optimized presets keep their promises (20,000 futures each, same seed) ---
 {
-  const r = M.summarize(PRESETS['Safest mix'], A0, 20000, 99);
-  check('Safest mix is the lowest-risk preset', Object.entries(summaries).every(([k, v]) => k === 'Safest mix' || bad(v) >= bad(summaries['Safest mix']) - 0.002), (100 * bad(r)).toFixed(2) + '% bad');
-  const u = M.summarize(PRESETS['Under 2% risk'], A0, 20000, 99);
-  check('Under 2% risk stays under 2% catastrophe', u.catastrophe < 0.02, (100 * u.catastrophe).toFixed(2) + '%');
+  const big = {};
+  for (const [k, L] of Object.entries(PRESETS)) big[k] = M.summarize(L, A0, 20000, 99);
+  const safest = bad(big['Safest mix']);
+  const worse = Object.entries(big).filter(([k, v]) => k !== 'Safest mix' && bad(v) < safest);
+  check('Safest mix has the fewest bad outcomes of any preset', !worse.length, `${(100 * safest).toFixed(2)}% bad${worse.length ? '; beaten by ' + worse.map(([k]) => k).join(', ') : ''}`);
+  const careful = big['Safest mix'].counts.pause / big['Safest mix'].n;
+  check('Safest mix reaches 2040 on the careful path ≥ 95%', careful >= 0.95, (100 * careful).toFixed(1) + '%');
+  check('Under 2% risk stays under 2% catastrophe', big['Under 2% risk'].catastrophe < 0.02, (100 * big['Under 2% risk'].catastrophe).toFixed(2) + '%');
+}
+
+// --- Biodefense and open weights move pandemic risk on a long path (Plan A) ---
+{
+  const A = PRESETS['Plan A: Verified slowdown'];
+  const bioShare = (o) => { const r = M.summarize({ ...A, ...o }, A0, 20000, 5); return r.counts.bio / r.n; };
+  const closed = bioShare({ openness: 0 }), open = bioShare({ openness: 1, biodef: 0.5 }), openDef = bioShare({ openness: 1, biodef: 1 });
+  check('Open weights raise pandemic risk on Plan A (×1.5+)', open > 1.5 * closed, `${(100 * closed).toFixed(2)}% → ${(100 * open).toFixed(2)}%`);
+  check('Full biodefense cuts it (to < 60%)', openDef < 0.6 * open, `${(100 * open).toFixed(2)}% → ${(100 * openDef).toFixed(2)}%`);
+}
+
+// --- Shown (belief) numbers equal the averages over the hidden draws ---
+{
+  // Pandemic risk: E[1 - exp(-k g)] over the unknown bio risk, checked by sampling.
+  const s = M.initialState(); s.openCap = 78;
+  const shown = M.risks(s, M.defaultLevers()).bio, g = M.bioShape(s), rng = M.mulberry32(13), n = 200000;
+  let sum = 0; for (let i = 0; i < n; i++) sum += 1 - Math.exp(-M.sampleWorld(A0, rng).bioScale * g);
+  check('Shown pandemic risk = expected risk over the unknown (±10%)', Math.abs(shown / (sum / n) - 1) < 0.1, `${(100 * shown).toFixed(3)}% vs ${(100 * sum / n).toFixed(3)}%`);
+  // Kindness belief accounts for clipping.
+  const A = { ...A0, benevolent: { mean: 0, sd: 1 / 3 } };
+  let kind = 0; const r2 = M.mulberry32(3); for (let i = 0; i < 50000; i++) if (M.sampleWorld(A, r2).benevolent) kind++;
+  const belief = M.sampleWorld(A, M.mulberry32(1)).pBenevolent;
+  check('Kindness belief matches sampled share with clipping (±0.01)', near(belief, kind / 50000, 0.01), `${belief.toFixed(3)} vs ${(kind / 50000).toFixed(3)}`);
+}
+
+// --- Survival accounting: kind takeovers are not catastrophes ---
+{
+  const base = M.initialState();
+  const mk = (k) => Object.assign(M.initialState(), { capUS: 95, capCN: 90, align: 20, coord: 0,
+    world: Object.assign({}, base.world, { pBenevolent: k }) });
+  const L = M.defaultLevers();
+  for (const k of [0, 1]) {
+    const s = mk(k), r = M.risks(s, L);
+    const expect = r.bio + (1 - r.bio) * (r.misalign * (1 - k) + (1 - r.misalign) * r.war);
+    check(`Annual catastrophe total is sequential (kindness ${k})`, Math.abs(r.total - expect) < 1e-12, r.total.toFixed(4));
+  }
+  const s = mk(1); s.capUS = 99.9; const L2 = { ...L, race: 1 };
+  M.step(s, L2, () => 0.99, false);
+  check('A kind failed handoff does not count against survival', s.survival > 0.5, s.survival.toFixed(3));
+  const t = mk(0); t.capUS = 99.9; const res = M.step(t, L2, () => 0.99, true);
+  check('Handoff endings report stage "handoff"', res.stage === 'handoff', String(res.stage));
+}
+
+// --- Campaign: deals cap direct bonuses, signing signs, collapse gets a turn ---
+{
+  const card = (id) => E.CARDS.find((c) => c.id === id);
+  const L = { ...M.defaultLevers(), diplomacy: 0.6 };
+  const s = Object.assign(M.initialState(), { capUS: 78, capCN: 76, coord: 70 });
+  E.applyChoice(s, L, card('automate').choices[0]);
+  check('Choices cannot push capability past an active deal cap', s.capUS <= 78, String(s.capUS));
+  const s2 = Object.assign(M.initialState(), { coord: 29 }), L3 = M.defaultLevers();
+  E.applyChoice(s2, L3, card('deal').choices[0]);
+  check('"Sign, with full verification" puts the deal in force', M.dealActive(s2, L3), `coord ${s2.coord}, diplomacy ${L3.diplomacy}`);
+  // Play deal-seeking campaigns; when a deal collapses, does the response card come up?
+  let collapses = 0, shown = 0;
+  for (let g = 0; g < 3000; g++) {
+    const rng = M.mulberry32(5000 + g);
+    const st = M.initialState(M.sampleWorld(A0, rng)), Lg = { ...M.defaultLevers(), diplomacy: 0.6, race: 0.4 }, used = new Set();
+    st.coord = 65; let ev = null, saw = null;
+    while (!ev) {
+      const c = E.pickCard(st, Lg, used, rng);
+      if (c) { used.add(c.id); if (c.id === 'collapse') shown++; E.applyChoice(st, Lg, c.choices[c.id === 'collapse' ? 0 : 2 % c.choices.length]); }
+      const before = st.dealCollapsed;
+      ev = M.step(st, Lg, rng, true).event;
+      if (!before && st.dealCollapsed) { collapses++; saw = true; }
+    }
+  }
+  check('Most collapsed deals get the response card (> 50%)', collapses > 0 && shown / collapses > 0.5, `${shown} of ${collapses}`);
 }
 
 // --- The model reference uses the live G_ref, not a stale constant ---
 {
   const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
-  check('Model reference renders G_ref from the code', html.includes('{{GREF}}'));
+  const g = M.bioRefExposure();
+  check('G_ref is computed and plausible (0.15–0.25)', g > 0.15 && g < 0.25, g.toFixed(3));
+  check('Model reference fills G_ref from the code', html.includes('{{GREF}}') && /replace\('\{\{GREF\}\}', M\.bioRefExposure\(\)/.test(html));
 }
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll checks passed');

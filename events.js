@@ -173,8 +173,8 @@
       title: 'The Verified Deal',
       text: 'After months of back-channel talks, Beijing is ready to sign: both sides cap frontier training, declare every large chip cluster, and let inspectors and datacenter sensors verify it. AI 2040 puts the odds such a deal survives a decade at about one in two.',
       choices: [
-        { label: 'Sign, with full verification', note: 'Caps, inspections, and a shared stockpile so neither side is tempted to defect.', lev: { diplomacy: +0.3, race: -0.15, oversight: +0.1 }, st: { coord: +14 } },
-        { label: 'Sign a looser version', note: 'Caps on paper, verification later.', lev: { diplomacy: +0.15, race: -0.05 }, st: { coord: +6 } },
+        { label: 'Sign, with full verification', note: 'Caps, inspections, and a shared stockpile so neither side is tempted to defect. The deal takes effect now.', lev: { race: -0.15, oversight: +0.1 }, levMin: { diplomacy: 0.5 }, st: { coord: +14 }, stMin: { coord: 60 } },
+        { label: 'Sign a looser version', note: 'Caps on paper, verification later: no binding deal yet.', lev: { diplomacy: +0.15, race: -0.05 }, st: { coord: +6 } },
         { label: 'Walk away', note: 'Verification can be gamed; keep the lead.', lev: { diplomacy: -0.1, race: +0.1 }, st: { coord: -8 } },
       ],
     },
@@ -242,22 +242,30 @@
   ];
 
   function applyChoice(s, L, choice) {
+    // A verified deal in force before the choice caps what the choice can add to capability.
+    const capped = SimModel.dealActive(s, L);
+    const cap = { capUS: Math.max(s.capUS, SimModel.TOP_EXPERT), capCN: Math.max(s.capCN, SimModel.TOP_EXPERT) };
     for (const k in choice.lev || {}) L[k] = Math.max(0, Math.min(1, L[k] + choice.lev[k]));
-    // levMin sets a floor, e.g. "Mandate 20% of compute for safety".
+    // levMin / stMin set floors, e.g. "Mandate 12% of compute for safety".
     for (const k in choice.levMin || {}) L[k] = Math.max(L[k], choice.levMin[k]);
     for (const k in choice.st || {}) {
       if (k === 'cnMult') s.cnMult = Math.max(0.6, Math.min(1.2, s.cnMult + choice.st[k]));
       else s[k] = SimModel.clamp(s[k] + choice.st[k]);
     }
+    for (const k in choice.stMin || {}) s[k] = Math.max(s[k], choice.stMin[k]);
+    if (capped) for (const k in cap) s[k] = Math.min(s[k], cap[k]);
   }
 
   function pickCard(s, L, used, rng) {
+    // Responding to a collapsed deal comes first: it is time-critical.
+    const collapse = CARDS.find((c) => c.id === 'collapse' && !used.has(c.id) && c.when(s, L));
+    if (collapse) return collapse;
     const pinned = CARDS.find((c) => c.year === s.year && !used.has(c.id));
     if (pinned) return pinned;
     // The endgame card takes priority once it becomes available.
     const t = CARDS.find((c) => c.id === 'threshold' && !used.has(c.id) && c.when(s, L));
     if (t) return t;
-    const pool = CARDS.filter((c) => !c.year && c.id !== 'threshold' && !used.has(c.id) && (!c.when || c.when(s, L)));
+    const pool = CARDS.filter((c) => !c.year && c.id !== 'threshold' && c.id !== 'collapse' && !used.has(c.id) && (!c.when || c.when(s, L)));
     if (!pool.length) return null;
     return pool[Math.floor(rng() * pool.length)];
   }
