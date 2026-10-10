@@ -274,11 +274,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261010135307"></script>
-<script src="events.js?v=20261010135307"></script>
-<script src="landmask.js?v=20261010135307"></script>
-<script src="presets.js?v=20261010135307"></script>
-<script src="trees.js?v=20261010135307"></script>
+<script src="model.js?v=20261010135904"></script>
+<script src="events.js?v=20261010135904"></script>
+<script src="landmask.js?v=20261010135904"></script>
+<script src="presets.js?v=20261010135904"></script>
+<script src="trees.js?v=20261010135904"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -547,7 +547,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261010135307';
+const ASSET_VERSION = '20261010135904';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';

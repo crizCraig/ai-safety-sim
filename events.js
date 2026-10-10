@@ -28,16 +28,6 @@
       ],
     },
     {
-      id: 'dna', year: 2029, tag: 'Biosecurity',
-      title: 'Screening the Synthesizers',
-      text: 'Benchtop DNA synthesizers are getting cheap. A proposal would require every machine and order worldwide to be screened against dangerous sequences — a choke point between "AI-designed" and "made".',
-      choices: [
-        { label: 'Mandate global screening', note: 'Expensive, needs China on board.', lev: { biodef: +0.3, diplomacy: +0.05 }, st: { bio: +6, coord: +3 } },
-        { label: 'Fund far-UVC & pandemic stockpiles', note: 'Defend at the response end instead.', lev: { biodef: +0.2 }, st: { bio: +4 } },
-        { label: 'Leave it to industry', note: 'Voluntary guidelines only.', lev: { biodef: -0.1 }, st: {} },
-      ],
-    },
-    {
       id: 'neuralink', year: 2030, tag: 'Neural interfaces',
       title: 'Alignment via Merging',
       text: 'A neural-interface company demos a 10,000-channel implant: a volunteer edits code at thought-speed alongside an AI. Its founder pitches a moonshot: "If we can\'t beat superintelligence, we join it — humans in the loop at full bandwidth." Critics ask who gets implants first, and who controls the firmware.',
@@ -62,7 +52,7 @@
       title: 'The Whistleblower',
       text: 'An engineer leaks documents: a leading lab quietly cut its safety team by half to hit a launch date. The story trends for a week.',
       choices: [
-        { label: 'Mandate 20% compute for safety', note: 'Binding, audited, for every frontier lab.', levMin: { safety: 0.2 }, st: { capUS: -2, trust: +5 } },
+        { label: 'Mandate 12% compute for safety', note: 'Binding, audited, for every frontier lab.', levMin: { safety: 0.12 }, st: { capUS: -2, trust: +5 } },
         { label: 'Create a whistleblower hotline', note: 'Protected, anonymous reporting to an independent auditor.', lev: { oversight: +0.15 }, st: { trust: +3 } },
         { label: 'Protect national competitiveness', note: 'Prosecute the leaker.', lev: { race: +0.1 }, st: { trust: -8, conc: +3 } },
       ],
@@ -108,13 +98,13 @@
       ],
     },
     {
-      id: 'nearmiss', when: (s) => s.openCap > 45, tag: 'Biosecurity',
+      id: 'nearmiss', when: (s) => s.openCap > 50, tag: 'Biosecurity',
       title: 'A Bio Near-Miss',
       text: 'Police raid a basement lab. A small group used a jailbroken open-weights model to troubleshoot a pathogen protocol, and got further than anyone expected. Their DNA order was the thing that tipped off investigators.',
       dynamic: (s) => s.bio < 30 ? 'This time, there was no screening — a tip from a neighbor was the only reason it was caught.' : 'Synthesis screening flagged the order. The system worked — barely.',
       choices: [
         { label: 'Ban open weights above a threshold', note: 'Retroactive takedowns where possible.', lev: { openness: -0.35 }, st: { openCap: -4, conc: +6, trust: -2 } },
-        { label: 'Surge biodefense funding', note: 'Assume the models are already out.', lev: { biodef: +0.3 }, st: { bio: +6 } },
+        { label: 'Mandate global DNA synthesis screening', note: 'Every machine and order checked against dangerous sequences.', lev: { biodef: +0.3, diplomacy: +0.05 }, st: { bio: +8, coord: +3 } },
         { label: 'Use open models for defense', note: 'AI-powered biosurveillance, open to all.', lev: { biodef: +0.15, openness: +0.05 }, st: { bio: +4 } },
       ],
     },
@@ -134,7 +124,7 @@
       text: 'Labs can now let AI systems run AI research end-to-end: thousands of copies, working around the clock. Projected speed-up: 3–5× per year. Control protocols are immature.',
       choices: [
         { label: 'Full speed', note: 'Whoever automates first, wins.', lev: { race: +0.2 }, st: { capUS: +9, align: +2 } },
-        { label: 'Only under control protocols', note: 'Monitored, sandboxed, half the agents on alignment.', levMin: { safety: 0.5 }, st: { capUS: +4, align: +7 } },
+        { label: 'Only under control protocols', note: 'Monitored, sandboxed, one agent in seven on alignment.', levMin: { safety: 0.15 }, st: { capUS: +4, align: +4 } },
         { label: 'Forbid recursive self-improvement', note: 'Needs a global agreement to stick.', lev: { race: -0.2, diplomacy: +0.1 }, st: { coord: +4, trust: +3 } },
       ],
     },
@@ -179,23 +169,53 @@
       ],
     },
     {
+      id: 'deal', when: (s, L) => s.year >= 2028 && s.coord > 28 && !s.dealCollapsed && !SimModel.dealActive(s, L), tag: 'Coordination',
+      title: 'The Verified Deal',
+      text: 'After months of back-channel talks, Beijing is ready to sign: both sides cap frontier training, declare every large chip cluster, and let inspectors and datacenter sensors verify it. AI 2040 puts the odds such a deal survives a decade at about one in two.',
+      choices: [
+        { label: 'Sign, with full verification', note: 'Caps, inspections, and a shared stockpile so neither side is tempted to defect.', lev: { diplomacy: +0.3, race: -0.15, oversight: +0.1 }, st: { coord: +14 } },
+        { label: 'Sign a looser version', note: 'Caps on paper, verification later.', lev: { diplomacy: +0.15, race: -0.05 }, st: { coord: +6 } },
+        { label: 'Walk away', note: 'Verification can be gamed; keep the lead.', lev: { diplomacy: -0.1, race: +0.1 }, st: { coord: -8 } },
+      ],
+    },
+    {
+      id: 'gap', when: (s) => s.capCN > s.capUS - 10 && SimModel.maxCap(s) > 55, tag: 'Race',
+      title: 'China Closes the Gap',
+      text: 'A new Chinese model matches the best US system on most benchmarks. The defense establishment wants an emergency compute surge; labs say they can double their training runs within a year.',
+      choices: [
+        { label: 'Emergency compute surge', note: 'Whatever it takes to stay ahead.', lev: { race: +0.2, safety: -0.02 }, st: { capUS: +3, coord: -6 } },
+        { label: 'Hold the current pace', note: 'A tie is not a loss.', lev: {}, st: {} },
+        { label: 'Use the moment to open talks', note: 'Neither side can win this race safely.', lev: { diplomacy: +0.15, race: -0.05 }, st: { coord: +6 } },
+      ],
+    },
+    {
+      id: 'covert', when: (s, L) => SimModel.dealActive(s, L), tag: 'Deal at risk',
+      title: 'A Covert Datacenter',
+      text: 'Satellite imagery and a power-grid anomaly point to an undeclared training cluster in western China, about 1% of the compute either side gave up under the deal. Hawks say the deal is dead; negotiators say this is exactly what verification is for.',
+      choices: [
+        { label: 'Expose it and demand inspections', note: 'Use the deal\'s own enforcement.', lev: { oversight: +0.1 }, st: { coord: -4, capCN: -2 } },
+        { label: 'Quietly build a matching cluster', note: 'Hedge without saying so.', lev: { race: +0.15, diplomacy: -0.1 }, st: { coord: -12, capUS: +3 } },
+        { label: 'Let it slide', note: 'Too small to matter; the deal matters more.', lev: {}, st: { coord: -3, trust: -3 } },
+      ],
+    },
+    {
+      id: 'collapse', when: (s) => s.dealCollapsed && s.year - s.dealCollapsed <= 2, tag: 'Deal collapsed',
+      title: 'The Deal Collapses',
+      text: 'A leadership change in Beijing ends the verified deal. Both sides still hold the compute they set aside. AI 2040 warns that without destroying most of it, an unpaused race could explode within weeks.',
+      choices: [
+        { label: 'Destroy most of the stockpile, mutually', note: 'Slower takeoff for both if the race restarts.', lev: { race: -0.1, diplomacy: +0.1 }, st: { capUS: -5, capCN: -5, coord: +6 } },
+        { label: 'Race to win', note: 'Use the stockpile before they do.', lev: { race: +0.25 }, st: { capUS: +5, coord: -10 } },
+        { label: 'Try to rebuild talks', note: 'Keep the stockpile as leverage.', lev: { diplomacy: +0.15 }, st: { coord: +4 } },
+      ],
+    },
+    {
       id: 'cern', when: (s) => SimModel.maxCap(s) > 70 && s.coord > 35, tag: 'Coordination',
       title: 'A CERN for AGI',
       text: 'Allies propose merging frontier efforts into one international, inspected project — with China invited. Labs would hand over their best researchers and compute.',
       choices: [
-        { label: 'Join and invite China', note: 'One project, one set of safety rules.', lev: { race: -0.25, diplomacy: +0.25, safety: +0.03 }, st: { coord: +15, conc: -4 } },
+        { label: 'Join and invite China', note: 'One project, one set of safety rules.', lev: { race: -0.15, diplomacy: +0.15, safety: +0.03 }, st: { coord: +10, conc: -4 } },
         { label: 'Western allies only', note: 'Pool with friends, compete with rivals.', lev: { safety: +0.015 }, st: { coord: -4, capUS: +3, conc: +4 } },
         { label: 'Decline', note: 'Competition drives innovation.', lev: {}, st: {} },
-      ],
-    },
-    {
-      id: 'opensource-bio', when: (s) => s.openCap > 55 && s.bio < 40, tag: 'Open models',
-      title: 'The Uncensored Fork',
-      text: 'A popular "abliterated" fork of the newest open model strips all refusals. It is mirrored on thousands of servers in a day. Red-teamers report meaningful uplift on pathogen enhancement.',
-      choices: [
-        { label: 'Liability for open releases', note: 'Developers liable for foreseeable misuse.', lev: { openness: -0.2 }, st: { conc: +4 } },
-        { label: 'Crash program in biodefense', note: 'Metagenomic surveillance at every airport.', lev: { biodef: +0.25 }, st: { bio: +7 } },
-        { label: 'Nothing can be done', note: 'The weights are out.', lev: {}, st: { trust: -4 } },
       ],
     },
     {
@@ -215,7 +235,7 @@
       dynamic: (s, L) => `Alignment maturity is ${Math.round(s.align)} vs. capability ${Math.round(SimModel.maxCap(s))}. Estimated odds the transition goes well: ${Math.round(SimModel.transitionOdds(s, false, L) * 100)}%.`,
       choices: [
         { label: 'Launch now', note: 'If we don\'t, they will.', lev: { race: +0.2 }, st: { capUS: +8 } },
-        { label: 'One more year of alignment', note: 'Throw everything at control & interpretability.', levMin: { safety: 0.6 }, lev: { race: -0.25 }, st: { align: +8, capUS: -2 } },
+        { label: 'One more year of alignment', note: 'Throw everything at control & interpretability.', levMin: { safety: 0.25 }, lev: { race: -0.15 }, st: { align: +6, capUS: -2 } },
         { label: 'Propose a joint, staged launch', note: 'Both blocs, shared evals, shared off-switch.', lev: { diplomacy: +0.3, race: -0.2 }, st: { coord: +15, align: +3 } },
       ],
     },
