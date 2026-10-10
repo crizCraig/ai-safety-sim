@@ -275,11 +275,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261010152935"></script>
-<script src="events.js?v=20261010152935"></script>
-<script src="landmask.js?v=20261010152935"></script>
-<script src="presets.js?v=20261010152935"></script>
-<script src="trees.js?v=20261010152935"></script>
+<script src="model.js?v=20261010153547"></script>
+<script src="events.js?v=20261010153547"></script>
+<script src="landmask.js?v=20261010153547"></script>
+<script src="presets.js?v=20261010153547"></script>
+<script src="trees.js?v=20261010153547"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -548,7 +548,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261010152935';
+const ASSET_VERSION = '20261010153547';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1418,6 +1418,11 @@ function syncAssumptions(setInputs) {
   }
 }
 // Highlight a preset and show its description; null clears both.
+// Years after the start of 2027 as an approximate calendar date, e.g. 4.5 -> "around Jul 2031".
+function avgDate(years) {
+  const m = Math.round(years * 12), y = M.START_YEAR + Math.floor(m / 12);
+  return `around ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m % 12]} ${y}`;
+}
 function selectPreset(p) {
     $('presets').querySelectorAll('[data-p]').forEach((b) => b.classList.toggle('on', b.dataset.p === p));
     const info = PLAN_INFO[p];
@@ -1458,7 +1463,7 @@ function runLab() {
   const cat = (mc.counts.bio + mc.counts.misalign + mc.counts.war) / mc.n;
   $('catNum').textContent = pct(cat, cat < 0.1 ? 1 : 0);
   $('catNum').style.color = cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)';
-  $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, cat < 0.1 ? 1 : 0)}</b> of futures · outcome reached after ${mc.meanYears.toFixed(1)} years on average · click an outcome to isolate it`;
+  $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, cat < 0.1 ? 1 : 0)}</b> of futures · outcome reached after ${mc.meanYears.toFixed(1)} years on average (${avgDate(mc.meanYears)}) · click an outcome to isolate it`;
   buildFan(mc.paths);
   applyFocus();
 }
