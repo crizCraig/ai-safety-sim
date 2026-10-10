@@ -142,7 +142,7 @@
 
   #catBig { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 3; pointer-events: none; text-align: center; text-shadow: 0 0 18px #03060d, 0 0 6px #03060d; }
   #catBig .cb-num { font-family: var(--mono); font-size: 52px; font-weight: 600; line-height: 1; transition: color .3s; }
-  #catBig .cb-lbl { font-size: 13px; color: var(--muted); margin-top: 4px; letter-spacing: 0.04em; }
+  #catBig .cb-lbl { font-size: 10.5px; color: var(--muted); opacity: 0.75; margin-top: 3px; letter-spacing: 0.14em; text-transform: uppercase; }
   .lever-note { margin: 2px 0 14px; font-size: 11px; line-height: 1.45; color: var(--muted); }
   #fanTip { position: fixed; z-index: 6; pointer-events: none; min-width: 200px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
   #fanTip .tip-year { font-family: var(--mono); font-size: 15px; font-weight: 600; margin-bottom: 4px; }
@@ -245,7 +245,7 @@
     body.mode-lab #right { order: 1; margin-top: calc(var(--graph-bottom, 50vh) + 12px); }
     #catBig { top: calc(var(--graph-top, 53px) + 8px); z-index: 5; }
     #catBig .cb-num { font-size: 34px; }
-    #catBig .cb-lbl { font-size: 11px; }
+    #catBig .cb-lbl { font-size: 9.5px; }
     body.mode-lab canvas#gl { z-index: 4; border-bottom: 1px solid var(--line); }
     body.mode-lab #left, body.mode-lab #right { position: relative; z-index: 1; top: auto; left: auto; right: auto; bottom: auto; }
     body.mode-lab #left { order: 2; }
@@ -274,10 +274,10 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261009170554"></script>
-<script src="events.js?v=20261009170554"></script>
-<script src="landmask.js?v=20261009170554"></script>
-<script src="trees.js?v=20261009170554"></script>
+<script src="model.js?v=20261009170716"></script>
+<script src="events.js?v=20261009170716"></script>
+<script src="landmask.js?v=20261009170716"></script>
+<script src="trees.js?v=20261009170716"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -364,7 +364,7 @@
     <div class="btnrow"><button class="btn" data-close="copyFallback">Done</button></div>
   </div>
 </div>
-<div id="catBig" class="lab-only" aria-live="polite"><div class="cb-num" id="catNum"></div><div class="cb-lbl">of futures end in catastrophe</div></div>
+<div id="catBig" class="lab-only" aria-live="polite"><div class="cb-num" id="catNum"></div><div class="cb-lbl">catastrophe</div></div>
 <div id="fanTip" class="lab-only" role="status" hidden></div>
 
 <!-- Intro -->
@@ -545,7 +545,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261009170554';
+const ASSET_VERSION = '20261009170716';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
