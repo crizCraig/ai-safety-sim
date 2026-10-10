@@ -275,11 +275,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261010145707"></script>
-<script src="events.js?v=20261010145707"></script>
-<script src="landmask.js?v=20261010145707"></script>
-<script src="presets.js?v=20261010145707"></script>
-<script src="trees.js?v=20261010145707"></script>
+<script src="model.js?v=20261010152935"></script>
+<script src="events.js?v=20261010152935"></script>
+<script src="landmask.js?v=20261010152935"></script>
+<script src="presets.js?v=20261010152935"></script>
+<script src="trees.js?v=20261010152935"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -548,7 +548,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261010145707';
+const ASSET_VERSION = '20261010152935';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1421,8 +1421,11 @@ function syncAssumptions(setInputs) {
 function selectPreset(p) {
     $('presets').querySelectorAll('[data-p]').forEach((b) => b.classList.toggle('on', b.dataset.p === p));
     const info = PLAN_INFO[p];
-    $('planNote').hidden = !p;
+    // Clearing (a slider moved) hides the text but keeps its space, so the slider
+    // being dragged doesn't jump when the layout above it shrinks.
+    $('planNote').style.visibility = p ? '' : 'hidden';
     if (!p) return;
+    $('planNote').hidden = false;
     if (!info) { $('planNote').textContent = PRESET_INFO[p] || ''; return; }
     $('planNote').innerHTML = `${info.text} <span class="pn-src">AI 2040's median estimates: ${info.align ? `p(alignment) ${info.align}, p(great future) ${info.great}` : 'not given'}. These sliders are a fixed-lever approximation; AI 2040's plans change over time.</span> <a href="${AI2040_PLANS}" target="_blank" rel="noopener">Read the comparison ↗</a>`;
 }
