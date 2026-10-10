@@ -37,7 +37,7 @@
     ease: { label: 'Ease of alignment', mean: 0.1, sd: 0.4, min: -0.6, max: 0.7, fmt: 'logx',
       help: 'How easy alignment turns out to be. Easy enough (above 3.3×), fixing safety problems as they come up leads to long-term alignment without a general solution, and loss of control cannot happen. At 1× alignment needs this model\'s baseline research; at 0.5× progress comes at half the speed.' },
     speed: { label: 'AI progress speed', mean: 1, sd: 0.3, min: 0.3, max: 2.5, fmt: 'x',
-      help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2034.' },
+      help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2031 and superintelligence to about 2033.' },
     benevolent: { label: 'Kind even if uncontrolled', mean: 0.1, sd: 0.08, min: 0, max: 1, fmt: 'pct',
       help: 'If humans lose control anyway, the chance the AI still cares for humanity. The future is then steered by AI, kindly, instead of by people (Benevolent Takeover).' },
     whistle: { label: 'Whistleblower odds', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
@@ -60,7 +60,7 @@
   }
 
   // Draw one world. `pSafe` is what everyone believes up front; `safe` is the truth.
-  function sampleWorld(A, rng) {
+  function sampleWorld(A, rng, skipBio = false) {
     const draw = (k) => {
       const info = ASSUMPTION_INFO[k];
       return Math.max(info.min, Math.min(info.max, A[k].mean + A[k].sd * gauss(rng)));
@@ -72,7 +72,14 @@
     Object.assign(w, { pBenevolent: A.benevolent.mean, benevolent: rng() < pBen });
     // Bio: the decade risk is unclamped in log space (the tails are the point), capped below 1.
     const bioDecade = Math.min(0.99, Math.pow(10, A.bioDecade.mean + A.bioDecade.sd * gauss(rng)));
+    if (skipBio) return w;
     return Object.assign(w, bioWorld(bioDecade, A.bioDecade));
+  }
+
+  // The same world without its bio draw (bio hazard off): used to measure exposure.
+  function sampleBaseWorld(A, rng) {
+    const w = sampleWorld.call(null, A, rng, true);
+    return Object.assign(w, { bioDecade: 0, bioScale: 0, bioBelief: 0 });
   }
 
   function meanWorld() {
@@ -89,23 +96,28 @@
   // Internally the model works with difficulty δ = 1 / ease (log10 δ = -log10 ease).
   const diffDistOf = (A) => ({ mean: -A.ease.mean, sd: A.ease.sd });
   const lossHazard = (d) => clamp((d - 0.3) / 0.5, 0, 1);
-  const DIFF_Z = Array.from({ length: 41 }, (_, i) => -4 + i * 0.2);
-  const zWeight = (z) => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI) * 0.2;
+  const DZ = 0.05;
+  const DIFF_Z = Array.from({ length: 161 }, (_, i) => -4 + i * DZ);
+  const zWeight = (z) => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI) * DZ;
+  // Standard normal CDF (Abramowitz–Stegun 7.1.26, error < 1.5e-7).
+  function normCdf(x) {
+    const t = 1 / (1 + 0.3275911 * Math.abs(x) / Math.SQRT2);
+    const e = 1 - t * (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429)))) * Math.exp(-x * x / 2);
+    return x >= 0 ? 0.5 * (1 + e) : 0.5 * (1 - e);
+  }
   function difficultyWorld(d, dist) {
-    let hb = 0, ps = 0;
-    for (const z of DIFF_Z) {
-      const dz = Math.pow(10, dist.mean + dist.sd * z);
-      hb += zWeight(z) * lossHazard(dz);
-      ps += zWeight(z) * (dz <= 0.3 ? 1 : 0);
-    }
-    return { hazard: lossHazard(d), safe: d <= 0.3, hazardBelief: hb, pSafe: ps, diffDist: { mean: dist.mean, sd: dist.sd } };
+    let hb = 0;
+    for (const z of DIFF_Z) hb += zWeight(z) * lossHazard(Math.pow(10, dist.mean + dist.sd * z));
+    const pSafe = dist.sd > 0 ? normCdf((Math.log10(0.3) - dist.mean) / dist.sd) : (Math.pow(10, dist.mean) <= 0.3 ? 1 : 0);
+    return { hazard: lossHazard(d), safe: d <= 0.3, hazardBelief: hb, pSafe, diffDist: { mean: dist.mean, sd: dist.sd } };
   }
 
-  // Turn a decade bio risk into a hazard scale. On the reference path (default
-  // policies, 2027–2036) the cumulative hazard is -ln(1 - decade risk), so that
-  // path reproduces the drawn decade risk exactly; other policies scale with
-  // bioShape. `bioBelief` is the expected scale over the unknown, used for the
-  // risk shown to players (the dice use the hidden draw).
+  // Turn a decade bio risk into a hazard scale k = -ln(1 - R) / G_ref, where G_ref is
+  // the bio exposure default-path futures actually go through in 2027–2036 (summed
+  // until each future ends: most end at the superintelligence handoff). So on the
+  // default path a world's realized decade risk is about its drawn R; other policies
+  // scale with bioShape. `bioBelief` is the expected scale over the unknown, used for
+  // the risk shown to players (the dice use the hidden draw).
   function bioWorld(decade, dist) {
     const ref = bioRefExposure();
     let belief = 0;
@@ -116,24 +128,27 @@
     return { bioDecade: decade, bioScale: -Math.log(1 - decade) / ref, bioBelief: belief / ref };
   }
 
-  // Relative bio hazard of a state: open-weights uplift (dominant once open
-  // models pass expert level), a little leakage from closed models, and how
-  // much biodefense (synthesis screening, surveillance, stockpiles) is missing.
+  // Relative bio hazard of a state: open-weights uplift (dominant once open models
+  // pass expert level) times how much biodefense (synthesis screening, surveillance,
+  // stockpiles) is missing. Closed-model and state-program pandemics are treated as
+  // negligible: states are deterred, and closed models keep capabilities away from
+  // rogue actors (see Superintelligence Strategy, nationalsecurity.ai).
   function bioShape(s) {
-    const openHazard = sig((s.openCap - 62) / 6);
-    const closedHazard = sig((maxCap(s) - 75) / 6) * (1 - s.align / 100) * 0.15;
-    return (openHazard + closedHazard) * Math.pow(1 - s.bio / 100, 2);
+    return sig((s.openCap - 62) / 6) * Math.pow(1 - s.bio / 100, 2);
   }
 
-  // Sum of bioShape over the reference decade: default levers, no noise.
+  // Mean bio exposure over 2027–2036 that default-path futures actually go through,
+  // from a fixed-seed sample of worlds with the bio hazard switched off.
   let BIO_REF = null;
   function bioRefExposure() {
     if (BIO_REF !== null) return BIO_REF;
-    const s = initialState({ pSafe: 0, safe: true, hazard: 0, hazardBelief: 0, diffDist: { mean: 0, sd: 0 }, difficulty: 1, speed: 1, whistle: 0, bioScale: 0, bioBelief: 0 });
-    const L = defaultLevers(), still = () => 0.5;
+    const rng = mulberry32(2027), A = defaultAssumptions(), L = defaultLevers(), n = 3000;
     let sum = 0;
-    for (let y = 0; y < 10; y++) { sum += bioShape(s); step(s, L, still, false); }
-    BIO_REF = sum;
+    for (let i = 0; i < n; i++) {
+      const s = initialState(sampleBaseWorld(A, rng));
+      for (let y = 0; y < 10 && !s.outcome; y++) { sum += bioShape(s); step(s, L, rng, true); }
+    }
+    BIO_REF = sum / n;
     return BIO_REF;
   }
 
@@ -184,7 +199,8 @@
   }
 
   // Effective compute from race intensity. AI 2040: 10× less compute makes the
-  // intelligence explosion ~5.5× slower, i.e. speed ∝ compute^0.74. Default race = 1×; race ≈ 0 is a halt.
+  // intelligence explosion ~5.5× slower, i.e. speed ∝ compute^0.74. Race 0.55 = 1× (the default
+  // race 0.7 is about 1.2×); race ≈ 0 is a halt.
   const computeSpeed = (race) => Math.pow(Math.max(0, race - 0.03) / 0.52, 0.74);
 
   // Safety lever = fraction of AI compute and AI labor spent on safety (0–100%).
@@ -206,9 +222,11 @@
 
   // Alignment research is done mostly in the US bloc. If China leads, its lab
   // uses that work only as far as coordination and published research allow.
-  function effAlign(s) {
-    if (s.capCN <= s.capUS) return s.align;
-    return s.align * Math.min(1, 0.55 + 0.45 * (s.coord / 100) + 0.3 * (s.transparency || 0));
+  // The discount phases in smoothly as China moves from even to clearly ahead.
+  function effAlign(s, L) {
+    const share = Math.min(1, 0.55 + 0.45 * (s.coord / 100) + 0.3 * (L ? L.transparency : 0));
+    const chinaLeads = sig((s.capCN - s.capUS) / 3);
+    return s.align * (1 - chinaLeads * (1 - share));
   }
 
   // Annual catastrophe hazards given the current state and policy.
@@ -221,12 +239,12 @@
     const bioTrue = 1 - Math.exp(-s.world.bioScale * shape);
 
     // Loss of control: grows when capability outruns alignment near the top.
-    const gap = mc - effAlign(s);
+    const gap = mc - effAlign(s, L);
     // Scaled by how hard alignment is: zero in worlds where it is easy by
     // default. Shown as the expectation over difficulty; the roll uses the truth.
     // AI 2040: most takeover risk comes from AIs deployed inside labs, out of view.
     const internalF = 0.4 + 0.9 * s.internal / 100;
-    const lossBase = Math.min(0.6, 0.3 * sig((gap - 36) / 6) * sig((mc - 78) / 4) * internalF);
+    const lossBase = 0.3 * sig((gap - 36) / 6) * sig((mc - 78) / 4) * internalF;
     const misalign = s.world.hazardBelief * lossBase;
     const misalignTrue = s.world.hazard * lossBase;
 
@@ -239,19 +257,22 @@
     const war = 0.055 * Math.pow(1 - s.coord / 100, 2) * (0.3 + 0.7 * closeness) * stakes * (1 + 1.5 * L.aggression)
       + 0.07 * L.aggression * (0.4 + 0.6 * behind) * stakes;
 
-    const total = 1 - (1 - bio) * (1 - misalign) * (1 - war);
+    // Hazards are rolled one after another, so they combine as independent risks.
+    // `total` counts only catastrophes: losing control to a kind AI is not one.
+    const misalignCat = misalign * (1 - s.world.pBenevolent);
+    const total = 1 - (1 - bio) * (1 - misalignCat) * (1 - war);
     return { bio, bioTrue, misalign, misalignTrue, war, total };
   }
 
   // Probability that crossing the superintelligence threshold goes well.
   // `truth` uses the hidden world; otherwise the up-front belief.
-  function transitionOdds(s, truth = false) {
+  function transitionOdds(s, truth = false, L = null) {
     // Opaque internal deployment makes the handoff harder to get right.
     // The bar alignment must clear rises with the hidden difficulty; outsiders
     // only know its average (1×), so the shown odds use that.
     // High-bandwidth BCIs let humans check AI reasoning directly, lowering the bar.
     const bar = (d) => 45 + 32 * d + 0.2 * (s.internal - 30) - 10 * (s.bci / 100);
-    const a = effAlign(s);
+    const a = effAlign(s, L);
     if (truth) return s.world.safe ? 1 : sig((a - bar(s.world.difficulty)) / 6);
     let p = 0;
     for (const z of DIFF_Z) {
@@ -282,31 +303,39 @@
     const r = risks(s, L);
     s.survival *= 1 - r.total;
 
+    // Every year draws the same fixed set of dice, each with one job, whether or
+    // not it is used. Rewinding a campaign and choosing differently then keeps
+    // every die of that year (and the next years' draws) the same.
+    const d = Array.from({ length: 16 }, () => rng());
+    const noise = (i) => (d[i] - 0.5) * 2;
+
+    // Hazards are rolled one after another, so they combine as independent risks.
     if (roll) {
-      const u = rng();
-      if (u < r.bioTrue) return finish(s, 'bio', r);
-      const mis = r.misalignTrue;
-      if (u < r.bioTrue + mis) return finish(s, lostControl(s), r);
-      if (u < r.bioTrue + mis + r.war) return finish(s, 'war', r);
+      if (d[0] < r.bioTrue) return finish(s, 'bio', r);
+      if (d[1] < r.misalignTrue) return finish(s, lostControl(s), r);
+      if (d[2] < r.war) return finish(s, 'war', r);
     }
 
     const mc = maxCap(s), capUS0 = s.capUS;
     const w = s.world;
-    const noise = () => (rng() - 0.5) * 2;
 
     // Capability: base pace × compute × hidden progress speed × AI R&D uplift.
     // Published research lets China (and everyone else) close part of the gap.
     const BASE = 7;
     const sx = safetyEffect(L.safety);
     const safetyTax = Math.max(0, 1 - L.safety - 0.08 * L.oversight);
-    let gUS = BASE * computeSpeed(L.race) * w.speed * safetyTax * uplift(s.capUS) + noise();
-    let gCN = BASE * computeSpeed(chinaRace(s, L)) * w.speed * s.cnMult * uplift(s.capCN) + noise()
-      + 0.25 * L.transparency * Math.max(0, s.capUS - s.capCN);
-    gCN *= 1 - 0.35 * L.aggression; // sabotage slows China's labs
-    if (rng() < 0.15) { gUS += 3 + rng() * 5; gCN += 2 + rng() * 4 * s.cnMult; }
+    // Noise and surprise breakthroughs scale with the compute each side actually
+    // spends on capabilities, so a pause (race 0 or all compute on safety) holds.
+    const cUS = computeSpeed(L.race) * safetyTax;
+    const cCN = computeSpeed(chinaRace(s, L)) * s.cnMult * (1 - 0.35 * L.aggression); // sabotage slows China's labs
+    const jUS = Math.min(1.5, cUS), jCN = Math.min(1.5, cCN);
+    let gUS = (BASE * w.speed * uplift(s.capUS) + noise(3)) * cUS;
+    let gCN = (BASE * w.speed * uplift(s.capCN) + noise(4)) * cCN
+      + 0.25 * L.transparency * Math.max(0, s.capUS - s.capCN) * (1 - 0.35 * L.aggression);
+    if (d[5] < 0.15) { gUS += (3 + d[6] * 5) * jUS; gCN += (2 + d[7] * 4) * jCN; }
     // AI 2040 puts the deal's cumulative collapse risk near 48% over ten years
     // (leadership change, a side caught cheating, ...), about 6% a year.
-    if (dealActive(s, L) && rng() < 0.06) { s.coord = clamp(s.coord - 40); s.dealCollapsed = s.year; }
+    if (dealActive(s, L) && d[8] < 0.06) { s.coord = clamp(s.coord - 40); s.dealCollapsed = s.year; }
     if (dealActive(s, L)) {
       gUS = Math.min(gUS, Math.max(0, TOP_EXPERT - s.capUS));
       gCN = Math.min(gCN, Math.max(0, TOP_EXPERT - s.capCN));
@@ -318,20 +347,19 @@
     // safety (so it also speeds up during takeoff), shared international and
     // public research, and (speculatively) BCIs that widen human oversight.
     // Divided by the world's hidden alignment difficulty.
-    s.transparency = L.transparency;
     // Safety research is sped up by the US bloc's own AI.
     const assist = 1 + (uplift(capUS0) - 1) * safetyLabor(L.safety);
     const shared = 1 + 0.35 * (s.coord / 100) + 0.4 * L.transparency;
     const bciBoost = 1 + 0.5 * (s.bci / 100);
-    s.align = clamp(s.align + 0.55 * (1.9 + 10 * sx + 1.5 * L.oversight) * assist * shared * bciBoost / w.difficulty + noise() * 0.5);
-    if (rng() < 0.12) s.align = clamp(s.align + 3 + rng() * 6 * (0.5 + Math.min(1, sx)));
+    s.align = clamp(s.align + 0.55 * (1.9 + 10 * sx + 1.5 * L.oversight) * assist * shared * bciBoost / w.difficulty + noise(9) * 0.5);
+    if (d[10] < 0.12) s.align = clamp(s.align + 3 + d[11] * 6 * (0.5 + Math.min(1, sx)));
 
     // Hidden internal AI: automated R&D runs inside labs; transparency and
     // inspections pull it into view.
     // Augmented overseers (BCI) can follow what thousands of AI copies are doing.
     s.internal = clamp(s.internal + 4 * L.race * Math.sqrt(uplift(mc)) - 9 * L.transparency - 5 * L.oversight - 6 * (s.bci / 100) - 0.5);
 
-    s.coord = clamp(s.coord + 13 * L.diplomacy + 2 * L.oversight + 3 * L.transparency - 6 * L.race - 10 * L.aggression - 0.5 + noise() * 1.5);
+    s.coord = clamp(s.coord + 13 * L.diplomacy + 2 * L.oversight + 3 * L.transparency - 6 * L.race - 10 * L.aggression - 0.5 + noise(12) * 1.5);
 
     // Open-weights frontier tracks the closed frontier with a policy-set lag.
     const openTarget = maxCap(s) * (0.62 + 0.36 * L.openness + 0.06 * L.transparency);
@@ -354,15 +382,15 @@
 
     // Superintelligence threshold.
     if (maxCap(s) >= 100) {
-      s.survival *= transitionOdds(s);
+      s.survival *= transitionOdds(s, false, L);
       if (roll) {
-        if (rng() < transitionOdds(s, true)) return finish(s, rng() < lockinOdds(s, L) ? 'lockin' : 'flourish', r);
+        if (d[13] < transitionOdds(s, true, L)) return finish(s, d[14] < lockinOdds(s, L) ? 'lockin' : 'flourish', r);
         return finish(s, lostControl(s), r);
       }
     }
 
     if (s.year >= END_YEAR) {
-      if (s.trust < 45 && rng() < lockinOdds(s, L)) return finish(s, 'lockin', r);
+      if (s.trust < 45 && d[15] < lockinOdds(s, L)) return finish(s, 'lockin', r);
       if (s.align >= maxCap(s) && s.coord > 55) return finish(s, 'pause', r);
       return finish(s, 'muddle', r);
     }

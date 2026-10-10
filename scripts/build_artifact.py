@@ -12,7 +12,7 @@ from pathlib import Path
 root = Path(__file__).resolve().parent.parent
 out = Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
-for name in ("model.js", "events.js", "landmask.js", "trees.js"):
+for name in ("model.js", "events.js", "landmask.js", "presets.js", "trees.js"):
     shutil.copy(root / name, out / name)
 
 s = (root / "index.html").read_text()

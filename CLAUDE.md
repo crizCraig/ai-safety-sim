@@ -9,8 +9,11 @@ memtrees, and the page links them under "How it was built".
 
 ## Before every push
 
-1. `node test-model.js`. Plan A, Burn the lead and Race to ASI should stay close to
-   AI 2040's p(alignment) medians (72%, 40%, 25%). Explain any drift in the commit message.
+1. `node test-model.js` must exit 0. It checks AI 2040 calibration (Plans A–C within a few
+   points of 72/50/40%; Plan D's known gap stays in 10–30%), timelines, the bio calibration
+   against the risk futures actually face, that a pause holds capability still, and that the
+   optimized presets keep their promises. If a change moves a preset or a calibration number,
+   update the calibration table in index.html and say so in the commit message.
 2. Update `trees.js` with the **latest** tree of the current session. Trees are regenerated as
    a session grows, so the link from earlier in the session is stale. Get it with the memtree
    `list` tool (project `ai-safety-sim`) to find the session's latest tree, then use that

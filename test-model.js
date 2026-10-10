@@ -1,51 +1,96 @@
-// Headless sanity check: node test-model.js
-// Prints outcome mix, milestone years, and p(alignment) for policy presets,
-// alongside AI 2040's own p(alignment) medians where a plan is comparable.
+// Model checks: node test-model.js  (exits 1 if any check fails)
+// Prints each preset's outcome mix, then asserts calibration targets with tolerances.
 require('./model.js');
-const M = globalThis.SimModel;
-const P = (o) => ({ ...M.defaultLevers(), ...o });
-const presets = {
-  'Status quo': [P({}), null],
-  'Race to ASI (D)': [P({ race: 1, safety: 0.025, openness: 0.4, transparency: 0.05, biodef: 0.1, diplomacy: 0.05, oversight: 0 }), 0.25],
-  'Fight China (B)': [P({ race: 0.8, safety: 0.2, openness: 0.1, transparency: 0.05, diplomacy: 0, oversight: 0.15, aggression: 0.7 }), 0.50],
-  'Burn the lead (C)': [P({ race: 0.8, safety: 0.14, transparency: 0.15, diplomacy: 0.1, oversight: 0.3 }), 0.40],
-  'Plan A': [P({ race: 0.35, safety: 0.08, openness: 0.15, transparency: 0.9, biodef: 0.5, diplomacy: 0.85, oversight: 0.7 }), 0.72],
-  'Open everything': [P({ race: 0.6, safety: 0.04, openness: 1, biodef: 0.05, diplomacy: 0.3 }), null],
-  'Open + biodefense': [P({ race: 0.6, safety: 0.05, openness: 1, biodef: 0.8, diplomacy: 0.3, oversight: 0.2 }), null],
-  'Global pause': [P({ race: 0.05, safety: 0.13, openness: 0.2, biodef: 0.5, diplomacy: 1, oversight: 0.7 }), null],
-  'Neuralink bet': [P({ race: 0.6, bci: 1 }), null],
-  'BCI-first': [P({ race: 0.25, safety: 0.1, bci: 1, transparency: 0.5, diplomacy: 0.5, oversight: 0.4 }), null],
-  'Plan A + BCI': [P({ race: 0.35, safety: 0.08, openness: 0.15, transparency: 0.9, biodef: 0.5, diplomacy: 0.85, oversight: 0.7, bci: 1 }), null],
-  'Safety 100%': [P({ safety: 1 }), null],
-  'Safety 30%': [P({ safety: 0.3 }), null],
+require('./presets.js');
+const M = globalThis.SimModel, { PRESETS } = globalThis.SimPresets;
+const A0 = M.defaultAssumptions();
+let failed = 0;
+const check = (name, ok, detail) => {
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ' — ' + detail : ''}`);
+  if (!ok) failed++;
 };
-for (const [name, [L, theirs]] of Object.entries(presets)) {
-  const r = M.summarize(L, M.defaultAssumptions(), 4000, 7);
-  const mix = Object.entries(r.counts).filter(([, v]) => v).map(([k, v]) => `${k} ${(100 * v / r.n).toFixed(0)}`).join(' ');
-  console.log(name.padEnd(18), `AC~${r.acMedian} ASI~${r.asiMedian || '-'}(${(100 * r.asiShare).toFixed(0)}%)`,
-    `p(align)=${(100 * r.pAlignment).toFixed(0)}%` + (theirs ? ` [AI 2040: ${theirs * 100}%]` : ''), '|', mix);
-}
+const near = (x, target, tol) => Math.abs(x - target) <= tol;
+const bad = (r) => (r.counts.bio + r.counts.misalign + r.counts.war + r.counts.benevolent + r.counts.lockin) / r.n;
 
-// Bio calibration: decade risk (2027–2036) across worlds on the default path,
-// against the separate factored Monte Carlo decomposition.
+// --- Outcome mix for every preset (informational) ---
+const summaries = {};
+for (const [name, L] of Object.entries(PRESETS)) {
+  const r = M.summarize(L, A0, 6000, 7);
+  summaries[name] = r;
+  const mix = Object.entries(r.counts).filter(([, v]) => v).map(([k, v]) => `${k} ${(100 * v / r.n).toFixed(1)}`).join(' ');
+  console.log(name.padEnd(26), `AC~${r.acMedian} ASI~${r.asiMedian || '-'} p(align) ${(100 * r.pAlignment).toFixed(0)}% cat ${(100 * r.catastrophe).toFixed(1)}% |`, mix);
+}
+console.log('');
+
+// --- AI 2040 calibration (their median p(alignment) per plan) ---
+const pa = (n) => 100 * summaries[n].pAlignment;
+check('Plan A p(alignment) ≈ 72% (±5)', near(pa('Plan A: Verified slowdown'), 72, 5), pa('Plan A: Verified slowdown').toFixed(1));
+check('Plan B p(alignment) ≈ 50% (±5)', near(pa('Plan B: Fight China'), 50, 5), pa('Plan B: Fight China').toFixed(1));
+check('Plan C p(alignment) ≈ 40% (±6)', near(pa('Plan C: Burn the lead'), 40, 6), pa('Plan C: Burn the lead').toFixed(1));
+// Known gap: the model is more pessimistic than AI 2040 about racing (documented).
+check('Plan D p(alignment) in 10–30%', pa('Plan D: Race to ASI') >= 10 && pa('Plan D: Race to ASI') <= 30, pa('Plan D: Race to ASI').toFixed(1));
+const sq = summaries['Status quo'];
+check('Status quo reaches Automated Coder by 2030 (median)', sq.acMedian === 2030, String(sq.acMedian));
+check('Status quo superintelligence 2031–2032 (median)', sq.asiMedian >= 2031 && sq.asiMedian <= 2032, String(sq.asiMedian));
+
+// --- Bio calibration: risk actually faced on the default path, 2027–2036 ---
+// Each world's realized decade risk = 1 - exp(-k * exposure until the future ends).
 {
-  const rng = M.mulberry32(11), A = M.defaultAssumptions(), L = M.defaultLevers(), n = 20000, risks = [];
+  const rng = M.mulberry32(11), L = M.defaultLevers(), n = 20000, risks = [];
   for (let i = 0; i < n; i++) {
-    const s = M.initialState(M.sampleWorld(A, rng));
+    const s = M.initialState(M.sampleWorld(A0, rng));
     let h = 0;
-    for (let y = 0; y < 10; y++) { h += s.world.bioScale * M.bioShape(s); M.step(s, L, rng, false); }
-    risks.push(1 - Math.exp(-h));
+    for (let y = 0; y < 10 && !s.outcome; y++) { h += M.bioShape(s); M.step(s, L, rng, true); }
+    risks.push(1 - Math.exp(-s.world.bioScale * h));
   }
   risks.sort((a, b) => a - b);
-  const q = (p) => risks[Math.floor(p * (n - 1))].toExponential(1);
-  const over = (x) => (risks.filter((r) => r > x).length / n).toFixed(3);
-  console.log(`\nBio decade risk, default path: median ${q(0.5)} [target 1.2e-4], 95% ${q(0.025)}..${q(0.975)} [5e-7..3e-2],`,
-    `P(>1%) ${over(0.01)} [0.055], P(>10%) ${over(0.1)} [0.007]`);
+  const q = (p) => risks[Math.floor(p * (n - 1))];
+  const over = (x) => risks.filter((r) => r > x).length / n;
+  check('Bio realized decade risk median ≈ 1.2e-4 (within ×1.6)', q(0.5) > 1.2e-4 / 1.6 && q(0.5) < 1.2e-4 * 1.6, q(0.5).toExponential(2));
+  check('Bio P(decade risk > 1%) ≈ 0.055 (0.035–0.08)', over(0.01) >= 0.035 && over(0.01) <= 0.08, over(0.01).toFixed(3));
+  check('Bio P(decade risk > 10%) ≈ 0.007 (0.003–0.013)', over(0.1) >= 0.003 && over(0.1) <= 0.013, over(0.1).toFixed(4));
 }
 
-// Safest mix should stay the lowest-risk preset: catastrophe + benevolent takeover + lock-in.
-{
-  const L = { ...M.defaultLevers(), race: 0, safety: 1, openness: 0, transparency: 1, biodef: 1, diplomacy: 1, bci: 1, oversight: 1, aggression: 0 };
-  const r = M.summarize(L, M.defaultAssumptions(), 20000, 99), c = r.counts;
-  console.log(`Safest mix: bad outcomes ${((c.bio + c.misalign + c.war + c.benevolent + c.lockin) / r.n * 100).toFixed(2)}% [~1.2%]`);
+// --- A pause holds capability still ---
+for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safety 100%', { ...M.defaultLevers(), safety: 1 }]]) {
+  const rng = M.mulberry32(5); let gain = 0; const n = 2000;
+  for (let i = 0; i < n; i++) {
+    const s = M.initialState(M.sampleWorld(A0, rng)), c0 = s.capUS;
+    for (let y = 0; y < 13; y++) M.step(s, L, rng, false);
+    gain += s.capUS - c0;
+  }
+  check(`US capability gain 2027–2040 at ${label} < 2 points`, gain / n < 2, (gain / n).toFixed(2));
 }
+
+// --- Effective alignment has no jump when China edges ahead ---
+{
+  const mk = (cn) => Object.assign(M.initialState(), { capUS: 100, capCN: cn, align: 80, coord: 22 });
+  const L = M.defaultLevers();
+  const a = M.transitionOdds(mk(100), true, L), b = M.transitionOdds(mk(100.01), true, L);
+  check('Handoff odds continuous as China passes the US (Δ < 0.02)', Math.abs(a - b) < 0.02, `${a.toFixed(3)} vs ${b.toFixed(3)}`);
+}
+
+// --- Shown belief that alignment is easy matches the sampled share ---
+{
+  const rng = M.mulberry32(9); let easy = 0; const n = 50000;
+  for (let i = 0; i < n; i++) if (M.sampleWorld(A0, rng).safe) easy++;
+  const shown = M.meanWorld().pSafe;
+  check('pSafe belief matches sampled share (±0.005)', near(shown, easy / n, 0.005), `${shown.toFixed(4)} vs ${(easy / n).toFixed(4)}`);
+}
+
+// --- Optimized presets keep their promises ---
+{
+  const r = M.summarize(PRESETS['Safest mix'], A0, 20000, 99);
+  check('Safest mix is the lowest-risk preset', Object.entries(summaries).every(([k, v]) => k === 'Safest mix' || bad(v) >= bad(summaries['Safest mix']) - 0.002), (100 * bad(r)).toFixed(2) + '% bad');
+  const u = M.summarize(PRESETS['Under 2% risk'], A0, 20000, 99);
+  check('Under 2% risk stays under 2% catastrophe', u.catastrophe < 0.02, (100 * u.catastrophe).toFixed(2) + '%');
+}
+
+// --- The model reference uses the live G_ref, not a stale constant ---
+{
+  const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+  check('Model reference renders G_ref from the code', html.includes('{{GREF}}'));
+}
+
+console.log(failed ? `\n${failed} check(s) failed` : '\nAll checks passed');
+process.exit(failed ? 1 : 0);

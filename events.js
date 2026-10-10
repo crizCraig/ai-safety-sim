@@ -159,7 +159,7 @@
       ],
     },
     {
-      id: 'taiwan', when: (s) => s.coord < 40 && Math.abs(s.capUS - s.capCN) < 12 && SimModel.maxCap(s) > 60, tag: 'Crisis',
+      id: 'taiwan', when: (s) => s.coord < 45 && Math.abs(s.capUS - s.capCN) < 20 && SimModel.maxCap(s) > 50, tag: 'Crisis',
       title: 'Crisis in the Strait',
       text: 'Chinese naval exercises surround Taiwan, home of the world\'s most advanced chip fabs. Analysts warn that whoever controls the fabs may control the AI endgame.',
       choices: [
@@ -212,7 +212,7 @@
       id: 'threshold', when: (s) => SimModel.maxCap(s) > 80, tag: 'Endgame',
       title: 'The Threshold',
       text: 'The next training run will likely produce systems smarter than any human at everything. Your alignment team reports their confidence. The other bloc is close behind.',
-      dynamic: (s) => `Alignment maturity is ${Math.round(s.align)} vs. capability ${Math.round(SimModel.maxCap(s))}. Estimated odds the transition goes well: ${Math.round(SimModel.transitionOdds(s) * 100)}%.`,
+      dynamic: (s, L) => `Alignment maturity is ${Math.round(s.align)} vs. capability ${Math.round(SimModel.maxCap(s))}. Estimated odds the transition goes well: ${Math.round(SimModel.transitionOdds(s, false, L) * 100)}%.`,
       choices: [
         { label: 'Launch now', note: 'If we don\'t, they will.', lev: { race: +0.2 }, st: { capUS: +8 } },
         { label: 'One more year of alignment', note: 'Throw everything at control & interpretability.', levMin: { safety: 0.6 }, lev: { race: -0.25 }, st: { align: +8, capUS: -2 } },
