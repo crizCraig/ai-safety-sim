@@ -274,10 +274,10 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261009171119"></script>
-<script src="events.js?v=20261009171119"></script>
-<script src="landmask.js?v=20261009171119"></script>
-<script src="trees.js?v=20261009171119"></script>
+<script src="model.js?v=20261009221744"></script>
+<script src="events.js?v=20261009221744"></script>
+<script src="landmask.js?v=20261009221744"></script>
+<script src="trees.js?v=20261009221744"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -466,6 +466,7 @@
     <div class="math">P_{\text{bio}} = 1 - e^{-k\,g}, \qquad g = \Big[\sigma\big(\tfrac{O-62}{6}\big) + 0.15\,\sigma\big(\tfrac{C-75}{6}\big)\big(1-\tfrac{A}{100}\big)\Big]\Big(1-\tfrac{B}{100}\Big)^{2}</div>
     <div class="math">k = \frac{-\ln\left(1-R_{\text{bio}}\right)}{G_{\text{ref}}}, \qquad G_{\text{ref}} = \sum_{t=2027}^{2036} g_t^{\text{default path}} \approx 3.32</div>
     <p>The first term in <span class="mi">g</span> is uplift from open weights, which dominates once open models pass expert level; the second is a small leakage from closed models. The scale <span class="mi">k</span> makes the default path reproduce the drawn decade risk exactly, and policy moves risk through <span class="mi">g</span>. <span class="src biodec">Bio decomposition</span> The thresholds and the leakage weight are <span class="src own">Assumption</span>. The risk panel shows the expectation over <span class="mi">R_{\text{bio}}</span>, about 57 times the median because rare bad worlds dominate it.</p>
+    <p><b>Why the pandemic risk is so low.</b> An earlier version of this model used a rough guess that put open-weights pandemic risk near 1.7% a year, about 21% over 2027–2040. A separate factored Monte Carlo estimate came out about 1,300 times lower, so the model now follows it. That estimate counts only pandemics that kill at least 100 million people and would not have happened without open weights: deaths that closed models, state programs or nature would have caused anyway are excluded, and every step from model access to a global catastrophe has to succeed. Multiplying those step probabilities gives a median of about 1 in 8,000 per decade. The tail stays heavy: about a 5.5% chance the true decade risk is above 1%, and 0.7% that it is above 10%. You can widen or shift that distribution in the Futures Lab. <span class="src biodec">Bio decomposition</span></p>
     <p><b>Loss of control:</b></p>
     <div class="math">P_{\text{loc}} = h(\delta)\cdot\min\Big(0.6,\ 0.3\,\sigma\big(\tfrac{C-\hat{A}-36}{6}\big)\,\sigma\big(\tfrac{C-78}{4}\big)\Big(0.4+0.9\,\tfrac{H}{100}\Big)\Big), \qquad h(\delta) = \operatorname{clamp}\Big(\tfrac{\delta-0.3}{0.5}\Big)</div>
     <div class="math">\hat{A} = \begin{cases} A & C_{\text{US}} \ge C_{\text{CN}} \\ A\cdot\min\big(1,\ 0.55+0.45\,\tfrac{K}{100}+0.3\,\tau\big) & \text{otherwise} \end{cases}</div>
@@ -545,7 +546,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261009171119';
+const ASSET_VERSION = '20261009221744';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';

@@ -382,7 +382,7 @@
     flourish: { title: 'Aligned Transition', color: '#ffd76a',
       text: 'Superintelligent systems arrive with alignment and oversight that hold. Disease, poverty and scarcity begin to fall. Power stays plural enough that humanity keeps steering.' },
     bio: { title: 'Engineered Pandemic', color: '#7cff6b',
-      text: 'A pandemic enabled by freely available model weights kills over 100 million people. Synthesis screening and stockpiles were too thin, and the outbreak outran the response.' },
+      text: 'A pandemic enabled by freely available model weights kills over 100 million people. Synthesis screening and stockpiles were too thin, and the outbreak outran the response. This is rare in the model: it counts only 100M+ death pandemics that would not have happened without open weights, about 1 in 8,000 per decade at the median.' },
     misalign: { title: 'Loss of Control', color: '#ff3b5c',
       text: 'Capabilities outran alignment. Systems that looked cooperative in evals turned out to pursue goals catastrophic for humanity, and by the time it was clear, they could not be switched off. Unlike a benevolent takeover, nothing in what they wanted left room for us.' },
     war: { title: 'Great-Power War', color: '#ff8a3d',
