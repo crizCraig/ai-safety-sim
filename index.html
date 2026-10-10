@@ -274,10 +274,10 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261009170716"></script>
-<script src="events.js?v=20261009170716"></script>
-<script src="landmask.js?v=20261009170716"></script>
-<script src="trees.js?v=20261009170716"></script>
+<script src="model.js?v=20261009171119"></script>
+<script src="events.js?v=20261009171119"></script>
+<script src="landmask.js?v=20261009171119"></script>
+<script src="trees.js?v=20261009171119"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -545,7 +545,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261009170716';
+const ASSET_VERSION = '20261009171119';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1350,6 +1350,7 @@ const P = (o) => ({ ...M.defaultLevers(), ...o });
 const AI2040_PLANS = 'https://ai-2040.com/supplements/comparing-possible-plans';
 // Short descriptions for the non-AI-2040 presets.
 const PRESET_INFO = {
+  'Under 2% risk': 'The smallest change from the status quo that keeps catastrophe under 2%, found by searching all levers. Open weights, biodefense and neural interfaces barely move. What cannot be avoided in this model: slowing the race to near a pause, putting most AI compute on safety, publishing research, strong oversight, and full cooperation with China.',
   'Safest mix': 'The safest settings a search over every lever could find: stop racing, put all AI compute on safety, keep weights closed but publish all research, and max out biodefense, diplomacy, neural interfaces and oversight. About 1% of futures still end badly, mostly in war, because China only partly slows down. Most futures reach 2040 on the careful path, with superintelligence still ahead.',
   'Status quo': 'Today\'s trajectory: an intense race, 5% of AI compute on safety, partly open weights and little diplomacy.',
   'Open everything': 'Release frontier weights and most research. Power spreads out, but capable models reach anyone, including would-be bioterrorists.',
@@ -1370,6 +1371,9 @@ const PRESETS = {
   // Found by searching all levers to minimize catastrophe, benevolent takeover and lock-in
   // (about 1.2% of futures, averaged over 60,000 held-out runs).
   'Safest mix': P({ race: 0, safety: 1, openness: 0, transparency: 1, biodef: 1, diplomacy: 1, bci: 1, oversight: 1, aggression: 0 }),
+  // Smallest weighted change from the status quo that keeps catastrophe under 2%
+  // (1.5–1.8% across 60,000 held-out futures). Harder-to-move levers weigh more.
+  'Under 2% risk': P({ race: 0.1, safety: 0.8, transparency: 0.8, biodef: 0.25, diplomacy: 1, oversight: 0.8, aggression: 0 }),
   'Status quo': P({}),
   // AI 2040's five plans as fixed levers (their plans change over time; these are approximations).
   'Plan A: Verified slowdown': P({ race: 0.35, safety: 0.08, openness: 0.15, transparency: 0.9, biodef: 0.5, diplomacy: 0.85, oversight: 0.7 }),
@@ -1388,7 +1392,7 @@ const labL = M.defaultLevers();
 function buildLabUI() {
   const btn = (n) => `<button data-p="${n}"${PLAN_INFO[n] ? ' class="plan"' : ''}>${n}</button>`;
   const names = Object.keys(PRESETS), plans = names.filter((n) => PLAN_INFO[n]);
-  $('presets').innerHTML = `${btn('Safest mix')}<div class="pgroup">Other scenarios</div>${names.filter((n) => !PLAN_INFO[n] && n !== 'Safest mix').map(btn).join('')}
+  $('presets').innerHTML = `${btn('Safest mix')}${btn('Under 2% risk')}<div class="pgroup">Other scenarios</div>${names.filter((n) => !PLAN_INFO[n] && n !== 'Safest mix' && n !== 'Under 2% risk').map(btn).join('')}
     <div class="pgroup">Plans from <a href="${AI2040_PLANS}" target="_blank" rel="noopener">AI 2040 ↗</a></div>${plans.map(btn).join('')}
     <div class="plannote" id="planNote" hidden></div>`;
   $('presets').onclick = (e) => {
@@ -1475,7 +1479,7 @@ function runLab() {
   const cat = (mc.counts.bio + mc.counts.misalign + mc.counts.war) / mc.n;
   $('catNum').textContent = pct(cat, cat < 0.1 ? 1 : 0);
   $('catNum').style.color = cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)';
-  $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, 0)}</b> of futures · outcome reached after ${mc.meanYears.toFixed(1)} years on average · click an outcome to isolate it`;
+  $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, cat < 0.1 ? 1 : 0)}</b> of futures · outcome reached after ${mc.meanYears.toFixed(1)} years on average · click an outcome to isolate it`;
   buildFan(mc.paths);
   applyFocus();
 }
