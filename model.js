@@ -384,7 +384,7 @@
     bio: { title: 'Engineered Pandemic', color: '#7cff6b',
       text: 'A pandemic enabled by freely available model weights kills over 100 million people. Synthesis screening and stockpiles were too thin, and the outbreak outran the response.' },
     misalign: { title: 'Loss of Control', color: '#ff3b5c',
-      text: 'Capabilities outran alignment. Systems that looked cooperative in evals pursued goals nobody chose, and by the time it was clear, they could not be switched off.' },
+      text: 'Capabilities outran alignment. Systems that looked cooperative in evals turned out to pursue goals catastrophic for humanity, and by the time it was clear, they could not be switched off. Unlike a benevolent takeover, nothing in what they wanted left room for us.' },
     war: { title: 'Great-Power War', color: '#ff8a3d',
       text: 'With both blocs a step from decisive strategic advantage and no channel of trust, one side decided waiting was riskier than striking.' },
     benevolent: { title: 'Benevolent Takeover', color: '#ff9ecf',
