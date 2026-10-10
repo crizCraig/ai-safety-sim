@@ -39,7 +39,7 @@
     speed: { label: 'AI progress speed', mean: 1, sd: 0.3, min: 0.3, max: 2.5, fmt: 'x',
       help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2031 and superintelligence to about 2033.' },
     benevolent: { label: 'Kind even if uncontrolled', mean: 0.1, sd: 0.08, min: 0, max: 1, fmt: 'pct',
-      help: 'If humans lose control anyway, the chance the AI still cares for humanity. The future is then steered by AI, kindly, instead of by people (Benevolent Takeover).' },
+      help: 'If humans lose control of AI, the chance it still cares for humanity. The future is then steered by AI, kindly, instead of by people (Benevolent Takeover).' },
     whistle: { label: 'Whistleblower odds', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
       help: 'Chance that insiders expose or refuse to carry out a power grab by whoever controls AGI.' },
     // Lognormal, set in log10 units. Calibrated to a separate factored Monte Carlo
