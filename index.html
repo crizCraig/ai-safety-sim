@@ -105,6 +105,10 @@
   .roll .zone { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,77,106,0.5); }
   .roll .needle { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 8px #fff; }
   .roll .verdict { font-size: 15px; font-weight: 600; margin-top: 10px; min-height: 20px; }
+  /* After a choice the situation text hides and the outcome leads the card, above the dice. */
+  #card.resolved #cardText, #card.resolved #cardDyn { display: none; }
+  .roll.on { display: flex; flex-direction: column; }
+  .roll.on .verdict { order: -1; margin: 0 0 10px; }
   .roll .lane.skipped { opacity: 0.35; }
   .roll .youchose { font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 4px; }
   .roll .changes { margin-top: 8px; }
@@ -290,11 +294,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261010211636"></script>
-<script src="events.js?v=20261010211636"></script>
-<script src="landmask.js?v=20261010211636"></script>
-<script src="presets.js?v=20261010211636"></script>
-<script src="trees.js?v=20261010211636"></script>
+<script src="model.js?v=20261010213231"></script>
+<script src="events.js?v=20261010213231"></script>
+<script src="landmask.js?v=20261010213231"></script>
+<script src="presets.js?v=20261010213231"></script>
+<script src="trees.js?v=20261010213231"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -578,7 +582,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261010211636';
+const ASSET_VERSION = '20261010213231';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1171,6 +1175,7 @@ function showCard(c) {
   $('cardText').textContent = c.text;
   $('cardDyn').textContent = c.dynamic ? c.dynamic(game.s, game.L) : '';
   $('roll').classList.remove('on');
+  $('card').classList.remove('resolved');
   const wrap = $('choices'); wrap.innerHTML = ''; wrap.style.display = '';
   c.choices.forEach((ch) => {
     const b = document.createElement('button');
@@ -1240,6 +1245,7 @@ function rollYear() {
   const r = M.risks(s, L);
   $('choices').style.display = 'none';
   const roll = $('roll'); roll.classList.add('on');
+  $('card').classList.add('resolved');
   const lanes = [['Pandemic', r.bio], ['Loss of control', r.misalign], ['Great-power war', r.war]];
   // Zones are magnified (up to 4×) so small risks are visible, but never past 80% of the
   // track, so a missed roll always has room to land outside its zone.
