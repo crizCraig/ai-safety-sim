@@ -160,8 +160,6 @@
   #copyText { width: 100%; height: 40vh; background: rgba(255,255,255,0.04); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font-family: var(--mono); font-size: 11px; padding: 10px; }
   .treelist { padding-left: 18px; }
   .modal .box.doc { width: min(880px, 100%); }
-  /* The header stays usable over the intro (About, tabs, How to play). */
-  body.intro #top { z-index: 11; }
   .modal-x { position: sticky; top: 0; float: right; margin: -10px -12px 0 8px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-solid); color: var(--text); font-size: 22px; line-height: 1; cursor: pointer; z-index: 2; }
   #tour { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
   #tour[hidden] { display: none; }
@@ -198,14 +196,6 @@
   /* ---------- modals ---------- */
   .modal { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(2,4,10,0.6); backdrop-filter: blur(3px); z-index: 10; padding: 16px; }
   .modal.hidden { display: none; }
-  /* Intro: the globe stays clear and bright; the text sits to one side. */
-  #intro { background: linear-gradient(90deg, rgba(2,4,10,0.85) 0%, rgba(2,4,10,0.5) 45%, transparent 70%); backdrop-filter: none; place-items: center start; padding-left: max(16px, 6vw); }
-  #intro .box { width: min(520px, 100%); background: rgba(11,18,34,0.72); backdrop-filter: blur(8px); }
-  body.intro .panel, body.intro #card, body.intro #timeline, body.intro #statsToggle, body.intro .glabel { display: none !important; }
-  @media (max-width: 900px) {
-    #intro { place-items: end center; padding: 16px; background: linear-gradient(0deg, rgba(2,4,10,0.85) 0%, transparent 70%); }
-    #intro .box { max-height: 62vh; }
-  }
   .modal .box { width: min(640px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 18px; padding: 26px 28px; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
   .modal h1 { margin: 0 0 6px; font-size: 34px; letter-spacing: .04em; }
   .modal h2 { margin: 0 0 10px; }
@@ -295,11 +285,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261011162753"></script>
-<script src="events.js?v=20261011162753"></script>
-<script src="landmask.js?v=20261011162753"></script>
-<script src="presets.js?v=20261011162753"></script>
-<script src="trees.js?v=20261011162753"></script>
+<script src="model.js?v=20261011163709"></script>
+<script src="events.js?v=20261011163709"></script>
+<script src="landmask.js?v=20261011163709"></script>
+<script src="presets.js?v=20261011163709"></script>
+<script src="trees.js?v=20261011163709"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -402,21 +392,6 @@
 <div id="fanTip" class="lab-only" role="status" hidden></div>
 
 <!-- Intro -->
-<div class="modal hidden" id="intro">
-  <div class="box">
-    <div class="kicker">2027 · The decade that decides</div>
-    <h1>GAME OF AGI</h1>
-    <p>You lead a new council that sets AI policy for the US and its allies. Over the next 13 years, AI will likely become smarter than any human. Each year you make one decision: how hard to race China, whether to give powerful AI away for free, how to prepare for pandemics, whether to bet on brain implants, and how much to invest in <b>alignment</b>, the work of making AI reliably do what we intend.</p>
-    <p>Each year, dice are rolled against three catastrophes: a <span style="color:#7cff6b">pandemic</span> made with AI's help, <span style="color:#ff3b5c">losing control of AI</span>, and a <span style="color:#ff8a3d">war between the US and China</span>. You win by reaching superintelligent AI with alignment ready, or by reaching 2040 still on a careful path.</p>
-    <p>Some things nobody knows yet, like how hard alignment really is. Each game decides them in secret, and you find out at the end.</p>
-    <p class="disclaimer">This is a toy model built to make trade-offs tangible, not a forecast. Every probability comes from transparent, adjustable assumptions (see "How the model works"). Reasonable experts disagree about nearly all of them.</p>
-    <div class="btnrow">
-      <button class="btn" id="startBtn">Begin in 2027</button>
-      <button class="btn ghost" id="labBtn">Explore the Futures Lab</button>
-    </div>
-  </div>
-</div>
-
 <!-- Ending -->
 <div class="modal hidden" id="ending">
   <div class="box">
@@ -593,7 +568,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261011162753';
+const ASSET_VERSION = '20261011163709';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -992,8 +967,7 @@ function animate() {
 
 function updateWorld(dt, t) {
   world.rotation.y += dt * 0.02;
-  const introX = document.body.classList.contains('intro') && innerWidth > 900 ? 5 : 0;
-  world.position.x += (introX - world.position.x) * Math.min(1, dt * 2);
+  world.position.x += (0 - world.position.x) * Math.min(1, dt * 2);
   const out = vis.outcome, k = vis.outT;
 
   // Towers scale with capability
@@ -1672,17 +1646,14 @@ function setMode(m) {
     scene.fog.density = 0.012; bloom.strength = 0.95;
   }
 }
-function closeIntro() { $('intro').classList.add('hidden'); document.body.classList.remove('intro'); }
-// The first visit to the campaign shows its intro over a clear, prominent globe.
-function openIntro() { document.body.classList.add('intro'); $('intro').classList.remove('hidden'); }
+// The Campaign starts playing right away; the first-time tutorial explains the screen.
+function startCampaign() { setMode('campaign'); newGame(); maybeTour('campaign'); }
 document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
   const m = b.dataset.mode;
-  if (m === 'campaign' && !game) { setMode('campaign'); openIntro(); return; }
-  closeIntro(); setMode(m);
+  if (m === 'campaign' && !game) { startCampaign(); return; }
+  setMode(m);
   if (m === 'lab') maybeTour('lab');
 }));
-$('startBtn').onclick = () => { closeIntro(); setMode('campaign'); newGame(); maybeTour('campaign'); };
-$('labBtn').onclick = () => { closeIntro(); setMode('lab'); maybeTour('lab'); };
 $('againBtn').onclick = () => { setMode('campaign'); newGame(); };
 $('toLabBtn').onclick = () => { $('ending').classList.add('hidden'); Object.assign(labL, game.L); syncSliders(); setMode('lab'); };
 $('viewBtn').onclick = () => $('ending').classList.add('hidden');
@@ -1709,7 +1680,7 @@ $('statsToggle').onclick = () => {
   if (open) document.body.scrollTop = 0;
 };
 document.querySelectorAll('[data-close]').forEach((b) => b.onclick = () => $(b.dataset.close).classList.add('hidden'));
-document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m && m.id !== 'intro') m.classList.add('hidden'); }));
+document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m) m.classList.add('hidden'); }));
 addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { $('modelInfo').classList.add('hidden'); if (tour) endTour(); }
   if (tour) return;
@@ -1786,7 +1757,7 @@ function maybeTour(m) {
   if (!seen) setTimeout(() => { if (mode === m && !tour) startTour(m); }, 700);
 }
 $('tourBtn').onclick = () => {
-  if (mode === 'campaign' && !game) { closeIntro(); setMode('campaign'); newGame(); setTimeout(() => startTour('campaign'), 600); return; }
+  if (mode === 'campaign' && !game) { setMode('campaign'); newGame(); setTimeout(() => startTour('campaign'), 600); return; }
   startTour(mode);
 };
 
@@ -1794,7 +1765,7 @@ selectPreset('Status quo');
 {
   let saved = null;
   try { saved = localStorage.getItem('goagi-mode'); } catch (e) {}
-  if (saved === 'lab') { setMode('lab'); maybeTour('lab'); } else { setMode('campaign'); openIntro(); }
+  if (saved === 'lab') { setMode('lab'); maybeTour('lab'); } else startCampaign();
 }
 animate();
 </script>
