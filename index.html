@@ -50,7 +50,7 @@
   #timeline .yr.now::before { background: var(--accent); box-shadow: 0 0 10px var(--accent); transform: scale(1.4); }
   #timeline .yr.end::before { background: var(--endc, var(--bad)); box-shadow: 0 0 12px var(--endc, var(--bad)); transform: scale(1.6); }
   #ghLink { margin-left: auto; }
-  #modelBtn .short { display: none; }
+  #modelBtn .short, #tourBtn .short { display: none; }
   body.mode-lab #statsToggle { display: none !important; }
   a.iconbtn { text-decoration: none; }
   .iconbtn { background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 6px 11px; font-size: 13px; color: var(--muted); backdrop-filter: blur(8px); }
@@ -156,6 +156,19 @@
   #copyText { width: 100%; height: 40vh; background: rgba(255,255,255,0.04); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font-family: var(--mono); font-size: 11px; padding: 10px; }
   .treelist { padding-left: 18px; }
   .modal .box.doc { width: min(880px, 100%); }
+  /* The header stays usable over the intro (About, tabs, How to play). */
+  body.intro #top { z-index: 11; }
+  .modal-x { position: sticky; top: 0; float: right; margin: -10px -12px 0 8px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-solid); color: var(--text); font-size: 22px; line-height: 1; cursor: pointer; z-index: 2; }
+  #tour { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+  #tour[hidden] { display: none; }
+  .tour-ring { position: fixed; border: 2px solid var(--accent); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(2,4,10,0.6); transition: all .25s ease; }
+  .tour-box { position: fixed; pointer-events: auto; width: min(330px, calc(100vw - 32px)); background: var(--panel-solid); border: 1px solid var(--accent); border-radius: 14px; padding: 14px 16px; box-shadow: 0 12px 40px rgba(0,0,0,.5); transition: top .25s ease, left .25s ease; }
+  .tour-step { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; }
+  .tour-box h4 { margin: 4px 0 6px; font-size: 16px; }
+  .tour-box p { margin: 0 0 12px; font-size: 13.5px; line-height: 1.5; color: var(--text); }
+  .tour-btns { display: flex; gap: 8px; justify-content: flex-end; }
+  .tour-btns .btn { padding: 7px 14px; font-size: 13px; }
+  .modal-x:hover { border-color: var(--accent); color: var(--accent); }
   .doc h3 { font-size: 15px; margin: 26px 0 8px; color: var(--text); letter-spacing: 0.01em; }
   .doc p, .doc li { font-size: 14px; line-height: 1.65; }
   .doc ol { padding-left: 20px; }
@@ -234,7 +247,9 @@
     .tabs button { padding: 6px 10px; }
     #modelBtn { padding: 6px 10px; }
     #modelBtn .long, #builtLink, #ghLink { display: none !important; }
-    #modelBtn .short { display: inline; }
+    #modelBtn .short, #tourBtn .short { display: inline; }
+    #tourBtn .long { display: none; }
+    #tourBtn { padding: 6px 10px; }
     #statsToggle { order: 5; padding: 4px 10px; }
     #timeline { order: 6; flex: 1; min-width: 0; }
     #timeline .yr { font-size: 0; }
@@ -275,11 +290,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261010162602"></script>
-<script src="events.js?v=20261010162602"></script>
-<script src="landmask.js?v=20261010162602"></script>
-<script src="presets.js?v=20261010162602"></script>
-<script src="trees.js?v=20261010162602"></script>
+<script src="model.js?v=20261010211636"></script>
+<script src="events.js?v=20261010211636"></script>
+<script src="landmask.js?v=20261010211636"></script>
+<script src="presets.js?v=20261010211636"></script>
+<script src="trees.js?v=20261010211636"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -287,12 +302,13 @@
 <div id="top">
   <div class="brand">GAME OF AGI<small>an AI safety simulator</small></div>
   <div class="tabs">
-    <button data-mode="lab" class="on">Futures Lab</button>
-    <button data-mode="campaign">Campaign</button>
+    <button data-mode="campaign" class="on">Campaign</button>
+    <button data-mode="lab">Futures Lab</button>
   </div>
   <div id="timeline" class="campaign-only"></div>
   <button class="iconbtn" id="statsToggle" style="display:none">Stats</button>
   <a class="iconbtn" id="ghLink" href="https://github.com/crizCraig/ai-safety-sim" target="_blank" rel="noopener" title="Source code on GitHub">GitHub ↗</a>
+  <button class="iconbtn" id="tourBtn" title="Show the tutorial"><span class="long">How to play</span><span class="short">?</span></button>
   <button class="iconbtn" id="modelBtn"><span class="long">How the model works</span><span class="short">About</span></button>
   <a class="iconbtn" id="builtLink" href="#" target="_blank" rel="noopener" hidden>How it was built ↗</a>
 </div>
@@ -356,6 +372,17 @@
 <div id="axisHelp" class="lab-only">Drag to orbit · scroll to zoom · <span style="color:#fff">x</span> = year · <span style="color:#fff">y</span> = capability · <span style="color:#fff">z</span> = alignment</div>
 
 <div id="labels"></div>
+
+<!-- Tutorial: a ring around one part of the page and a note explaining it -->
+<div id="tour" hidden>
+  <div class="tour-ring"></div>
+  <div class="tour-box" role="dialog" aria-live="polite">
+    <div class="tour-step"></div>
+    <h4></h4>
+    <p></p>
+    <div class="tour-btns"><button class="btn ghost" id="tourSkip">Skip</button><button class="btn" id="tourNext">Next</button></div>
+  </div>
+</div>
 <div id="toast" role="status" hidden></div>
 <div class="modal hidden" id="copyFallback">
   <div class="box">
@@ -374,13 +401,13 @@
   <div class="box">
     <div class="kicker">2027 · The decade that decides</div>
     <h1>GAME OF AGI</h1>
-    <p>You chair a newly formed council that steers frontier AI policy for the US-aligned bloc. Over the next 13 years, systems will likely become smarter than any human. Every year you face a decision about <b>racing China</b>, <b>releasing open weights</b>, <b>biodefense</b>, <b>neural interfaces</b> and <b>alignment</b>.</p>
-    <p>Each year the dice are rolled against three catastrophes: an <span style="color:#7cff6b">engineered pandemic</span>, <span style="color:#ff3b5c">loss of control</span>, and <span style="color:#ff8a3d">great-power war</span>. Reach the superintelligence threshold with alignment ready, or reach 2040 on a careful path.</p>
-    <p>Some things nobody knows yet: how easy alignment really is (perhaps easy enough that fixing problems as they come up leads to long-term alignment), and whether insiders would blow the whistle on a power grab. Each game draws them in secret. You find out at the end.</p>
+    <p>You lead a new council that sets AI policy for the US and its allies. Over the next 13 years, AI will likely become smarter than any human. Each year you make one decision: how hard to race China, whether to give powerful AI away for free, how to prepare for pandemics, whether to bet on brain implants, and how much to invest in <b>alignment</b>, the work of making AI reliably do what we intend.</p>
+    <p>Each year, dice are rolled against three catastrophes: a <span style="color:#7cff6b">pandemic</span> made with AI's help, <span style="color:#ff3b5c">losing control of AI</span>, and a <span style="color:#ff8a3d">war between the US and China</span>. You win by reaching superintelligent AI with alignment ready, or by reaching 2040 still on a careful path.</p>
+    <p>Some things nobody knows yet, like how hard alignment really is. Each game decides them in secret, and you find out at the end.</p>
     <p class="disclaimer">This is a toy model built to make trade-offs tangible, not a forecast. Every probability comes from transparent, adjustable assumptions (see "How the model works"). Reasonable experts disagree about nearly all of them.</p>
     <div class="btnrow">
       <button class="btn" id="startBtn">Begin in 2027</button>
-      <button class="btn ghost" id="labBtn">Back to the Futures Lab</button>
+      <button class="btn ghost" id="labBtn">Explore the Futures Lab</button>
     </div>
   </div>
 </div>
@@ -406,8 +433,16 @@
 <!-- Model explainer -->
 <div class="modal hidden" id="modelInfo">
   <div class="box doc">
-    <div class="kicker">Under the hood</div>
-    <h2>How the model works</h2>
+    <button class="modal-x" data-close="modelInfo" aria-label="Close">×</button>
+    <div class="kicker">About</div>
+    <h2>Game of AGI</h2>
+    <h3 class="no-copy">Origins and sources</h3>
+    <p>This version extends the original <a href="https://gist.github.com/crizCraig/f4c583f0ca535ce5565f3aa66353cf99" target="_blank" rel="noopener">Game of AGI</a>, a Monte Carlo of AGI risk driven by safe-by-default odds, safety spending, oversight, the number of labs that originate AGI, whistleblowers, and takeoff vs. replication time.</p>
+    <p>The main sources: <a href="https://ai-2040.com/" target="_blank" rel="noopener">AI 2040: Plan A</a> for timelines and the plans' odds of getting alignment right; a separate factored Monte Carlo estimate for open-weights pandemic risk; and <a href="https://www.nationalsecurity.ai/" target="_blank" rel="noopener"><i>Superintelligence Strategy</i></a> (Hendrycks, Schmidt and Wang) for why state bioweapons are treated as deterred.</p>
+    <p class="no-copy">The code is open source on <a href="https://github.com/crizCraig/ai-safety-sim" target="_blank" rel="noopener">GitHub</a> (MIT license).</p>
+    <p class="no-copy">This game was built in conversation with Claude Code. Each session's full history is browsable as a memtree:</p>
+    <ol class="treelist no-copy" id="treeList"></ol>
+    <h2 style="margin-top:28px">How the model works</h2>
     <p>Game of AGI is a yearly Monte Carlo model of 2027–2040. Every equation and constant below is the one <code>model.js</code> runs. Tags show where each number comes from: <span class="src a2040">AI 2040</span> is taken from or calibrated to <a href="https://ai-2040.com/" target="_blank" rel="noopener">AI 2040: Plan A</a>, <span class="src biodec">Bio decomposition</span> is calibrated to a separate factored Monte Carlo estimate of bio risk, and <span class="src own">Assumption</span> is a judgment call in this model.</p>
 
     <h3>1. One simulated year</h3>
@@ -528,11 +563,6 @@
     <h3>7. What it leaves out</h3>
     <p>Covert projects and cheating on the deal (beyond a flat collapse rate), cyberattacks, countries other than the two blocs, misuse beyond bio, conflict between AGIs, anything after 2040, plans that change over time in the Futures Lab, and whether capability can really be put on one axis at all. Treat it as an argument you can poke at, not an oracle.</p>
 
-    <h3 class="no-copy">Source and how it was built</h3>
-    <p class="no-copy">The code is open source on <a href="https://github.com/crizCraig/ai-safety-sim" target="_blank" rel="noopener">GitHub</a> (MIT license).</p>
-    <p class="no-copy">This game was built in conversation with Claude Code. Each session's full history is browsable as a memtree:</p>
-    <ol class="treelist no-copy" id="treeList"></ol>
-    <p class="note">This version extends the original <a href="https://gist.github.com/crizCraig/f4c583f0ca535ce5565f3aa66353cf99" target="_blank" rel="noopener">Game of AGI</a>, a Monte Carlo of AGI risk driven by safe-by-default odds, safety spending, oversight, the number of labs that originate AGI, whistleblowers, and takeoff vs. replication time.</p>
     <p class="disclaimer">All parameters are illustrative. The lab, company and leaders in this game are fictional composites.</p>
     <div class="btnrow"><button class="btn" data-close="modelInfo">Close</button></div>
   </div>
@@ -548,7 +578,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261010162602';
+const ASSET_VERSION = '20261010211636';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1155,8 +1185,8 @@ function showCard(c) {
   $('card').classList.remove('hidden');
 }
 
-const SHORT = { race: 'race', safety: 'safety', openness: 'open', biodef: 'biodef', diplomacy: 'diplo', bci: 'BCI', oversight: 'oversight', aggression: 'sabotage', transparency: 'transparency', internal: 'hidden AI',
-  capUS: 'US cap', capCN: 'CN cap', align: 'align', openCap: 'open cap', bio: 'bio readiness', coord: 'coord', conc: 'power conc', trust: 'trust', cnMult: 'CN speed' };
+const SHORT = { race: 'racing', safety: 'safety work', openness: 'free AI', biodef: 'pandemic prep', diplomacy: 'diplomacy', bci: 'brain implants', oversight: 'oversight', aggression: 'sabotage', transparency: 'open research', internal: 'secret AI',
+  capUS: 'US AI', capCN: 'China AI', align: 'AI safety', openCap: 'free AI power', bio: 'pandemic defense', coord: 'US–China trust', conc: 'power in few hands', trust: 'public trust', cnMult: 'China speed' };
 const GOOD_UP = new Set(['safety', 'biodef', 'diplomacy', 'oversight', 'transparency', 'align', 'bio', 'coord', 'trust']);
 const BAD_UP = new Set(['conc', 'openCap', 'capCN', 'cnMult', 'race', 'internal', 'aggression']);
 function chips(ch) {
@@ -1167,7 +1197,7 @@ function chips(ch) {
     const good = GOOD_UP.has(k) ? up : BAD_UP.has(k) ? !up : null;
     const color = good === null ? 'var(--muted)' : good ? 'var(--good)' : 'var(--bad)';
     const mag = isLev ? (Math.abs(v) >= 0.25 ? '▲▲' : '▲') : (Math.abs(v) >= 8 ? '▲▲' : '▲');
-    out.push(`<span class="chip" style="color:${color}">${!isLev && k === 'bci' ? 'BCI users' : SHORT[k]} ${up ? mag : mag.replace(/▲/g, '▼')}</span>`);
+    out.push(`<span class="chip" style="color:${color}">${!isLev && k === 'bci' ? 'implant users' : SHORT[k]} ${up ? mag : mag.replace(/▲/g, '▼')}</span>`);
   };
   // Show what the choice would actually change, after floors, clamps and any deal cap.
   const s0 = game.s, L0 = game.L, s1 = structuredClone({ ...s0, log: [] }), L1 = { ...L0 };
@@ -1600,6 +1630,7 @@ $('copyPage').onclick = () => {
 let mode = 'campaign';
 function setMode(m) {
   mode = m;
+  try { localStorage.setItem('goagi-mode', m); } catch (e) {}
   document.body.classList.remove('mode-campaign', 'mode-lab', 'deciding');
   document.body.classList.add('mode-' + m);
   if (m === 'campaign' && game && game.phase === 'choose') document.body.classList.add('deciding');
@@ -1628,9 +1659,10 @@ document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('cli
   const m = b.dataset.mode;
   if (m === 'campaign' && !game) { setMode('campaign'); openIntro(); return; }
   closeIntro(); setMode(m);
+  if (m === 'lab') maybeTour('lab');
 }));
-$('startBtn').onclick = () => { closeIntro(); setMode('campaign'); newGame(); };
-$('labBtn').onclick = () => { closeIntro(); setMode('lab'); };
+$('startBtn').onclick = () => { closeIntro(); setMode('campaign'); newGame(); maybeTour('campaign'); };
+$('labBtn').onclick = () => { closeIntro(); setMode('lab'); maybeTour('lab'); };
 $('againBtn').onclick = () => { setMode('campaign'); newGame(); };
 $('toLabBtn').onclick = () => { $('ending').classList.add('hidden'); Object.assign(labL, game.L); syncSliders(); setMode('lab'); };
 $('viewBtn').onclick = () => $('ending').classList.add('hidden');
@@ -1659,7 +1691,8 @@ $('statsToggle').onclick = () => {
 document.querySelectorAll('[data-close]').forEach((b) => b.onclick = () => $(b.dataset.close).classList.add('hidden'));
 document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m && m.id !== 'intro') m.classList.add('hidden'); }));
 addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { $('modelInfo').classList.add('hidden'); }
+  if (e.key === 'Escape') { $('modelInfo').classList.add('hidden'); if (tour) endTour(); }
+  if (tour) return;
   if (mode === 'campaign' && game && ['result', 'ended'].includes(game.phase) && ['Enter', ' ', 'ArrowRight'].includes(e.key)) {
     e.preventDefault(); advance(); return;
   }
@@ -1672,8 +1705,77 @@ buildLabUI();
 buildAssumptionUI();
 syncTarget(M.initialState(), M.defaultLevers()); // idle world until a campaign starts
 Object.assign(vis, target);
-setMode('lab');
+// ---------- tutorial ----------
+const TOURS = {
+  campaign: [
+    ['#card', 'One decision a year', 'Each year brings a new situation. Read it, then pick one of the options.'],
+    ['#choices', 'What each option does', 'The tags under each option show what it changes: green makes things safer, red riskier. Hover or tap an option to preview next year\'s risk. You can also press 1, 2 or 3.'],
+    ['#right', 'This year\'s risk', 'After you choose, dice are rolled against these three catastrophes. The big number is your chance of having made it this far without one.'],
+    ['#left', 'The state of the world', 'How powerful each side\'s AI is, how ready safety research is, and more. Your past decisions are listed underneath.'],
+    ['#timeline', 'Go back in time', 'Click any earlier year to rewind and choose differently. Each year keeps its luck, so only your choice changes.'],
+    ['#statsToggle', 'World state and risk', 'Tap Stats for the state of the world, this year\'s risk and your past decisions. Tap it again to return to the decision.'],
+    ['#modelBtn', 'Curious how it works?', 'Every number comes from formulas you can read here, with their sources.'],
+  ],
+  lab: [
+    ['#presets', 'Try a plan', 'Each button sets the policies below to a plan, including the plans from the AI 2040 forecast. Click one to see how 2,000 simulated futures turn out.'],
+    ['#sliders', 'Or set your own policy', 'Drag any slider. The results update right away.'],
+    ['#catBig', 'The headline number', 'The share of simulated futures that end in catastrophe.'],
+    ['#outcomes', 'How the futures end', 'Click an outcome to see only those futures in the 3D view, and to read what it means.'],
+    ['#gl', 'Each line is one future', 'Height is how powerful AI gets, depth is how far alignment has come, and the lines run from 2027 to where each future ends. Drag to rotate, zoom with scroll or a pinch, and hover a line for details.'],
+    ['.tabs', 'Play it yourself', 'Switch to the Campaign to make the decisions one year at a time.'],
+  ],
+};
+let tour = null;
+const visible = (el) => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 4 && r.height > 4 && getComputedStyle(el).visibility !== 'hidden'; };
+function startTour(m) {
+  const steps = TOURS[m].filter(([sel]) => visible(document.querySelector(sel)));
+  if (!steps.length) return;
+  tour = { steps, i: 0 };
+  $('tour').hidden = false;
+  showTourStep();
+}
+function showTourStep() {
+  const [sel, title, text] = tour.steps[tour.i], el = document.querySelector(sel);
+  el.scrollIntoView({ block: 'nearest' });
+  requestAnimationFrame(() => {
+    const r = el.getBoundingClientRect(), pad = 6, ring = $('tour').querySelector('.tour-ring'), box = $('tour').querySelector('.tour-box');
+    const top = Math.max(0, r.top - pad), bottom = Math.min(innerHeight, r.bottom + pad);
+    Object.assign(ring.style, { left: (r.left - pad) + 'px', top: top + 'px', width: (r.width + 2 * pad) + 'px', height: (bottom - top) + 'px' });
+    box.querySelector('.tour-step').textContent = `${tour.i + 1} of ${tour.steps.length}`;
+    box.querySelector('h4').textContent = title;
+    box.querySelector('p').textContent = text;
+    $('tourNext').textContent = tour.i === tour.steps.length - 1 ? 'Done' : 'Next';
+    // Place the note below the highlighted area, else above it, else over its middle.
+    const bw = box.offsetWidth, bh = box.offsetHeight;
+    let y = bottom + 10;
+    if (y + bh > innerHeight - 12) y = top - bh - 10;
+    if (y < 12) y = Math.min(innerHeight - bh - 12, Math.max(12, (top + bottom - bh) / 2));
+    const x = Math.min(innerWidth - bw - 16, Math.max(16, r.left + r.width / 2 - bw / 2));
+    Object.assign(box.style, { left: x + 'px', top: y + 'px' });
+    $('tourNext').focus({ preventScroll: true });
+  });
+}
+function endTour() { tour = null; $('tour').hidden = true; }
+$('tourNext').onclick = () => { if (++tour.i >= tour.steps.length) endTour(); else showTourStep(); };
+$('tourSkip').onclick = endTour;
+addEventListener('resize', () => { if (tour) showTourStep(); });
+// Run each mode's tutorial once, the first time that mode is used.
+function maybeTour(m) {
+  let seen = false;
+  try { seen = localStorage.getItem('goagi-tour-' + m) === '1'; localStorage.setItem('goagi-tour-' + m, '1'); } catch (e) {}
+  if (!seen) setTimeout(() => { if (mode === m && !tour) startTour(m); }, 700);
+}
+$('tourBtn').onclick = () => {
+  if (mode === 'campaign' && !game) { closeIntro(); setMode('campaign'); newGame(); setTimeout(() => startTour('campaign'), 600); return; }
+  startTour(mode);
+};
+
 selectPreset('Status quo');
+{
+  let saved = null;
+  try { saved = localStorage.getItem('goagi-mode'); } catch (e) {}
+  if (saved === 'lab') { setMode('lab'); maybeTour('lab'); } else { setMode('campaign'); openIntro(); }
+}
 animate();
 </script>
 </body>
