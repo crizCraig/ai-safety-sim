@@ -196,6 +196,15 @@
   /* ---------- modals ---------- */
   .modal { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(2,4,10,0.6); backdrop-filter: blur(3px); z-index: 10; padding: 16px; }
   .modal.hidden { display: none; }
+  /* Opening screen: the globe stays clear behind a short title and a Play button. */
+  #splash { background: radial-gradient(ellipse at center, rgba(2,4,10,0.15) 0%, rgba(2,4,10,0.7) 75%); backdrop-filter: none; z-index: 12; }
+  .splash-box { text-align: center; max-width: 560px; }
+  .splash-box h1 { margin: 10px 0 8px; font-size: clamp(34px, 7vw, 60px); line-height: 1.05; letter-spacing: .01em; text-shadow: 0 4px 30px rgba(0,0,0,.7); }
+  .splash-box p { margin: 0 0 26px; font-size: 18px; color: #c3cee0; text-shadow: 0 2px 12px rgba(0,0,0,.8); }
+  #splash .splash-play { font-size: 20px; padding: 14px 56px; border-radius: 999px; }
+  .linkbtn { display: block; margin: 16px auto 0; background: none; border: none; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; }
+  .linkbtn:hover { color: var(--accent); }
+  body.splash .panel, body.splash #card, body.splash #timeline, body.splash #statsToggle, body.splash #tourBtn, body.splash .glabel { visibility: hidden; }
   .modal .box { width: min(640px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 18px; padding: 26px 28px; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
   .modal h1 { margin: 0 0 6px; font-size: 34px; letter-spacing: .04em; }
   .modal h2 { margin: 0 0 10px; }
@@ -285,11 +294,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261011163709"></script>
-<script src="events.js?v=20261011163709"></script>
-<script src="landmask.js?v=20261011163709"></script>
-<script src="presets.js?v=20261011163709"></script>
-<script src="trees.js?v=20261011163709"></script>
+<script src="model.js?v=20261011165135"></script>
+<script src="events.js?v=20261011165135"></script>
+<script src="landmask.js?v=20261011165135"></script>
+<script src="presets.js?v=20261011165135"></script>
+<script src="trees.js?v=20261011165135"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -392,6 +401,17 @@
 <div id="fanTip" class="lab-only" role="status" hidden></div>
 
 <!-- Intro -->
+<!-- Opening screen: one line and a button, over the globe -->
+<div class="modal hidden" id="splash">
+  <div class="splash-box">
+    <div class="kicker">2027 · thirteen years to superintelligence</div>
+    <h1>Can you win the<br>Game of AGI?</h1>
+    <p>…and save the world. One decision a year.</p>
+    <button class="btn splash-play" id="playBtn">Play</button>
+    <button class="linkbtn" id="splashLab">or explore 2,000 possible futures →</button>
+  </div>
+</div>
+
 <!-- Ending -->
 <div class="modal hidden" id="ending">
   <div class="box">
@@ -568,7 +588,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261011163709';
+const ASSET_VERSION = '20261011165135';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1647,10 +1667,16 @@ function setMode(m) {
   }
 }
 // The Campaign starts playing right away; the first-time tutorial explains the screen.
-function startCampaign() { setMode('campaign'); newGame(); maybeTour('campaign'); }
+function startCampaign() { closeSplash(); setMode('campaign'); newGame(); maybeTour('campaign'); }
+// The Campaign opens on a one-line title screen over the globe; Play starts the game.
+function openSplash() { setMode('campaign'); document.body.classList.add('splash'); $('splash').classList.remove('hidden'); $('playBtn').focus({ preventScroll: true }); }
+function closeSplash() { document.body.classList.remove('splash'); $('splash').classList.add('hidden'); }
+$('playBtn').onclick = startCampaign;
+$('splashLab').onclick = () => { closeSplash(); setMode('lab'); maybeTour('lab'); };
 document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
   const m = b.dataset.mode;
-  if (m === 'campaign' && !game) { startCampaign(); return; }
+  if (m === 'campaign' && !game) { openSplash(); return; }
+  closeSplash();
   setMode(m);
   if (m === 'lab') maybeTour('lab');
 }));
@@ -1680,7 +1706,7 @@ $('statsToggle').onclick = () => {
   if (open) document.body.scrollTop = 0;
 };
 document.querySelectorAll('[data-close]').forEach((b) => b.onclick = () => $(b.dataset.close).classList.add('hidden'));
-document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m) m.classList.add('hidden'); }));
+document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m && m.id !== 'splash') m.classList.add('hidden'); }));
 addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { $('modelInfo').classList.add('hidden'); if (tour) endTour(); }
   if (tour) return;
@@ -1728,6 +1754,17 @@ function startTour(m) {
 function showTourStep() {
   const [sel, title, text] = tour.steps[tour.i], el = document.querySelector(sel);
   el.scrollIntoView({ block: 'nearest' });
+  // On phones the Lab pins the 3D graph over the top of the page; scroll the target below it.
+  const gl = $('gl'), pinned = sel !== '#gl' && mode === 'lab' && getComputedStyle(gl).position === 'fixed' && gl.getBoundingClientRect().bottom < innerHeight * 0.8;
+  if (pinned && !el.closest('#top')) {
+    const cover = gl.getBoundingClientRect().bottom + 8, r0 = el.getBoundingClientRect();
+    if (r0.top < cover || r0.top > innerHeight - 80) {
+      let sc = el.parentElement;
+      while (sc && sc !== document.body && !(/(auto|scroll)/.test(getComputedStyle(sc).overflowY) && sc.scrollHeight > sc.clientHeight)) sc = sc.parentElement;
+      (sc && sc !== document.body ? sc : document.scrollingElement).scrollBy(0, r0.top - cover);
+      if (document.body.scrollHeight > document.body.clientHeight) document.body.scrollBy(0, el.getBoundingClientRect().top - cover);
+    }
+  }
   requestAnimationFrame(() => {
     const r = el.getBoundingClientRect(), pad = 6, ring = $('tour').querySelector('.tour-ring'), box = $('tour').querySelector('.tour-box');
     const top = Math.max(0, r.top - pad), bottom = Math.min(innerHeight, r.bottom + pad);
@@ -1765,7 +1802,7 @@ selectPreset('Status quo');
 {
   let saved = null;
   try { saved = localStorage.getItem('goagi-mode'); } catch (e) {}
-  if (saved === 'lab') { setMode('lab'); maybeTour('lab'); } else startCampaign();
+  if (saved === 'lab') { setMode('lab'); maybeTour('lab'); } else openSplash();
 }
 animate();
 </script>
