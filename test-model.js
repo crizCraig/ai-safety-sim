@@ -11,7 +11,7 @@ const check = (name, ok, detail) => {
   if (!ok) failed++;
 };
 const near = (x, target, tol) => Math.abs(x - target) <= tol;
-const bad = (r) => (r.counts.bio + r.counts.misalign + r.counts.war + r.counts.benevolent + r.counts.lockin) / r.n;
+const bad = (r) => (r.counts.bio + r.counts.misalign + r.counts.war + r.counts.benevolent + r.counts.lockin + r.counts.shutout) / r.n;
 
 // --- Outcome mix for every preset (informational) ---
 const summaries = {};
@@ -234,6 +234,42 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
     sum += M.risks(Object.assign({}, s0, { world: w({ evalGap: g, egNodes: [[1, g]] }) }), L).misalign;
   }
   check('Shown loss-of-control risk = average over the test overstatement (±5%)', Math.abs(shown / (sum / n) - 1) < 0.05, `${(100 * shown).toFixed(3)}% vs ${(100 * sum / n).toFixed(3)}%`);
+}
+
+// --- Overstatement belief at the slider edge, and the careful path uses real alignment (Codex C8) ---
+{
+  const L = { ...M.defaultLevers(), oversight: 0, transparency: 0, safety: 0 };
+  const A = { ...A0, ease: { mean: 0, sd: 0 }, cnAlign: { mean: 0.35, sd: 0 }, evalGap: { mean: 0, sd: 0.2 } };
+  const st = (world) => Object.assign(M.initialState(world), { capUS: 99, capCN: 60, align: 80, internal: 50 });
+  const shown = M.transitionOdds(st(M.sampleWorld(A, M.mulberry32(1))), false, L);
+  const rng = M.mulberry32(9); let sum = 0; const n = 200000;
+  for (let i = 0; i < n; i++) sum += M.transitionOdds(st(M.sampleWorld(A, rng)), true, L);
+  check('Shown handoff odds = average over the overstatement at the slider edge (±0.2 pts)', Math.abs(shown - sum / n) < 0.002, `${(100 * shown).toFixed(2)}% vs ${(100 * sum / n).toFixed(2)}%`);
+  // 2039, deal holding, measured alignment above capability but real alignment far below.
+  const Ld = { ...M.defaultLevers(), race: 0, safety: 0, oversight: 0, transparency: 0, diplomacy: 1 };
+  const w = Object.assign({}, M.initialState().world, { evalGap: 0.6, safe: false, difficulty: 1, hazard: 0, hazardBelief: 0 });
+  const s2 = Object.assign(M.initialState(w), { year: 2039, capUS: 78, capCN: 78, align: 80, coord: 60, internal: 100, trust: 60 });
+  const ev = M.step(s2, Ld, () => 0.99, true).event;
+  check('A margin that exists only on tests is not the Careful Path', ev !== 'pause', String(ev));
+}
+
+// --- Shut Out: most people lose their say even with humans in control ---
+{
+  const ctl = (r) => r.counts.flourish + r.counts.lockin + r.counts.shutout;
+  const sq = M.summarize(M.defaultLevers(), A0, 20000, 11);
+  const share = sq.counts.shutout / ctl(sq);
+  check('Status quo: Shut Out in 30–50% of futures where humans keep control', share > 0.3 && share < 0.5, (100 * share).toFixed(1) + '%');
+  const fund = M.summarize({ ...M.defaultLevers(), fund: 1 }, A0, 20000, 11);
+  check('A full public wealth fund roughly halves it', fund.counts.shutout / ctl(fund) < 0.6 * share, `${(100 * share).toFixed(0)}% -> ${(100 * fund.counts.shutout / ctl(fund)).toFixed(0)}%`);
+  // Funds built early own more: same lever, but switched on only after AI passes expert level.
+  const base = M.initialState();
+  const late = Object.assign(M.initialState(), { capUS: 90 }), early = Object.assign(M.initialState(), { capUS: 50 });
+  const Lf = { ...M.defaultLevers(), fund: 1 };
+  M.step(late, Lf, () => 0.99, false); M.step(early, Lf, () => 0.99, false);
+  check('Buying in is cheaper before AI value explodes', early.fundStake > 2 * late.fundStake, `${early.fundStake.toFixed(0)} vs ${late.fundStake.toFixed(0)}`);
+  const pk = (o) => M.shutOutOdds(Object.assign(M.initialState(), { capUS: 100, trust: 70, acYear: 2030, year: 2034 }), { ...M.defaultLevers(), ...o });
+  check('Diplomacy helps only with public pressure (trust above 50)', pk({ diplomacy: 1 }) < pk({ diplomacy: 0 }) && M.shutOutOdds(Object.assign(M.initialState(), { capUS: 100, trust: 40 }), { ...M.defaultLevers(), diplomacy: 1 }) === M.shutOutOdds(Object.assign(M.initialState(), { capUS: 100, trust: 40 }), { ...M.defaultLevers(), diplomacy: 0 }));
+  void base;
 }
 
 // --- The model reference uses the live G_ref, not a stale constant ---

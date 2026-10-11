@@ -209,6 +209,16 @@
       ],
     },
     {
+      id: 'fund', when: (s) => s.year >= 2028 && SimModel.maxCap(s) > 50, tag: 'Who owns AI?',
+      title: 'A Fund for Everyone',
+      text: 'AI is starting to replace whole kinds of jobs, and the profits flow to the few companies that own it. Senators propose a public wealth fund, like Norway\'s oil fund or Alaska\'s: the public would own a share of the AI companies and pay every citizen a dividend. Buying in gets far more expensive once AI is worth more.',
+      choices: [
+        { label: 'Create the fund now', note: 'Buy a large public stake while it is still affordable.', lev: { fund: +0.4 }, st: { trust: +4, conc: -3, capUS: -1 } },
+        { label: 'Ask companies to pledge a share of future windfall profits', note: 'Cheaper today, but it only binds if profits get extreme.', lev: { fund: +0.15 }, st: { trust: +1 } },
+        { label: 'Leave ownership to the market', note: 'Taxes and charity can sort it out later.', lev: {}, st: { conc: +3 } },
+      ],
+    },
+    {
       id: 'cern', when: (s) => SimModel.maxCap(s) > 70 && s.coord > 35, tag: 'Coordination',
       title: 'One International AI Project',
       text: 'Allies propose merging the world\'s top AI efforts into one international project that everyone inspects, and inviting China. Companies would hand over their best researchers and computers.',
