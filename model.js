@@ -584,8 +584,9 @@
 
     if (s.year >= END_YEAR) {
       if (s.trust < 45 && d[15] < lockinOdds(s, L)) return finish(s, 'lockin', r, 'end');
-      // Judged on real alignment: a margin that exists only on tests is not a careful path.
-      if (realAlign(s, L) >= maxCap(s) && s.coord > 55) return finish(s, 'pause', r, 'end');
+      // Judged on effective alignment (what the leading bloc really has): a margin that
+      // exists only on tests, or only in the US while China leads, is not a careful path.
+      if (effAlign(s, L) >= maxCap(s) && s.coord > 55) return finish(s, 'pause', r, 'end');
       return finish(s, 'muddle', r, 'end');
     }
     return { risk: r, event: null };

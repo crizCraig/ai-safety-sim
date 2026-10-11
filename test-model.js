@@ -251,6 +251,11 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const s2 = Object.assign(M.initialState(w), { year: 2039, capUS: 78, capCN: 78, align: 80, coord: 60, internal: 100, trust: 60 });
   const ev = M.step(s2, Ld, () => 0.99, true).event;
   check('A margin that exists only on tests is not the Careful Path', ev !== 'pause', String(ev));
+  // China leads; US real alignment covers capability but what reaches China's lab does not.
+  const w2 = Object.assign({}, M.initialState().world, { evalGap: 0, cnAlign: 0, safe: false, difficulty: 1, hazard: 0, hazardBelief: 0 });
+  const s3 = Object.assign(M.initialState(w2), { year: 2039, capUS: 70, capCN: 78, align: 80, coord: 60, internal: 30, trust: 60 });
+  const Lc = { ...Ld, transparency: 0 };
+  check('A US-only margin while China leads is not the Careful Path', M.effAlign(s3, Lc) < 78 && M.step(s3, Lc, () => 0.99, true).event !== 'pause', `effective ${M.effAlign(s3, Lc).toFixed(1)}`);
 }
 
 // --- Shut Out: most people lose their say even with humans in control ---

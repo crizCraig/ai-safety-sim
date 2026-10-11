@@ -295,11 +295,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261011143610"></script>
-<script src="events.js?v=20261011143610"></script>
-<script src="landmask.js?v=20261011143610"></script>
-<script src="presets.js?v=20261011143610"></script>
-<script src="trees.js?v=20261011143610"></script>
+<script src="model.js?v=20261011144546"></script>
+<script src="events.js?v=20261011144546"></script>
+<script src="landmask.js?v=20261011144546"></script>
+<script src="presets.js?v=20261011144546"></script>
+<script src="trees.js?v=20261011144546"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -530,11 +530,11 @@
     <div class="math">P_{\text{lock}} = \sigma\big(\tfrac{P-64}{6}\big)\,(1-0.6\,v)\,(1-\omega)\,(1-0.6\,\rho), \qquad \rho = \max\Big(\operatorname{clamp}\big(1-\tfrac{|C_{\text{US}}-C_{\text{CN}}|}{15}\big),\ \operatorname{clamp}\big(\tfrac{O-80}{20}\big),\ 0.85\,\tau\Big)</div>
     <p>If power stays plural, the future can still end with most people <b>Shut Out</b>, with probability</p>
     <div class="math">P_{\text{shut}} = \min\Big(0.95,\ \kappa\,\big(0.6+0.4\,\phi\big)\,(0.8+0.4\,r)\big(1.3-0.6\,\tfrac{T}{100}\big)\,(1-0.7\,\tfrac{F}{100})\big(1-0.3\,o\,\operatorname{clamp}(\tfrac{O}{C})\big)(1-0.3\,v)(1-0.25\,\tau)\big(1-0.2\,d\operatorname{clamp}(\tfrac{T-50}{30})\big)\Big)</div>
-    <p>where <span class="mi">\phi</span> is physical automation (it grows over the six years after the Automated Coder milestone, as robots follow software) and <span class="mi">F</span> is the public fund's stake. The stake moves toward <span class="mi">100 f</span> each year at a rate of <span class="mi">0.4\,(1-0.85\,\sigma(\tfrac{C-80}{5}))</span>, because buying into AI gets far more expensive once its value explodes, so funds built early own more; a full fund slows US capability growth by 5%. Coordination with China helps only when public trust is high: redistribution happens when voters demand it. This follows Craig Quiter's <a href="https://nationalsecurityresponse.ai/" target="_blank" rel="noopener">National Security Response</a>: competition forces automation, and value moves from labor to whoever owns AI. Otherwise the future ends in an Aligned Transition. Plurality <span class="mi">\rho</span> is high when a rival can replicate AGI before takeoff completes, open weights are near the frontier, or research is public so many labs can follow (the last from <span class="src a2040">AI 2040</span>). <b>In 2040</b>, a future that has not ended becomes Locked-In Power if <span class="mi">T &lt; 45</span> and a lock-in roll succeeds, The Careful Path if real alignment <span class="mi">A(1-e\,h) \ge C</span> and <span class="mi">K &gt; 55</span>, and Muddling Through otherwise.</p>
+    <p>where <span class="mi">\phi</span> is physical automation (it grows over the six years after the Automated Coder milestone, as robots follow software) and <span class="mi">F</span> is the public fund's stake. The stake starts at 3 and moves toward <span class="mi">100 f</span> each year: when buying in, at a rate of <span class="mi">0.4\,(1-0.85\,\sigma(\tfrac{C-80}{5}))</span> with <span class="mi">C</span> at the start of the year; when selling down, at a flat rate of 0.2. Buying in is slower later because buying into AI gets far more expensive once its value explodes, so funds built early own more; a full fund slows US capability growth by 5%. Coordination with China helps only when public trust is high: redistribution happens when voters demand it. This follows Craig Quiter's <a href="https://nationalsecurityresponse.ai/" target="_blank" rel="noopener">National Security Response</a>: competition forces automation, and value moves from labor to whoever owns AI. Otherwise the future ends in an Aligned Transition. Plurality <span class="mi">\rho</span> is high when a rival can replicate AGI before takeoff completes, open weights are near the frontier, or research is public so many labs can follow (the last from <span class="src a2040">AI 2040</span>). <b>In 2040</b>, a future that has not ended becomes Locked-In Power if <span class="mi">T &lt; 45</span> and a lock-in roll succeeds, The Careful Path if effective alignment <span class="mi">\hat{A} \ge C</span> (real alignment, after the test overstatement and any shortfall in what reaches a leading China) and <span class="mi">K &gt; 55</span>, and Muddling Through otherwise.</p>
 
     <h3>5. Yearly updates</h3>
     <p><b>Capability</b>:</p>
-    <div class="math">\Delta C_{\text{US}} = c_{\text{US}}\big(7\,\varphi\,U(C_{\text{US}}) + \varepsilon\big), \qquad c_{\text{US}} = \kappa(r)\,\max(0,\ 1-s-0.08\,v)</div>
+    <div class="math">\Delta C_{\text{US}} = c_{\text{US}}\big(7\,\varphi\,U(C_{\text{US}}) + \varepsilon\big), \qquad c_{\text{US}} = \kappa(r)\,\max(0,\ 1-s-0.08\,v)\,(1-0.05\,f)</div>
     <div class="math">\Delta C_{\text{CN}} = c_{\text{CN}}\big(7\,\varphi\,U(C_{\text{CN}}) + \varepsilon\big) + (1-0.35\,g)\,0.25\,\tau\,\max(0,\ C_{\text{US}}-C_{\text{CN}}), \qquad c_{\text{CN}} = \kappa(r_{\text{CN}})\,m\,(1-0.35\,g)</div>
     <div class="math">U(c) = \begin{cases} 1 & c < 50 \\ 3^{(c-50)/20} & 50 \le c < 70 \\ \min\big(40,\ 3\,(40/3)^{(c-70)/20}\big) & c \ge 70 \end{cases} \qquad \kappa(r) = \Big(\frac{\max(0,\ r-0.03)}{0.52}\Big)^{0.74}</div>
     <div class="math">r_{\text{CN}} = \operatorname{clip}_{[0.05,1]}\Big(r_0\,(1-\eta)\Big), \qquad r_0 = \operatorname{clip}_{[0.05,1]}\Big(0.6 + 0.45\big(r(1-0.5\,s)-0.5\big) - 0.55\,\tfrac{K}{100}\Big)</div>
@@ -593,7 +593,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261011143610';
+const ASSET_VERSION = '20261011144546';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
