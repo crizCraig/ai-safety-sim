@@ -210,6 +210,32 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   }
 }
 
+// --- Tests overstate alignment (evaluation awareness) ---
+{
+  const L = M.defaultLevers();
+  const base = M.initialState().world;
+  const w = (o) => Object.assign({}, base, o);
+  const st = (o) => Object.assign(M.initialState(), { capUS: 92, capCN: 80, align: 60, internal: 60, world: w(o) });
+  {
+    const a0 = M.effAlign(st({ evalGap: 0 }), L), s2 = st({ evalGap: 0.2 }), a2 = M.effAlign(s2, L);
+    check('Overstatement removes exactly its hidden share of alignment', Math.abs(a2 - a0 * (1 - 0.2 * M.hiddenShare(s2, L))) < 1e-9 && a2 < a0, `${a0.toFixed(2)} -> ${a2.toFixed(2)}`);
+  }
+  const hidden = (Lx, internal) => M.hiddenShare(Object.assign(M.initialState(), { internal }), Lx);
+  check('Oversight and transparency expose the gap; secret AI hides it', hidden({ ...L, oversight: 1, transparency: 1 }, 30) < hidden(L, 30) && hidden(L, 90) > hidden(L, 30),
+    `${hidden({ ...L, oversight: 1, transparency: 1 }, 30).toFixed(2)} / ${hidden(L, 30).toFixed(2)} / ${hidden(L, 90).toFixed(2)}`);
+  const q = (g) => M.transitionOdds(Object.assign(st({ evalGap: g, safe: false, difficulty: 1 }), { capUS: 100, align: 90 }), true, L);
+  check('A bigger overstatement lowers real handoff odds', q(0.3) < q(0) - 0.05, `${(100 * q(0)).toFixed(1)}% -> ${(100 * q(0.3)).toFixed(1)}%`);
+  // Shown loss-of-control risk averages over the unknown overstatement.
+  const s0 = Object.assign(M.initialState(), { capUS: 95, capCN: 85, align: 55, coord: 20, internal: 70 });
+  const shown = M.risks(s0, L).misalign;
+  const rng = M.mulberry32(31); let sum = 0; const n = 20000;
+  for (let i = 0; i < n; i++) {
+    const g = M.sampleWorld(A0, rng).evalGap;
+    sum += M.risks(Object.assign({}, s0, { world: w({ evalGap: g, egNodes: [[1, g]] }) }), L).misalign;
+  }
+  check('Shown loss-of-control risk = average over the test overstatement (±5%)', Math.abs(shown / (sum / n) - 1) < 0.05, `${(100 * shown).toFixed(3)}% vs ${(100 * sum / n).toFixed(3)}%`);
+}
+
 // --- The model reference uses the live G_ref, not a stale constant ---
 {
   const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');

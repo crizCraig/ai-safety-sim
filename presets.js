@@ -33,7 +33,7 @@
     // alignment ahead in 2040 (98% careful path instead of 84%).
     'Safest mix': P({ race: 0, safety: 0.35, transparency: 1, biodef: 1, diplomacy: 1, oversight: 1, aggression: 0 }),
     // Smallest weighted change from the status quo that keeps catastrophe under 2%
-    // (about 1.6% at 40,000 futures, seed 101). Harder-to-move levers weigh more.
+    // (about 1.4% at 40,000 futures, seed 101). Harder-to-move levers weigh more.
     'Under 2% risk': P({ race: 0.05, safety: 0.5, diplomacy: 1, oversight: 0.6, aggression: 0 }),
     'Status quo': P({}),
     // AI 2040's five plans as fixed levers (their plans change over time; these are approximations).

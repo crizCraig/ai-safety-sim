@@ -34,7 +34,7 @@
   const ASSUMPTION_INFO = {
     // Ease of alignment = 1 / difficulty. Lognormal, set in log10 units: median
     // 10^mean, spread ×10^sd. Calibrated to AI 2040's p(alignment) estimates.
-    ease: { label: 'Ease of alignment', mean: 0.1, sd: 0.4, min: -0.6, max: 0.7, fmt: 'logx',
+    ease: { label: 'Ease of alignment', mean: 0.12, sd: 0.4, min: -0.6, max: 0.7, fmt: 'logx',
       help: 'How easy alignment turns out to be. Easy enough (above 3.3×), fixing safety problems as they come up leads to long-term alignment without a general solution, and loss of control cannot happen. At 1× alignment needs this model\'s baseline research; at 0.5× progress comes at half the speed. The wide default spread reflects how little today\'s evidence tells us: current AIs can often tell when they are being evaluated and behave better under test, so good test results may overstate how easy alignment is.' },
     speed: { label: 'AI progress speed', mean: 1, sd: 0.3, min: 0.3, max: 2.5, fmt: 'x',
       help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2031 and superintelligence to about 2033.' },
@@ -47,6 +47,10 @@
       help: 'How much alignment research China\'s labs do themselves, relative to the US bloc. It fills part of the gap that published US research and coordination do not reach. Work on keeping AI loyal to the Party\'s line does not count.' },
     cnCaution: { label: 'China slows near the brink', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
       help: 'How far China cuts its AI race once there are signs of losing control. It notices later than the US would, slows more if the US slows or a deal is in force, and never slows for fear of concentrated power: an AI that obeys the Party counts as aligned in Beijing.' },
+    // Evaluation awareness: current AIs can often tell when they are being tested and behave
+    // better then, so measured alignment may overstate the real thing.
+    evalGap: { label: 'Tests overstate alignment', mean: 0.15, sd: 0.1, min: 0, max: 0.6, fmt: 'pct',
+      help: 'How much safety tests overstate real alignment, because AIs can tell when they are being evaluated and behave better under test. The alignment you see is the measured value; loss of control and the handoff depend on the real one. Independent oversight, published research and safety work expose more of the gap; secret internal AI hides more of it.' },
     whistle: { label: 'Whistleblower odds', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
       help: 'Chance that insiders expose or refuse to carry out a power grab by whoever controls AGI.' },
     // Lognormal, set in log10 units. Calibrated to a separate factored Monte Carlo
@@ -79,7 +83,7 @@
     Object.assign(w, { pBenevolent: clippedMean(A.benevolent), benevolent: rng() < pBen });
     // Bio: the decade risk is unclamped in log space (the tails are the point), capped below 1.
     const bioDecade = Math.min(0.99, Math.pow(10, A.bioDecade.mean + A.bioDecade.sd * gauss(rng)));
-    Object.assign(w, chinaWorld(A, draw('cnAlign'), draw('cnCaution')));
+    Object.assign(w, chinaWorld(A, draw('cnAlign'), draw('cnCaution')), evalWorld(A, draw('evalGap')));
     if (skipBio) return w;
     return Object.assign(w, bioWorld(bioDecade, A.bioDecade));
   }
@@ -96,7 +100,23 @@
     return Object.assign({ difficulty: d, speed: A.speed.mean, whistle: A.whistle.mean,
       pBenevolent: clippedMean(A.benevolent), benevolent: false }, difficultyWorld(d, dd),
       chinaWorld(A, clippedMean(A.cnAlign), clippedMean(A.cnCaution)),
+      evalWorld(A, clippedMean(A.evalGap)),
       bioWorld(Math.pow(10, A.bioDecade.mean), A.bioDecade));
+  }
+
+  // How much tests overstate alignment, plus belief nodes over it (clipped bell curve,
+  // ±4 sd, cached per distribution). The dice use the hidden draw.
+  const EG_Z = Array.from({ length: 17 }, (_, i) => -4 + i * 0.5);
+  const EG_W = (() => { const w = EG_Z.map((z) => Math.exp(-z * z / 2)), t = w.reduce((a, b) => a + b); return w.map((x) => x / t); })();
+  const EG_CACHE = new Map();
+  function evalWorld(A, evalGap) {
+    const p = A.evalGap, key = p.mean + '|' + p.sd;
+    if (!EG_CACHE.has(key)) {
+      const nodes = p.sd > 0 ? EG_Z.map((z, i) => [EG_W[i], clamp(p.mean + p.sd * z, 0, 0.6)]) : [[1, clamp(p.mean, 0, 0.6)]];
+      EG_CACHE.set(key, { nodes, mean: nodes.reduce((a, [w, v]) => a + w * v, 0) });
+    }
+    const c = EG_CACHE.get(key);
+    return { evalGap, egNodes: c.nodes, egMean: c.mean };
   }
 
   // China's hidden caution, plus nodes over its own-alignment effort for the belief shown to
@@ -293,11 +313,27 @@
   // smoothly as China's lead grows and fading as the US pulls ahead.
   // China's own alignment work `own` (0..1, relative to the US bloc) covers part of what
   // sharing does not: China's lab has 1 - (1 - share)(1 - own) of US-level alignment.
-  function effAlign(s, L, own = s.world.cnAlign || 0) {
+  // `over` is how much tests overstate alignment; the part still hidden this year
+  // (hiddenShare) is subtracted, so this is real alignment, not the measured s.align.
+  function effAlign(s, L, own = s.world.cnAlign || 0, over = s.world.evalGap || 0) {
     const share = Math.min(1, 0.55 + 0.45 * (s.coord / 100) + 0.3 * (L ? L.transparency : 0));
     const cover = 1 - (1 - share) * (1 - own);
     const chinaLeads = sig((s.capCN - s.capUS) / 3);
-    return s.align * (1 - chinaLeads * (1 - cover));
+    return s.align * (1 - over * hiddenShare(s, L)) * (1 - chinaLeads * (1 - cover));
+  }
+  // How much of the test overstatement stays hidden: more with secret internal AI, less with
+  // independent oversight, published research and safety work (interpretability, evals).
+  // About 0.7 on today's settings, about 0.3 with full oversight and transparency.
+  function hiddenShare(s, L) {
+    const o = L ? L.oversight : 0.1, t = L ? L.transparency : 0.2, sx = L ? Math.min(1, safetyEffect(L.safety)) : 0.14;
+    return clamp(0.6 + 0.8 * s.internal / 100 - 0.5 * o - 0.3 * t - 0.3 * sx, 0.1, 1.4);
+  }
+  // Joint belief nodes over China's own work and the test overstatement: [weight, own, over].
+  function alignBelief(s, L) {
+    const eg = s.world.egNodes || [[1, s.world.evalGap || 0]];
+    const out = [];
+    for (const [wc, own] of cnBelief(s, L)) for (const [we, over] of eg) out.push([wc * we, own, over]);
+    return out;
   }
   // Belief nodes over China's own alignment work: [weight, value] pairs. China's own work
   // moves effective alignment by at most A * chinaLeads * (1 - share); when that is under
@@ -332,13 +368,13 @@
     // the roll uses the truth.
     // AI 2040: most takeover risk comes from AIs deployed inside labs, out of view.
     const internalF = 0.4 + 0.9 * s.internal / 100;
-    const lossAt = (own) => 0.3 * sig((mc - effAlign(s, L, own) - 36) / 6) * sig((mc - 78) / 4) * internalF;
-    // Monte Carlo runs (s.fast) never show beliefs, so they skip the average over China's work.
+    const lossAt = (own, over) => 0.3 * sig((mc - effAlign(s, L, own, over) - 36) / 6) * sig((mc - 78) / 4) * internalF;
+    // Monte Carlo runs (s.fast) never show beliefs, so they skip the averages.
     let lossBelief = 0;
-    if (s.fast) lossBelief = lossAt(s.world.cnMean ?? s.world.cnAlign ?? 0);
-    else for (const [w, own] of cnBelief(s, L)) lossBelief += w * lossAt(own);
+    if (s.fast) lossBelief = lossAt(s.world.cnMean ?? s.world.cnAlign ?? 0, s.world.egMean ?? s.world.evalGap ?? 0);
+    else for (const [w, own, over] of alignBelief(s, L)) lossBelief += w * lossAt(own, over);
     const misalign = s.world.hazardBelief * lossBelief;
-    const misalignTrue = s.world.hazard * lossAt(s.world.cnAlign || 0);
+    const misalignTrue = s.world.hazard * lossAt(s.world.cnAlign || 0, s.world.evalGap || 0);
 
     // Great-power conflict: tight race + low trust + high strategic stakes.
     const closeness = clamp(1 - Math.abs(s.capUS - s.capCN) / 25, 0, 1);
@@ -368,8 +404,8 @@
     if (truth) return s.world.safe ? 1 : sig((effAlign(s, L) - bar(s.world.difficulty)) / 6);
     const dn = diffNodes(s.world.diffDist), bars = dn.map(([, dz]) => bar(dz));
     let p = 0;
-    for (const [wc, own] of cnBelief(s, L)) {
-      const a = effAlign(s, L, own);
+    for (const [wc, own, over] of alignBelief(s, L)) {
+      const a = effAlign(s, L, own, over);
       for (let i = 0; i < dn.length; i++) p += wc * dn[i][0] * (dn[i][1] <= 0.3 ? 1 : sig((a - bars[i]) / 6));
     }
     return p;
@@ -598,7 +634,7 @@
 
   root.SimModel = {
     START_YEAR, END_YEAR, LEVER_INFO, STAT_INFO, OUTCOMES, ASSUMPTION_INFO,
-    AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, safetyEffect, chinaSlowdown, chinaRace, effAlign,
+    AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
     risks, transitionOdds, lockinOdds, step, monteCarlo, summarize, mulberry32,

@@ -295,11 +295,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261011122147"></script>
-<script src="events.js?v=20261011122147"></script>
-<script src="landmask.js?v=20261011122147"></script>
-<script src="presets.js?v=20261011122147"></script>
-<script src="trees.js?v=20261011122147"></script>
+<script src="model.js?v=20261011133450"></script>
+<script src="events.js?v=20261011133450"></script>
+<script src="landmask.js?v=20261011133450"></script>
+<script src="presets.js?v=20261011133450"></script>
+<script src="trees.js?v=20261011133450"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -494,11 +494,12 @@
     <div class="tablewrap"><table>
       <thead><tr><th>Symbol</th><th>Meaning</th><th>Distribution</th></tr></thead>
       <tbody>
-        <tr><td><span class="mi">1/\delta</span></td><td>Ease of alignment; the equations use its inverse, difficulty <span class="mi">\delta</span>. Above 3.3× ease (<span class="mi">\delta \le 0.3</span>, about 14% of worlds) fixing safety problems as they come up leads to long-term alignment without a general solution, and loss of control cannot happen</td><td><span class="mi">\log_{10}(1/\delta) \sim \mathcal{N}(0.1,\ 0.4)</span>, median 1.26× <span class="src a2040">AI 2040</span> (calibrated)</td></tr>
+        <tr><td><span class="mi">1/\delta</span></td><td>Ease of alignment; the equations use its inverse, difficulty <span class="mi">\delta</span>. Above 3.3× ease (<span class="mi">\delta \le 0.3</span>, about 16% of worlds) fixing safety problems as they come up leads to long-term alignment without a general solution, and loss of control cannot happen</td><td><span class="mi">\log_{10}(1/\delta) \sim \mathcal{N}(0.12,\ 0.4)</span>, median 1.32× <span class="src a2040">AI 2040</span> (calibrated)</td></tr>
         <tr><td><span class="mi">\varphi</span></td><td>AI progress speed</td><td><span class="mi">\mathcal{N}(1,\ 0.3)</span>, clipped to [0.3, 2.5] <span class="src a2040">AI 2040</span></td></tr>
         <tr><td><span class="mi">W</span></td><td>If humans lose control of AI, whether it still cares for humanity (1) or not (0). If 1, AI rather than humanity steers the future, but kindly</td><td><span class="mi">W \sim \text{Bernoulli}(w),\ w \sim \mathcal{N}(0.10,\ 0.08)</span> <span class="src own">Assumption</span></td></tr>
         <tr><td><span class="mi">a_{\text{CN}}</span></td><td>China's own alignment work, relative to the US bloc's. Work on keeping AI loyal to the Party line does not count</td><td><span class="mi">\mathcal{N}(0.35,\ 0.17)</span>, clipped to [0, 1] <span class="src china">China experts</span></td></tr>
         <tr><td><span class="mi">q_{\text{CN}}</span></td><td>How far China cuts its race once there are signs of losing control</td><td><span class="mi">\mathcal{N}(0.25,\ 0.15)</span>, clipped to [0, 1] <span class="src china">China experts</span></td></tr>
+        <tr><td><span class="mi">e</span></td><td>How much safety tests overstate alignment, because AIs can tell when they are being evaluated and behave better under test. <span class="mi">A</span> is the measured value players see</td><td><span class="mi">\mathcal{N}(0.15,\ 0.10)</span>, clipped to [0, 0.6] <span class="src own">Assumption</span></td></tr>
         <tr><td><span class="mi">\omega</span></td><td>Whistleblower odds</td><td><span class="mi">\mathcal{N}(0.25,\ 0.15)</span>, clipped to [0, 1] <span class="src own">Assumption</span></td></tr>
         <tr><td><span class="mi">R_{\text{bio}}</span></td><td>Decade risk of a 100M+ death pandemic enabled by open weights, on the default path</td><td><span class="mi">\log_{10} R_{\text{bio}} \sim \mathcal{N}(-3.92,\ 1.2)</span> <span class="src biodec">Bio decomposition</span></td></tr>
       </tbody>
@@ -509,12 +510,12 @@
     <p><b>Engineered pandemic</b> (100M+ deaths):</p>
     <div class="math">P_{\text{bio}} = 1 - e^{-k\,g}, \qquad g = \sigma\big(\tfrac{O-62}{6}\big)\Big(1-\tfrac{B}{100}\Big)^{2}</div>
     <div class="math">k = \frac{-\ln\left(1-R_{\text{bio}}\right)}{G_{\text{ref}}}, \qquad G_{\text{ref}} = \mathbb{E}\Big[\sum_{t=2027}^{\min(2036,\ \text{end})} g_t\Big]_{\text{default path}} \approx {{GREF}}</div>
-    <p><span class="mi">g</span> is uplift from open weights, which matters once open models pass expert level, times missing biodefense. <span class="mi">G_{\text{ref}}</span> is the exposure that default-path futures actually go through from 2027 to 2036, summed until each future ends (most end at the superintelligence handoff around 2031), averaged over 3,000 fixed-seed futures. So on the default path a world's realized decade risk is its drawn <span class="mi">R_{\text{bio}}</span>, and policy moves risk through <span class="mi">g</span>. Paths that last longer with open models near the frontier face more risk: Plan A with fully open weights reaches about 2.3%, cut to about 0.9% by full biodefense (80,000 futures). <span class="mi">G_{\text{ref}}</span> is computed under the default assumptions; when the Lab changes progress speed or ease of alignment, risk scales with the exposure those futures go through relative to that baseline. <span class="src biodec">Bio decomposition</span> The thresholds are <span class="src own">Assumption</span>. The risk panel shows the expected probability over the unknown <span class="mi">R_{\text{bio}}</span>, <span class="mi">\mathbb{E}\big[1-e^{-k g}\big]</span>, which rare bad worlds dominate.</p>
+    <p><span class="mi">g</span> is uplift from open weights, which matters once open models pass expert level, times missing biodefense. <span class="mi">G_{\text{ref}}</span> is the exposure that default-path futures actually go through from 2027 to 2036, summed until each future ends (most end at the superintelligence handoff around 2031), averaged over 3,000 fixed-seed futures. So on the default path a world's realized decade risk is its drawn <span class="mi">R_{\text{bio}}</span>, and policy moves risk through <span class="mi">g</span>. Paths that last longer with open models near the frontier face more risk: Plan A with fully open weights reaches about 2.2%, cut to about 0.9% by full biodefense (80,000 futures). <span class="mi">G_{\text{ref}}</span> is computed under the default assumptions; when the Lab changes progress speed or ease of alignment, risk scales with the exposure those futures go through relative to that baseline. <span class="src biodec">Bio decomposition</span> The thresholds are <span class="src own">Assumption</span>. The risk panel shows the expected probability over the unknown <span class="mi">R_{\text{bio}}</span>, <span class="mi">\mathbb{E}\big[1-e^{-k g}\big]</span>, which rare bad worlds dominate.</p>
     <p><b>Why the pandemic risk is so low.</b> An earlier version of this model used a rough guess that put open-weights pandemic risk near 1.7% a year, about 21% over 2027–2040. A separate factored Monte Carlo estimate came out about 1,300 times lower, so the model now follows it. That estimate counts only pandemics that kill at least 100 million people and would not have happened without open weights, and every step from model access to a global catastrophe has to succeed. Multiplying those step probabilities gives a median of about 1 in 8,000 per decade. The model treats other AI-enabled pandemics as negligible: states able to build such weapons are deterred from using them, much as <a href="https://www.nationalsecurity.ai/" target="_blank" rel="noopener"><i>Superintelligence Strategy</i></a> (Hendrycks, Schmidt and Wang) argues states deter each other's dangerous AI projects, and closed models keep capabilities away from the rogue actors the paper identifies as the main bioterror risk. The tail stays heavy: about a 5.5% chance the true decade risk is above 1%, and 0.7% that it is above 10%. You can widen or shift that distribution in the Futures Lab. <span class="src biodec">Bio decomposition</span></p>
     <p><b>Loss of control:</b></p>
     <div class="math">P_{\text{loc}} = h(\delta)\cdot 0.3\,\sigma\big(\tfrac{C-\hat{A}-36}{6}\big)\,\sigma\big(\tfrac{C-78}{4}\big)\Big(0.4+0.9\,\tfrac{H}{100}\Big), \qquad h(\delta) = \operatorname{clamp}\Big(\tfrac{\delta-0.3}{0.5}\Big)</div>
-    <div class="math">\hat{A} = A\,\Big[1 - \sigma\big(\tfrac{C_{\text{CN}}-C_{\text{US}}}{3}\big)\,(1-\chi)(1-a_{\text{CN}})\Big], \qquad \chi = \min\big(1,\ 0.55+0.45\,\tfrac{K}{100}+0.3\,\tau\big)</div>
-    <p>Risk grows once capability passes top-expert level and outruns alignment. Each year the three hazards are rolled in order, so the chance of a catastrophe is <span class="mi">P_{\text{bio}} + (1-P_{\text{bio}})\big(P_{\text{loc}}(1-\bar{w}) + (1-P_{\text{loc}})P_{\text{war}}\big)</span>, where <span class="mi">\bar{w}</span> is the expected chance an uncontrolled AI is kind: <span class="mi">\mathbb{E}[\operatorname{clamp}(w)]</span> over its clipped bell curve. It is zero in worlds where alignment is easy by default (<span class="mi">\delta \le 0.3</span>) and fades in up to <span class="mi">\delta = 0.8</span>. Hidden internal AI amplifies it, since AI 2040 argues most takeover risk comes from models run inside labs <span class="src a2040">AI 2040</span>. When control is lost, the future ends as a Benevolent Takeover if <span class="mi">W = 1</span> and as Loss of Control otherwise. <span class="mi">\hat{A}</span> is effective alignment: as China moves ahead, its lab has the US-bloc alignment work that coordination and published research share (<span class="mi">\chi</span>), and its own research covers part of the rest (<span class="mi">a_{\text{CN}}</span>). The risk shown averages over <span class="mi">a_{\text{CN}}</span>; the dice use the hidden draw. A unilateral US safety share above about 35% still does somewhat worse: the US slows enough that China often leads at the handoff with less alignment. Coefficients are <span class="src own">Assumption</span>.</p>
+    <div class="math">\hat{A} = A\,(1 - e\,h)\,\Big[1 - \sigma\big(\tfrac{C_{\text{CN}}-C_{\text{US}}}{3}\big)\,(1-\chi)(1-a_{\text{CN}})\Big], \qquad \chi = \min\big(1,\ 0.55+0.45\,\tfrac{K}{100}+0.3\,\tau\big)</div>
+    <p>Risk grows once capability passes top-expert level and outruns alignment. Each year the three hazards are rolled in order, so the chance of a catastrophe is <span class="mi">P_{\text{bio}} + (1-P_{\text{bio}})\big(P_{\text{loc}}(1-\bar{w}) + (1-P_{\text{loc}})P_{\text{war}}\big)</span>, where <span class="mi">\bar{w}</span> is the expected chance an uncontrolled AI is kind: <span class="mi">\mathbb{E}[\operatorname{clamp}(w)]</span> over its clipped bell curve. It is zero in worlds where alignment is easy by default (<span class="mi">\delta \le 0.3</span>) and fades in up to <span class="mi">\delta = 0.8</span>. Hidden internal AI amplifies it, since AI 2040 argues most takeover risk comes from models run inside labs <span class="src a2040">AI 2040</span>. When control is lost, the future ends as a Benevolent Takeover if <span class="mi">W = 1</span> and as Loss of Control otherwise. <span class="mi">\hat{A}</span> is effective (real) alignment. <span class="mi">A</span> is what tests measure; the factor <span class="mi">1 - e\,h</span> removes the part of the overstatement still hidden, <span class="mi">h = \operatorname{clip}_{[0.1,1.4]}\big(0.6 + 0.8\,\tfrac{H}{100} - 0.5\,v - 0.3\,\tau - 0.3\min(1, e(s))\big)</span>: secret internal AI hides more of it, while oversight, published research and safety work expose it (about 0.7 today, 0.3 with full oversight and transparency). As China moves ahead, its lab has the US-bloc alignment work that coordination and published research share (<span class="mi">\chi</span>), and its own research covers part of the rest (<span class="mi">a_{\text{CN}}</span>). The risk shown averages over <span class="mi">a_{\text{CN}}</span>; the dice use the hidden draw. A unilateral US safety share above about 35% still does somewhat worse: the US slows enough that China often leads at the handoff with less alignment. Coefficients are <span class="src own">Assumption</span>.</p>
     <p><b>Great-power war:</b></p>
     <div class="math">P_{\text{war}} = \Big[0.055\Big(1-\tfrac{K}{100}\Big)^{2}(0.3+0.7\,q)(1+1.5\,g) + 0.07\,g\,(0.4+0.6\,z)\Big]\,\sigma\big(\tfrac{C-60}{8}\big)</div>
     <div class="math">q = \operatorname{clamp}\Big(1-\tfrac{|C_{\text{US}}-C_{\text{CN}}|}{25}\Big), \qquad z = \operatorname{clamp}\Big(\tfrac{C_{\text{US}}-C_{\text{CN}}}{20}\Big)</div>
@@ -558,13 +559,13 @@
       <tbody>
         <tr><td>Automated Coder, default path</td><td>~2030 (AI 2040 median)</td><td>2030 (median)</td></tr>
         <tr><td>Superintelligence after Automated Coder</td><td>~1 year (AI 2040)</td><td>1–2 years</td></tr>
-        <tr><td>p(alignment), race to superintelligence</td><td>25% (AI 2040 median)</td><td>15–16%</td></tr>
-        <tr><td>p(alignment), Plan B: fight China</td><td>50% (AI 2040 median)</td><td>51%</td></tr>
-        <tr><td>p(alignment), burn the lead</td><td>40% (AI 2040 median)</td><td>43%</td></tr>
-        <tr><td>p(alignment), Plan A</td><td>72% (AI 2040 median)</td><td>74%</td></tr>
+        <tr><td>p(alignment), race to superintelligence</td><td>25% (AI 2040 median)</td><td>16%</td></tr>
+        <tr><td>p(alignment), Plan B: fight China</td><td>50% (AI 2040 median)</td><td>48%</td></tr>
+        <tr><td>p(alignment), burn the lead</td><td>40% (AI 2040 median)</td><td>41%</td></tr>
+        <tr><td>p(alignment), Plan A</td><td>72% (AI 2040 median)</td><td>75%</td></tr>
         <tr><td>Bio decade risk actually faced on the default path: median</td><td>1.2e-4</td><td>1.0e-4</td></tr>
-        <tr><td>Bio decade risk: 95% interval</td><td>5e-7 to 3e-2</td><td>3.8e-7 to 2.7e-2</td></tr>
-        <tr><td>Bio decade risk: P(&gt; 1%), P(&gt; 10%)</td><td>0.055, 0.007</td><td>0.054, 0.007</td></tr>
+        <tr><td>Bio decade risk: 95% interval</td><td>5e-7 to 3e-2</td><td>3.8e-7 to 2.5e-2</td></tr>
+        <tr><td>Bio decade risk: P(&gt; 1%), P(&gt; 10%)</td><td>0.055, 0.007</td><td>0.052, 0.007</td></tr>
       </tbody>
     </table></div>
     <p>Figures from 30,000–40,000 simulated futures. The realized bio median sits a little below the target because futures last different lengths of time, so each world's exposure varies around the average used for calibration. p(alignment) counts aligned handoffs as 1 and loss of control as 0, benevolent or not; futures still short of superintelligence in 2040 count their handoff odds given the hidden world; pandemic and war futures are left out.</p>
@@ -587,7 +588,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261011122147';
+const ASSET_VERSION = '20261011133450';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1330,7 +1331,8 @@ function showEnding() {
   $('endDecisions').innerHTML = decisionItems();
   const mc = M.monteCarlo(game.L, 1500, 0, Date.now() % 100000);
   const w = s.world;
-  const cnTxt = ` · China did <b>${pct(w.cnAlign, 0)}</b> of the US bloc's alignment work and would slow <b>${pct(w.cnCaution, 0)}</b> near the brink`;
+  const egTxt = ` · tests overstated alignment by <b>${pct(w.evalGap, 0)}</b>, of which <b>${pct(M.hiddenShare(s, game.L) * w.evalGap, 0)}</b> was still hidden at the end`;
+  const cnTxt = egTxt + ` · China did <b>${pct(w.cnAlign, 0)}</b> of the US bloc's alignment work and would slow <b>${pct(w.cnCaution, 0)}</b> near the brink`;
   $('endWorld').innerHTML = `<b>The hidden world, revealed:</b> alignment was <b>${(1 / w.difficulty).toFixed(2)}×</b> as easy as baseline${w.safe ? ' (<span style="color:var(--good)">easy enough that short-term fixes led to long-term alignment</span>)' : ''}, against a ${pct(w.pSafe, 0)} chance of that · whistleblower odds <b>${pct(w.whistle, 0)}</b> · an uncontrolled AI ${w.benevolent ? '<span style="color:#ff9ecf">would have been benevolent</span>' : 'would not have been benevolent'} · open-weights bio risk <b>${pct(w.bioDecade, 2)}</b> per decade${cnTxt}.`;
   $('endMC').innerHTML = `<p class="mcline">If the whole decade had run under your <i>final</i> policy settings, 1,500 simulated futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
@@ -1383,7 +1385,7 @@ function renderRisks(prev) {
   const s = game.s, r = M.risks(s, game.L);
   const why = {
     bio: `Open-model capability ${Math.round(s.openCap)} (danger zone ≈ 60+), biodefense ${Math.round(s.bio)}.`,
-    misalign: `Capability ${Math.round(M.maxCap(s))} vs alignment ${Math.round(s.align)}. Hidden internal AI ${Math.round(s.internal)} raises it. Allows a ${pct(s.world.pSafe, 0)} chance that short-term fixes lead to long-term alignment.`,
+    misalign: `Capability ${Math.round(M.maxCap(s))} vs measured alignment ${Math.round(s.align)}; tests may overstate it. Hidden internal AI ${Math.round(s.internal)} raises it. Allows a ${pct(s.world.pSafe, 0)} chance that short-term fixes lead to long-term alignment.`,
     war: `Coordination ${Math.round(s.coord)}; the race is ${Math.abs(s.capUS - s.capCN) < 8 ? 'neck and neck' : 'lopsided'}.`,
   };
   const rows = [['bio', 'Engineered pandemic', '#7cff6b'], ['misalign', 'Loss of control', '#ff3b5c'], ['war', 'Great-power war', '#ff8a3d']];
