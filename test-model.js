@@ -197,6 +197,19 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Shown loss-of-control risk = average over China\'s alignment work (±5%)', Math.abs(shown / (sum / n) - 1) < 0.05, `${(100 * shown).toFixed(3)}% vs ${(100 * sum / n).toFixed(3)}%`);
 }
 
+// --- Shown handoff odds average over China's alignment work, tails included (Codex C6-1) ---
+{
+  const L = { ...M.defaultLevers(), transparency: 0 };
+  for (const mean of [0, 1]) {
+    const A = { ...A0, ease: { mean: 0, sd: 0 }, cnAlign: { mean, sd: 0.33 } };
+    const st = (world) => Object.assign(M.initialState(world), { capUS: 60, capCN: 99, align: 100, coord: 0, internal: 100 });
+    const shown = M.transitionOdds(st(M.sampleWorld(A, M.mulberry32(1))), false, L);
+    const rng = M.mulberry32(8); let sum = 0; const n = 200000;
+    for (let i = 0; i < n; i++) sum += M.transitionOdds(st(M.sampleWorld(A, rng)), true, L);
+    check(`Shown handoff odds = average over China's work at the slider edge (mean ${mean}, ±0.2 pts)`, Math.abs(shown - sum / n) < 0.002, `${(100 * shown).toFixed(2)}% vs ${(100 * sum / n).toFixed(2)}%`);
+  }
+}
+
 // --- The model reference uses the live G_ref, not a stale constant ---
 {
   const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');

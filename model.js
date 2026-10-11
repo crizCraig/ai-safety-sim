@@ -101,12 +101,18 @@
 
   // China's hidden caution, plus nodes over its own-alignment effort for the belief shown to
   // players (an expectation over the clipped bell curve; the dice use the hidden draw).
-  const CN_Z = [-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2];
+  // Nodes span ±4 sd so the clipped tails are represented (cached per distribution).
+  const CN_Z = Array.from({ length: 33 }, (_, i) => -4 + i * 0.25);
   const CN_W = (() => { const w = CN_Z.map((z) => Math.exp(-z * z / 2)), t = w.reduce((a, b) => a + b); return w.map((x) => x / t); })();
+  const CN_CACHE = new Map();
   function chinaWorld(A, cnAlign, cnCaution) {
-    const p = A.cnAlign;
-    const cnNodes = p.sd > 0 ? CN_Z.map((z, i) => [CN_W[i], clamp(p.mean + p.sd * z, 0, 1)]) : [[1, clamp(p.mean, 0, 1)]];
-    return { cnAlign, cnCaution, cnNodes };
+    const p = A.cnAlign, key = p.mean + '|' + p.sd;
+    if (!CN_CACHE.has(key)) {
+      const nodes = p.sd > 0 ? CN_Z.map((z, i) => [CN_W[i], clamp(p.mean + p.sd * z, 0, 1)]) : [[1, clamp(p.mean, 0, 1)]];
+      CN_CACHE.set(key, { nodes, mean: nodes.reduce((a, [w, v]) => a + w * v, 0) });
+    }
+    const c = CN_CACHE.get(key);
+    return { cnAlign, cnCaution, cnNodes: c.nodes, cnMean: c.mean };
   }
 
   // Expected value of a probability drawn from N(mean, sd) and clipped to [0, 1], which is
@@ -189,7 +195,7 @@
     const rng = mulberry32(2027), A = defaultAssumptions(), L = defaultLevers(), n = 3000;
     let sum = 0;
     for (let i = 0; i < n; i++) {
-      const s = initialState(sampleBaseWorld(A, rng));
+      const s = initialState(sampleBaseWorld(A, rng)); s.fast = true;
       for (let y = 0; y < 10 && !s.outcome; y++) { sum += bioShape(s); step(s, L, rng, true); }
     }
     BIO_REF = sum / n;
@@ -293,8 +299,23 @@
     const chinaLeads = sig((s.capCN - s.capUS) / 3);
     return s.align * (1 - chinaLeads * (1 - cover));
   }
-  // Belief nodes over China's own alignment work: [weight, value] pairs.
-  const cnBelief = (s) => s.world.cnNodes || [[1, s.world.cnAlign || 0]];
+  // Belief nodes over China's own alignment work: [weight, value] pairs. China's own work
+  // moves effective alignment by at most A * chinaLeads * (1 - share); when that is under
+  // 0.05 points the average is taken at the mean (the error is far below display precision).
+  function cnBelief(s, L) {
+    const w = s.world;
+    if (!w.cnNodes) return [[1, w.cnAlign || 0]];
+    const share = Math.min(1, 0.55 + 0.45 * (s.coord / 100) + 0.3 * (L ? L.transparency : 0));
+    const reach = s.align * sig((s.capCN - s.capUS) / 3) * (1 - share);
+    return reach < 0.05 ? [[1, w.cnMean]] : w.cnNodes;
+  }
+  // Difficulty nodes [weight, difficulty], cached per distribution.
+  const DZ_CACHE = new Map();
+  function diffNodes(dist) {
+    const key = dist.mean + '|' + dist.sd;
+    if (!DZ_CACHE.has(key)) DZ_CACHE.set(key, DIFF_Z.map((z) => [zWeight(z), Math.pow(10, dist.mean + dist.sd * z)]));
+    return DZ_CACHE.get(key);
+  }
 
   // Annual catastrophe hazards given the current state and policy.
   function risks(s, L) {
@@ -312,8 +333,10 @@
     // AI 2040: most takeover risk comes from AIs deployed inside labs, out of view.
     const internalF = 0.4 + 0.9 * s.internal / 100;
     const lossAt = (own) => 0.3 * sig((mc - effAlign(s, L, own) - 36) / 6) * sig((mc - 78) / 4) * internalF;
+    // Monte Carlo runs (s.fast) never show beliefs, so they skip the average over China's work.
     let lossBelief = 0;
-    for (const [w, own] of cnBelief(s)) lossBelief += w * lossAt(own);
+    if (s.fast) lossBelief = lossAt(s.world.cnMean ?? s.world.cnAlign ?? 0);
+    else for (const [w, own] of cnBelief(s, L)) lossBelief += w * lossAt(own);
     const misalign = s.world.hazardBelief * lossBelief;
     const misalignTrue = s.world.hazard * lossAt(s.world.cnAlign || 0);
 
@@ -343,13 +366,11 @@
     // High-bandwidth BCIs let humans check AI reasoning directly, lowering the bar.
     const bar = (d) => 45 + 32 * d + 0.2 * (s.internal - 30) - 10 * (s.bci / 100);
     if (truth) return s.world.safe ? 1 : sig((effAlign(s, L) - bar(s.world.difficulty)) / 6);
+    const dn = diffNodes(s.world.diffDist), bars = dn.map(([, dz]) => bar(dz));
     let p = 0;
-    for (const [wc, own] of cnBelief(s)) {
+    for (const [wc, own] of cnBelief(s, L)) {
       const a = effAlign(s, L, own);
-      for (const z of DIFF_Z) {
-        const dz = Math.pow(10, s.world.diffDist.mean + s.world.diffDist.sd * z);
-        p += wc * zWeight(z) * (dz <= 0.3 ? 1 : sig((a - bar(dz)) / 6));
-      }
+      for (let i = 0; i < dn.length; i++) p += wc * dn[i][0] * (dn[i][1] <= 0.3 ? 1 : sig((a - bars[i]) / 6));
     }
     return p;
   }
@@ -463,7 +484,7 @@
 
     // Superintelligence threshold.
     if (maxCap(s) >= 100) {
-      const good = transitionOdds(s, false, L);
+      const good = s.fast ? 0 : transitionOdds(s, false, L);
       // Every future still running ends at the handoff; a failed handoff is a catastrophe
       // only if the AI is not kind.
       s.safeEnded += s.alive * (good + (1 - good) * s.world.pBenevolent);
@@ -522,7 +543,7 @@
     const paths = [];
     let yearsSum = 0;
     for (let i = 0; i < n; i++) {
-      const s = initialState(sampleWorld(A, rng));
+      const s = initialState(sampleWorld(A, rng)); s.fast = true; // outcomes only: skip shown-risk bookkeeping
       const path = [{ year: s.year, cap: maxCap(s), align: s.align, coord: s.coord }];
       let ev = null;
       while (!ev) {
@@ -546,7 +567,7 @@
     const acYears = [], asiYears = [];
     let pAlign = 0, nAlign = 0;
     for (let i = 0; i < n; i++) {
-      const s = initialState(sampleWorld(A, rng));
+      const s = initialState(sampleWorld(A, rng)); s.fast = true; // outcomes only: skip shown-risk bookkeeping
       let ev = null, ac = null;
       while (!ev) { ev = step(s, L, rng, true).event; if (!ac && maxCap(s) >= AC) ac = s.year; }
       counts[ev]++;
