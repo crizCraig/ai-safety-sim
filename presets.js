@@ -17,7 +17,7 @@
     'IAEA for AI': 'An independent international agency inspects every frontier lab, publishes safety scores and protects whistleblowers.',
     'Neuralink bet': 'Keep racing, and push brain-computer interfaces hard so humans can keep up with AI and oversee it.',
     'BCI-first': 'Slow the AI race and point AI at neurotech, so augmented humans are ready to oversee AI before it gets much stronger.',
-    'All compute on safety': 'The US bloc spends 100% of AI compute on safety, a unilateral pause. China only partly slows down, takes the lead, and reaches superintelligence with less alignment work, so this does worse than a 35% safety share.',
+    'All compute on safety': 'The US bloc spends 100% of AI compute on safety, a unilateral pause. China only partly slows down and often takes the lead with less alignment work, so this does worse than a 35% safety share, though a cautious China narrows the gap.',
   };
   const PLAN_INFO = {
     'Plan A: Verified slowdown': { align: '72%', great: '42%', text: 'A verified US–China deal slows frontier AI, makes all research public and lets many labs keep up, pausing at top-expert level until 2040.' },
@@ -33,7 +33,7 @@
     // alignment ahead in 2040 (98% careful path instead of 84%).
     'Safest mix': P({ race: 0, safety: 0.35, transparency: 1, biodef: 1, diplomacy: 1, oversight: 1, aggression: 0 }),
     // Smallest weighted change from the status quo that keeps catastrophe under 2%
-    // (about 1.5%: 1.45–1.57% across four 40,000-future runs, seeds 101–104). Harder-to-move levers weigh more.
+    // (about 1.6% at 40,000 futures, seed 101). Harder-to-move levers weigh more.
     'Under 2% risk': P({ race: 0.05, safety: 0.5, diplomacy: 1, oversight: 0.6, aggression: 0 }),
     'Status quo': P({}),
     // AI 2040's five plans as fixed levers (their plans change over time; these are approximations).

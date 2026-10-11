@@ -40,6 +40,13 @@
       help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2031 and superintelligence to about 2033.' },
     benevolent: { label: 'Kind even if uncontrolled', mean: 0.1, sd: 0.08, min: 0, max: 1, fmt: 'pct',
       help: 'If humans lose control of AI, the chance it still cares for humanity. The future is then steered by AI, kindly, instead of by people (Benevolent Takeover).' },
+    // China's caution, from a review of experts on Chinese AI policy (Concordia AI, Carnegie's
+    // Matt Sheehan, SemiAnalysis, CSET translations): real and growing safety research, official
+    // "human control" language, but no case of Beijing slowing frontier AI for safety.
+    cnAlign: { label: 'China\'s own alignment work', mean: 0.35, sd: 0.17, min: 0, max: 1, fmt: 'pct',
+      help: 'How much alignment research China\'s labs do themselves, relative to the US bloc. It fills part of the gap that published US research and coordination do not reach. Work on keeping AI loyal to the Party\'s line does not count.' },
+    cnCaution: { label: 'China slows near the brink', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
+      help: 'How far China cuts its AI race once there are signs of losing control. It notices later than the US would, slows more if the US slows or a deal is in force, and never slows for fear of concentrated power: an AI that obeys the Party counts as aligned in Beijing.' },
     whistle: { label: 'Whistleblower odds', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
       help: 'Chance that insiders expose or refuse to carry out a power grab by whoever controls AGI.' },
     // Lognormal, set in log10 units. Calibrated to a separate factored Monte Carlo
@@ -72,6 +79,7 @@
     Object.assign(w, { pBenevolent: clippedMean(A.benevolent), benevolent: rng() < pBen });
     // Bio: the decade risk is unclamped in log space (the tails are the point), capped below 1.
     const bioDecade = Math.min(0.99, Math.pow(10, A.bioDecade.mean + A.bioDecade.sd * gauss(rng)));
+    Object.assign(w, chinaWorld(A, draw('cnAlign'), draw('cnCaution')));
     if (skipBio) return w;
     return Object.assign(w, bioWorld(bioDecade, A.bioDecade));
   }
@@ -87,7 +95,18 @@
     const dd = diffDistOf(A), d = Math.pow(10, dd.mean);
     return Object.assign({ difficulty: d, speed: A.speed.mean, whistle: A.whistle.mean,
       pBenevolent: clippedMean(A.benevolent), benevolent: false }, difficultyWorld(d, dd),
+      chinaWorld(A, clippedMean(A.cnAlign), clippedMean(A.cnCaution)),
       bioWorld(Math.pow(10, A.bioDecade.mean), A.bioDecade));
+  }
+
+  // China's hidden caution, plus nodes over its own-alignment effort for the belief shown to
+  // players (an expectation over the clipped bell curve; the dice use the hidden draw).
+  const CN_Z = [-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2];
+  const CN_W = (() => { const w = CN_Z.map((z) => Math.exp(-z * z / 2)), t = w.reduce((a, b) => a + b); return w.map((x) => x / t); })();
+  function chinaWorld(A, cnAlign, cnCaution) {
+    const p = A.cnAlign;
+    const cnNodes = p.sd > 0 ? CN_Z.map((z, i) => [CN_W[i], clamp(p.mean + p.sd * z, 0, 1)]) : [[1, clamp(p.mean, 0, 1)]];
+    return { cnAlign, cnCaution, cnNodes };
   }
 
   // Expected value of a probability drawn from N(mean, sd) and clipped to [0, 1], which is
@@ -244,18 +263,38 @@
   // A US pause (race down, or all compute on safety) eases it only partly.
   function chinaRace(s, L) {
     const usPush = L.race * (1 - 0.5 * L.safety);
-    return clamp(0.6 + 0.45 * (usPush - 0.5) - 0.55 * (s.coord / 100), 0.05, 1);
+    const base = clamp(0.6 + 0.45 * (usPush - 0.5) - 0.55 * (s.coord / 100), 0.05, 1);
+    return clamp(base * (1 - chinaSlowdown(s, L)), 0.05, 1);
+  }
+
+  // How far China cuts its race this year: its hidden caution, times warning signs of losing
+  // control (capability near the top while alignment lags; noticed about 5 points later than
+  // the US would, since bad news travels up a personalist system slowly), times reciprocity
+  // (0.6 with the US racing, up to 1.2 if the US slows or a verified deal holds).
+  function chinaSlowdown(s, L) {
+    const caution = s.world.cnCaution || 0;
+    if (!caution) return 0;
+    const mc = maxCap(s);
+    const warning = sig((mc - 83) / 4) * sig((mc - s.align - 30) / 8);
+    const usSlow = clamp(1 - L.race * (1 - 0.5 * L.safety) / 0.7, 0, 1);
+    const recip = 0.6 * (1 + Math.max(usSlow, dealActive(s, L) ? 1 : 0));
+    return clamp(caution * warning * recip, 0, 0.9);
   }
 
   // Alignment research is done mostly in the US bloc. If China leads, its lab
   // uses that work only as far as coordination and published research allow.
   // The discount is centred on a tie: half-strength when the blocs are even, rising
   // smoothly as China's lead grows and fading as the US pulls ahead.
-  function effAlign(s, L) {
+  // China's own alignment work `own` (0..1, relative to the US bloc) covers part of what
+  // sharing does not: China's lab has 1 - (1 - share)(1 - own) of US-level alignment.
+  function effAlign(s, L, own = s.world.cnAlign || 0) {
     const share = Math.min(1, 0.55 + 0.45 * (s.coord / 100) + 0.3 * (L ? L.transparency : 0));
+    const cover = 1 - (1 - share) * (1 - own);
     const chinaLeads = sig((s.capCN - s.capUS) / 3);
-    return s.align * (1 - chinaLeads * (1 - share));
+    return s.align * (1 - chinaLeads * (1 - cover));
   }
+  // Belief nodes over China's own alignment work: [weight, value] pairs.
+  const cnBelief = (s) => s.world.cnNodes || [[1, s.world.cnAlign || 0]];
 
   // Annual catastrophe hazards given the current state and policy.
   function risks(s, L) {
@@ -267,14 +306,16 @@
     const bioTrue = 1 - Math.exp(-s.world.bioScale * shape);
 
     // Loss of control: grows when capability outruns alignment near the top.
-    const gap = mc - effAlign(s, L);
     // Scaled by how hard alignment is: zero in worlds where it is easy by
-    // default. Shown as the expectation over difficulty; the roll uses the truth.
+    // default. Shown as the expectation over difficulty and China's own alignment work;
+    // the roll uses the truth.
     // AI 2040: most takeover risk comes from AIs deployed inside labs, out of view.
     const internalF = 0.4 + 0.9 * s.internal / 100;
-    const lossBase = 0.3 * sig((gap - 36) / 6) * sig((mc - 78) / 4) * internalF;
-    const misalign = s.world.hazardBelief * lossBase;
-    const misalignTrue = s.world.hazard * lossBase;
+    const lossAt = (own) => 0.3 * sig((mc - effAlign(s, L, own) - 36) / 6) * sig((mc - 78) / 4) * internalF;
+    let lossBelief = 0;
+    for (const [w, own] of cnBelief(s)) lossBelief += w * lossAt(own);
+    const misalign = s.world.hazardBelief * lossBelief;
+    const misalignTrue = s.world.hazard * lossAt(s.world.cnAlign || 0);
 
     // Great-power conflict: tight race + low trust + high strategic stakes.
     const closeness = clamp(1 - Math.abs(s.capUS - s.capCN) / 25, 0, 1);
@@ -301,12 +342,14 @@
     // only know its average (1×), so the shown odds use that.
     // High-bandwidth BCIs let humans check AI reasoning directly, lowering the bar.
     const bar = (d) => 45 + 32 * d + 0.2 * (s.internal - 30) - 10 * (s.bci / 100);
-    const a = effAlign(s, L);
-    if (truth) return s.world.safe ? 1 : sig((a - bar(s.world.difficulty)) / 6);
+    if (truth) return s.world.safe ? 1 : sig((effAlign(s, L) - bar(s.world.difficulty)) / 6);
     let p = 0;
-    for (const z of DIFF_Z) {
-      const dz = Math.pow(10, s.world.diffDist.mean + s.world.diffDist.sd * z);
-      p += zWeight(z) * (dz <= 0.3 ? 1 : sig((a - bar(dz)) / 6));
+    for (const [wc, own] of cnBelief(s)) {
+      const a = effAlign(s, L, own);
+      for (const z of DIFF_Z) {
+        const dz = Math.pow(10, s.world.diffDist.mean + s.world.diffDist.sd * z);
+        p += wc * zWeight(z) * (dz <= 0.3 ? 1 : sig((a - bar(dz)) / 6));
+      }
     }
     return p;
   }
@@ -534,7 +577,7 @@
 
   root.SimModel = {
     START_YEAR, END_YEAR, LEVER_INFO, STAT_INFO, OUTCOMES, ASSUMPTION_INFO,
-    AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, safetyEffect,
+    AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, safetyEffect, chinaSlowdown, chinaRace, effAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
     risks, transitionOdds, lockinOdds, step, monteCarlo, summarize, mulberry32,
