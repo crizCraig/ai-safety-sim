@@ -35,7 +35,7 @@
     // Ease of alignment = 1 / difficulty. Lognormal, set in log10 units: median
     // 10^mean, spread ×10^sd. Calibrated to AI 2040's p(alignment) estimates.
     ease: { label: 'Ease of alignment', mean: 0.1, sd: 0.4, min: -0.6, max: 0.7, fmt: 'logx',
-      help: 'How easy alignment turns out to be. Easy enough (above 3.3×), fixing safety problems as they come up leads to long-term alignment without a general solution, and loss of control cannot happen. At 1× alignment needs this model\'s baseline research; at 0.5× progress comes at half the speed.' },
+      help: 'How easy alignment turns out to be. Easy enough (above 3.3×), fixing safety problems as they come up leads to long-term alignment without a general solution, and loss of control cannot happen. At 1× alignment needs this model\'s baseline research; at 0.5× progress comes at half the speed. The wide default spread reflects how little today\'s evidence tells us: current AIs can often tell when they are being evaluated and behave better under test, so good test results may overstate how easy alignment is.' },
     speed: { label: 'AI progress speed', mean: 1, sd: 0.3, min: 0.3, max: 2.5, fmt: 'x',
       help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2031 and superintelligence to about 2033.' },
     benevolent: { label: 'Kind even if uncontrolled', mean: 0.1, sd: 0.08, min: 0, max: 1, fmt: 'pct',

@@ -19,11 +19,11 @@
     },
     {
       id: 'openweights', year: 2028, tag: 'Open models',
-      title: 'Give the AI Away?',
-      text: 'A big AI company wants to publish its newest AI free for anyone to download and modify. Startups and researchers love it: no single company controls it. Biosecurity experts warn that anyone can strip out its safety training in an afternoon, including people trying to make a bioweapon.',
+      title: 'Publish the Weights?',
+      text: 'A big AI company wants to publish the weights of its newest AI: the trained numbers that make up the model. Anyone could then download, run and modify it for free. Startups and researchers love it: no single company controls it. Biosecurity experts warn that anyone can strip out its safety training in an afternoon, including people trying to make a bioweapon.',
       choices: [
         { label: 'Allow it', note: 'Spreads the benefits and keeps power from piling up in a few companies.', lev: { openness: +0.3 }, st: { openCap: +8, conc: -6, trust: +3 } },
-        { label: 'Allow it after bioweapon testing', note: 'Release only AIs that tests show can\'t meaningfully help build bioweapons.', lev: { openness: +0.05, biodef: +0.05 }, st: { bio: +3 } },
+        { label: 'Allow it after bioweapon testing', note: 'Publish weights only for AIs that tests show can\'t meaningfully help build bioweapons.', lev: { openness: +0.05, biodef: +0.05 }, st: { bio: +3 } },
         { label: 'Require a license', note: 'Only vetted organizations get the most powerful AIs.', lev: { openness: -0.3 }, st: { conc: +7, trust: -3 } },
       ],
     },
