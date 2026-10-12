@@ -11,7 +11,7 @@ const check = (name, ok, detail) => {
   if (!ok) failed++;
 };
 const near = (x, target, tol) => Math.abs(x - target) <= tol;
-const bad = (r) => (r.counts.bio + r.counts.misalign + r.counts.war + r.counts.benevolent + r.counts.lockin + r.counts.shutout) / r.n;
+const bad = (r) => (r.counts.bio + r.counts.misalign + r.counts.war + r.counts.benevolent + r.counts.lockin) / r.n;
 
 // --- Outcome mix for every preset (informational) ---
 const summaries = {};
@@ -133,8 +133,8 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   {
     const u = mk(0.5); u.capUS = 99; const r = M.risks(u, L2);
     M.step(u, L2, () => 0.99, false);
-    const q = M.transitionOdds(u, false, L2), k = 0.5;
-    const expect = (1 - r.bio) * r.misalign * k + (1 - r.bio) * (1 - r.misalign) * (1 - r.war) * (q + (1 - q) * k);
+    const q = M.transitionOdds(u, false, L2), k = 0.5, lock = M.lockinOdds(u, L2, u.world.whistleMean);
+    const expect = (1 - r.bio) * r.misalign * k + (1 - r.bio) * (1 - r.misalign) * (1 - r.war) * (q * (1 - lock) + (1 - q) * k);
     check('Survival through a takeover year and handoff is sequential (kindness 0.5)', Math.abs(u.survival - expect) < 1e-9, `${u.survival.toFixed(4)} vs ${expect.toFixed(4)}`);
     const before = u.survival; M.step(u, L2, () => 0.99, false);
     check('Survival stays put after the handoff', Math.abs(u.survival - before) < 1e-12, `${before.toFixed(4)} -> ${u.survival.toFixed(4)}`);
@@ -258,23 +258,29 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('A US-only margin while China leads is not the Careful Path', M.effAlign(s3, Lc) < 78 && M.step(s3, Lc, () => 0.99, true).event !== 'pause', `effective ${M.effAlign(s3, Lc).toFixed(1)}`);
 }
 
-// --- Shut Out: most people lose their say even with humans in control ---
+// --- Locked-In Power: a few hold AI and its gains even with humans in control; a catastrophe ---
 {
-  const ctl = (r) => r.counts.flourish + r.counts.lockin + r.counts.shutout;
+  const ctl = (r) => r.counts.flourish + r.counts.lockin;
   const sq = M.summarize(M.defaultLevers(), A0, 20000, 11);
-  const share = sq.counts.shutout / ctl(sq);
-  check('Status quo: Shut Out in 30–50% of futures where humans keep control', share > 0.3 && share < 0.5, (100 * share).toFixed(1) + '%');
+  const share = sq.counts.lockin / ctl(sq);
+  check('Status quo: Locked-In Power in about half of futures where humans keep control (40-55%)', share > 0.4 && share < 0.55, (100 * share).toFixed(1) + '%');
+  check('Locked-In Power counts as a catastrophe', Math.abs(sq.catastrophe - (sq.counts.bio + sq.counts.misalign + sq.counts.war + sq.counts.lockin) / sq.n) < 1e-12);
   const fund = M.summarize({ ...M.defaultLevers(), fund: 1 }, A0, 20000, 11);
-  check('A full public wealth fund roughly halves it', fund.counts.shutout / ctl(fund) < 0.6 * share, `${(100 * share).toFixed(0)}% -> ${(100 * fund.counts.shutout / ctl(fund)).toFixed(0)}%`);
-  // Funds built early own more: same lever, but switched on only after AI passes expert level.
-  const base = M.initialState();
+  check('A full public wealth fund roughly halves it', fund.counts.lockin / ctl(fund) < 0.6 * share, `${(100 * share).toFixed(0)}% -> ${(100 * fund.counts.lockin / ctl(fund)).toFixed(0)}%`);
   const late = Object.assign(M.initialState(), { capUS: 90 }), early = Object.assign(M.initialState(), { capUS: 50 });
   const Lf = { ...M.defaultLevers(), fund: 1 };
   M.step(late, Lf, () => 0.99, false); M.step(early, Lf, () => 0.99, false);
   check('Buying in is cheaper before AI value explodes', early.fundStake > 2 * late.fundStake, `${early.fundStake.toFixed(0)} vs ${late.fundStake.toFixed(0)}`);
-  const pk = (o) => M.shutOutOdds(Object.assign(M.initialState(), { capUS: 100, trust: 70, acYear: 2030, year: 2034 }), { ...M.defaultLevers(), ...o });
-  check('Diplomacy helps only with public pressure (trust above 50)', pk({ diplomacy: 1 }) < pk({ diplomacy: 0 }) && M.shutOutOdds(Object.assign(M.initialState(), { capUS: 100, trust: 40 }), { ...M.defaultLevers(), diplomacy: 1 }) === M.shutOutOdds(Object.assign(M.initialState(), { capUS: 100, trust: 40 }), { ...M.defaultLevers(), diplomacy: 0 }));
-  void base;
+  const at = (trust) => Object.assign(M.initialState(), { capUS: 100, trust, acYear: 2030, year: 2034 });
+  const pk = (st, o) => M.lockinOdds(st, { ...M.defaultLevers(), ...o });
+  check('Diplomacy helps only with public pressure (trust above 50)', pk(at(70), { diplomacy: 1 }) < pk(at(70), { diplomacy: 0 }) && pk(at(40), { diplomacy: 1 }) === pk(at(40), { diplomacy: 0 }));
+  // Survival: a successful handoff that locks in power is not survival.
+  const w = Object.assign({}, M.initialState().world, { safe: true, difficulty: 0.1, pBenevolent: 0, hazard: 0, hazardBelief: 0, whistle: 0.25, whistleMean: 0.25 });
+  const sh = Object.assign(M.initialState(w), { capUS: 99.9, capCN: 70, align: 100, conc: 55, trust: 60, coord: 100, acYear: 2029, year: 2034 });
+  const Ls = { ...M.defaultLevers(), openness: 0 }, r0 = M.risks(sh, Ls);
+  M.step(sh, Ls, () => 0.99, false);
+  const lk = M.lockinOdds(sh, Ls, 0.25), q = M.transitionOdds(sh, false, Ls), want = (1 - r0.bio) * (1 - r0.war) * q * (1 - lk);
+  check('A sure handoff that may lock in power counts lock-in against survival', Math.abs(sh.survival - want) < 1e-9 && lk > 0.1, `survival ${sh.survival.toFixed(3)}, lock ${lk.toFixed(3)}`);
 }
 
 // --- The model reference uses the live G_ref, not a stale constant ---

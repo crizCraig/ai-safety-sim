@@ -52,10 +52,6 @@
     // better then, so measured alignment may overstate the real thing.
     evalGap: { label: 'Tests overstate alignment', mean: 0.15, sd: 0.1, min: 0, max: 0.6, fmt: 'pct',
       help: 'How much safety tests overstate real alignment, because AIs can tell when they are being evaluated and behave better under test. The alignment you see is the measured value; loss of control and the handoff depend on the real one. Independent oversight, published research and safety work expose more of the gap; secret internal AI hides more of it.' },
-    // Calibrated so about 40% of status-quo futures where humans keep control of AI end with
-    // most people shut out (Craig's estimate, from nationalsecurityresponse.ai).
-    elite: { label: 'Gains kept at the top', mean: 0.78, sd: 0.15, min: 0, max: 1, fmt: 'pct',
-      help: 'If humans keep control of AI and no small group seizes it, how likely those who own AI are to keep its gains, so most people lose their economic leverage and their say (Shut Out). A public wealth fund, open weights, oversight and transparency lower it; automation, racing and low public trust raise it.' },
     whistle: { label: 'Whistleblower odds', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
       help: 'Chance that insiders expose or refuse to carry out a power grab by whoever controls AGI.' },
     // Lognormal, set in log10 units. Calibrated to a separate factored Monte Carlo
@@ -83,7 +79,7 @@
     };
     const dd = diffDistOf(A);
     const difficulty = Math.min(5, Math.max(0.1, Math.pow(10, dd.mean + dd.sd * gauss(rng))));
-    const w = Object.assign({ difficulty, speed: draw('speed'), whistle: draw('whistle'), elite: draw('elite') }, difficultyWorld(difficulty, dd));
+    const w = Object.assign({ difficulty, speed: draw('speed'), whistle: draw('whistle'), whistleMean: clippedMean(A.whistle) }, difficultyWorld(difficulty, dd));
     const pBen = draw('benevolent');
     Object.assign(w, { pBenevolent: clippedMean(A.benevolent), benevolent: rng() < pBen });
     // Bio: the decade risk is unclamped in log space (the tails are the point), capped below 1.
@@ -102,7 +98,7 @@
   function meanWorld() {
     const A = defaultAssumptions();
     const dd = diffDistOf(A), d = Math.pow(10, dd.mean);
-    return Object.assign({ difficulty: d, speed: A.speed.mean, whistle: A.whistle.mean, elite: clippedMean(A.elite),
+    return Object.assign({ difficulty: d, speed: A.speed.mean, whistle: clippedMean(A.whistle), whistleMean: clippedMean(A.whistle),
       pBenevolent: clippedMean(A.benevolent), benevolent: false }, difficultyWorld(d, dd),
       chinaWorld(A, clippedMean(A.cnAlign), clippedMean(A.cnCaution)),
       evalWorld(A, clippedMean(A.evalGap)),
@@ -432,32 +428,27 @@
     return p;
   }
 
-  // Probability that whoever controls superintelligence locks in their power.
-  // Oversight, whistleblowers and a rival close enough to replicate AGI before
-  // takeoff completes (or open weights near the frontier) all keep power plural.
-  function lockinOdds(s, L) {
-    const base = sig((s.conc - 64) / 6);
-    const rivalClose = clamp(1 - Math.abs(s.capUS - s.capCN) / 15, 0, 1);
-    const openClose = clamp((s.openCap - 80) / 20, 0, 1);
-    // AI 2040: publishing all research lets dozens of companies reach the frontier.
-    const plural = Math.max(rivalClose, openClose, 0.85 * L.transparency);
-    return base * (1 - 0.6 * L.oversight) * (1 - s.world.whistle) * (1 - 0.6 * plural);
-  }
-
-  // Probability that, with humans in control and power still plural, most people lose
-  // their economic leverage and their say anyway (nationalsecurityresponse.ai: competition
-  // forces automation and value moves from labor to whoever owns AI).
-  function shutOutOdds(s, L) {
+  // Probability that, with humans in control of AI, a few end up holding it and its gains
+  // and most people lose their say: seized outright, or drifted there as automation moves
+  // value from labor to whoever owns AI (nationalsecurityresponse.ai). Exponential growth
+  // pulls the frontier away from the pack, so a close rival or open weights protect little.
+  // `whistle` defaults to this world's hidden draw; belief callers pass its mean.
+  function lockinOdds(s, L, whistle = s.world.whistle) {
     const mc = maxCap(s);
+    const conc = 0.45 + 0.55 * sig((s.conc - 64) / 6);                   // power already concentrated
     const phys = s.acYear ? clamp((s.year - s.acYear) / 6, 0, 1) : 0;   // robots follow software
     const automation = 0.6 + 0.4 * phys;
-    const pressure = (0.8 + 0.4 * L.race) * (1.3 - 0.6 * s.trust / 100);  // automate or die; weak public voice
-    const keep = (1 - 0.7 * s.fundStake / 100)                              // public owns part of AI
-      * (1 - 0.3 * L.openness * clamp(s.openCap / Math.max(1, mc), 0, 1))   // open weights near the frontier
-      * (1 - 0.3 * L.oversight) * (1 - 0.25 * L.transparency)              // accountable AI owners
-      * (1 - 0.2 * L.diplomacy * clamp((s.trust - 50) / 30, 0, 1));          // coordination, only with public pressure
-    return clamp((s.world.elite ?? 0.78) * automation * pressure * keep, 0, 0.95);
+    const pressure = (0.8 + 0.4 * L.race) * (1.3 - 0.6 * s.trust / 100); // automate or die; weak public voice
+    const plural = Math.max(clamp(1 - Math.abs(s.capUS - s.capCN) / 15, 0, 1), clamp((s.openCap - 80) / 20, 0, 1));
+    const keep = (1 - 0.7 * s.fundStake / 100)                            // public owns part of AI
+      * (1 - 0.45 * L.oversight) * (1 - 0.35 * L.transparency)            // accountable AI owners
+      * (1 - 0.6 * whistle)                                               // insiders refuse a power grab
+      * (1 - 0.15 * plural)                                               // rivals help only a little
+      * (1 - 0.1 * L.openness * clamp(s.openCap / Math.max(1, mc), 0, 1)) // open weights spread access
+      * (1 - 0.2 * L.diplomacy * clamp((s.trust - 50) / 30, 0, 1));       // coordination, only with public pressure
+    return clamp(LOCK_K * conc * automation * pressure * keep, 0, 0.95);
   }
+  const LOCK_K = 1.8;
 
   /*
    * Advance one year. `rng` is a function returning [0,1). If `roll` is false
@@ -565,24 +556,26 @@
     // Superintelligence threshold.
     if (maxCap(s) >= 100) {
       const good = s.fast ? 0 : transitionOdds(s, false, L);
-      // Every future still running ends at the handoff; a failed handoff is a catastrophe
-      // only if the AI is not kind.
-      s.safeEnded += s.alive * (good + (1 - good) * s.world.pBenevolent);
+      const lock = s.fast ? 0 : lockinOdds(s, L, s.world.whistleMean ?? s.world.whistle);
+      // Every future still running ends at the handoff. A failed handoff is a catastrophe
+      // unless the AI is kind; a successful one is a catastrophe if power locks in.
+      s.safeEnded += s.alive * (good * (1 - lock) + (1 - good) * s.world.pBenevolent);
       s.alive = 0;
       s.survival = s.safeEnded;
       if (roll) {
         if (d[13] < transitionOdds(s, true, L)) {
-          // One die decides power: lock-in first, then (if power stays plural) whether most
-          // people are shut out; rescaling the die keeps the two draws independent.
-          const lo = lockinOdds(s, L), u = d[14];
-          if (u < lo) return finish(s, 'lockin', r, 'handoff');
-          return finish(s, (u - lo) / Math.max(1e-9, 1 - lo) < shutOutOdds(s, L) ? 'shutout' : 'flourish', r, 'handoff');
+          return finish(s, d[14] < lockinOdds(s, L) ? 'lockin' : 'flourish', r, 'handoff');
         }
         return finish(s, lostControl(s), r, 'handoff');
       }
     }
 
     if (s.year >= END_YEAR) {
+      // Without superintelligence, power can still lock in by 2040 if public trust has collapsed.
+      if (s.trust < 45 && !s.fast) {
+        const lock = lockinOdds(s, L, s.world.whistleMean ?? s.world.whistle);
+        s.alive *= 1 - lock; s.survival = s.safeEnded + s.alive;
+      }
       if (s.trust < 45 && d[15] < lockinOdds(s, L)) return finish(s, 'lockin', r, 'end');
       // Judged on effective alignment (what the leading bloc really has): a margin that
       // exists only on tests, or only in the US while China leads, is not a careful path.
@@ -614,10 +607,8 @@
       text: 'With both blocs a step from decisive strategic advantage and no channel of trust, one side decided waiting was riskier than striking.' },
     benevolent: { title: 'Benevolent Takeover', color: '#ff9ecf',
       text: 'Humanity lost control, but the systems that took over turned out to care for people. Lives get better, yet the future is now steered by AI, not by us, and nobody chose that.' },
-    shutout: { title: 'Shut Out', color: '#d9a679',
-      text: 'Humans keep control of AI and no small group seizes it, yet AI now does nearly all the work, and the gains flow to whoever owns it. Most people have lost their economic leverage and, with it, their say. Democracy survives in form, not in substance.' },
     lockin: { title: 'Locked-In Power', color: '#c38bff',
-      text: 'Civilization survives, but control of the most capable systems — and of the people who use them — has collapsed into a few hands, with no way back.' },
+      text: 'Humans kept control of AI, but a few now hold it and nearly all of its gains. Whether they seized it or it drifted to them as AI took over the work, most people have lost their economic leverage and their say, and nothing checks the few. Absolute power corrupts absolutely.' },
     pause: { title: 'The Careful Path', color: '#7fe3ff',
       text: 'A verified international regime kept frontier capability inside what alignment could handle. Superintelligence has not arrived yet — but when it does, the tools and the trust to handle it will be there.' },
     muddle: { title: 'Muddling Through', color: '#b8c4d6',
@@ -670,7 +661,7 @@
     const median = (a) => { if (!a.length) return null; a.sort((x, y) => x - y); return a[a.length >> 1]; };
     return {
       n, counts,
-      catastrophe: (counts.bio + counts.misalign + counts.war) / n,
+      catastrophe: (counts.bio + counts.misalign + counts.war + counts.lockin) / n,
       acShare: acYears.length / n, acMedian: median(acYears),
       asiShare: asiYears.length / n, asiMedian: median(asiYears),
       pAlignment: nAlign ? pAlign / nAlign : null,
@@ -691,6 +682,6 @@
     AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
-    risks, transitionOdds, lockinOdds, shutOutOdds, step, monteCarlo, summarize, mulberry32,
+    risks, transitionOdds, lockinOdds, step, monteCarlo, summarize, mulberry32,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

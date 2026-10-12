@@ -298,11 +298,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261012145955"></script>
-<script src="events.js?v=20261012145955"></script>
-<script src="landmask.js?v=20261012145955"></script>
-<script src="presets.js?v=20261012145955"></script>
-<script src="trees.js?v=20261012145955"></script>
+<script src="model.js?v=20261012150947"></script>
+<script src="events.js?v=20261012150947"></script>
+<script src="landmask.js?v=20261012150947"></script>
+<script src="presets.js?v=20261012150947"></script>
+<script src="trees.js?v=20261012150947"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -443,7 +443,7 @@
     <h2>Game of AGI</h2>
     <h3 class="no-copy">Origins and sources</h3>
     <p>This version extends the original <a href="https://gist.github.com/crizCraig/f4c583f0ca535ce5565f3aa66353cf99" target="_blank" rel="noopener">Game of AGI</a>, a Monte Carlo of AGI risk driven by safe-by-default odds, safety spending, oversight, the number of labs that originate AGI, whistleblowers, and takeoff vs. replication time.</p>
-    <p>The main sources: <a href="https://ai-2040.com/" target="_blank" rel="noopener">AI 2040: Plan A</a> for timelines and the plans' odds of getting alignment right; a separate factored Monte Carlo estimate for open-weights pandemic risk; and <a href="https://www.nationalsecurity.ai/" target="_blank" rel="noopener"><i>Superintelligence Strategy</i></a> (Hendrycks, Schmidt and Wang) for why state bioweapons are treated as deterred; and experts on Chinese AI policy (Concordia AI, Matt Sheehan at Carnegie, SemiAnalysis) for how much alignment work China does itself and how readily it would slow down; and Craig Quiter's <a href="https://nationalsecurityresponse.ai/" target="_blank" rel="noopener">National Security Response</a> for how automation can leave most people without economic leverage or a say even when humans keep control of AI (the Shut Out ending and the public wealth fund).</p>
+    <p>The main sources: <a href="https://ai-2040.com/" target="_blank" rel="noopener">AI 2040: Plan A</a> for timelines and the plans' odds of getting alignment right; a separate factored Monte Carlo estimate for open-weights pandemic risk; and <a href="https://www.nationalsecurity.ai/" target="_blank" rel="noopener"><i>Superintelligence Strategy</i></a> (Hendrycks, Schmidt and Wang) for why state bioweapons are treated as deterred; and experts on Chinese AI policy (Concordia AI, Matt Sheehan at Carnegie, SemiAnalysis) for how much alignment work China does itself and how readily it would slow down; and Craig Quiter's <a href="https://nationalsecurityresponse.ai/" target="_blank" rel="noopener">National Security Response</a> for how automation can leave most people without economic leverage or a say even when humans keep control of AI (Locked-In Power and the public wealth fund).</p>
     <p class="no-copy">The code is open source on <a href="https://github.com/crizCraig/ai-safety-sim" target="_blank" rel="noopener">GitHub</a> (MIT license).</p>
     <p class="no-copy">This game was built in conversation with Claude Code. Each session's full history is browsable as a memtree:</p>
     <ol class="treelist no-copy" id="treeList"></ol>
@@ -501,7 +501,6 @@
         <tr><td><span class="mi">a_{\text{CN}}</span></td><td>China's own alignment work, relative to the US bloc's. Work on keeping AI loyal to the Party line does not count</td><td><span class="mi">\mathcal{N}(0.35,\ 0.17)</span>, clipped to [0, 1] <span class="src china">China experts</span></td></tr>
         <tr><td><span class="mi">q_{\text{CN}}</span></td><td>How far China cuts its race once there are signs of losing control</td><td><span class="mi">\mathcal{N}(0.25,\ 0.15)</span>, clipped to [0, 1] <span class="src china">China experts</span></td></tr>
         <tr><td><span class="mi">e</span></td><td>How much safety tests overstate alignment, because AIs can tell when they are being evaluated and behave better under test. <span class="mi">A</span> is the measured value players see</td><td><span class="mi">\mathcal{N}(0.15,\ 0.10)</span>, clipped to [0, 0.6] <span class="src own">Assumption</span></td></tr>
-        <tr><td><span class="mi">\kappa</span></td><td>Gains kept at the top: with humans in control and power plural, how likely AI's owners are to keep its gains so most people lose their leverage and their say</td><td><span class="mi">\mathcal{N}(0.78,\ 0.15)</span>, clipped to [0, 1] <span class="src own">Assumption</span>, set so about 40% of status-quo futures where humans keep control end Shut Out</td></tr>
         <tr><td><span class="mi">\omega</span></td><td>Whistleblower odds</td><td><span class="mi">\mathcal{N}(0.25,\ 0.15)</span>, clipped to [0, 1] <span class="src own">Assumption</span></td></tr>
         <tr><td><span class="mi">R_{\text{bio}}</span></td><td>Decade risk of a 100M+ death pandemic enabled by open weights, on the default path</td><td><span class="mi">\log_{10} R_{\text{bio}} \sim \mathcal{N}(-3.92,\ 1.2)</span> <span class="src biodec">Bio decomposition</span></td></tr>
       </tbody>
@@ -526,11 +525,11 @@
     <h3>4. Endings</h3>
     <p><b>Superintelligence handoff.</b> When <span class="mi">C</span> reaches 100:</p>
     <div class="math">\Pr(\text{handoff goes well}) = \begin{cases} 1 & \delta \le 0.3 \\ \sigma\big(\tfrac{\hat{A}-\beta}{6}\big) & \text{otherwise} \end{cases}, \qquad \beta = 45 + 32\,\delta + 0.2\,(H-30) - 10\,\tfrac{N}{100}</div>
-    <p>The bar <span class="mi">\beta</span> rises with hidden difficulty and with hidden internal AI, and falls when BCIs let humans check AI reasoning directly. A failed handoff is loss of control, which ends as a Benevolent Takeover if <span class="mi">W = 1</span>. A successful one ends in lock-in with probability</p>
-    <div class="math">P_{\text{lock}} = \sigma\big(\tfrac{P-64}{6}\big)\,(1-0.6\,v)\,(1-\omega)\,(1-0.6\,\rho), \qquad \rho = \max\Big(\operatorname{clamp}\big(1-\tfrac{|C_{\text{US}}-C_{\text{CN}}|}{15}\big),\ \operatorname{clamp}\big(\tfrac{O-80}{20}\big),\ 0.85\,\tau\Big)</div>
-    <p>If power stays plural, the future can still end with most people <b>Shut Out</b>, with probability</p>
-    <div class="math">P_{\text{shut}} = \min\Big(0.95,\ \kappa\,\big(0.6+0.4\,\phi\big)\,(0.8+0.4\,r)\big(1.3-0.6\,\tfrac{T}{100}\big)\,(1-0.7\,\tfrac{F}{100})\big(1-0.3\,o\,\operatorname{clamp}(\tfrac{O}{C})\big)(1-0.3\,v)(1-0.25\,\tau)\big(1-0.2\,d\operatorname{clamp}(\tfrac{T-50}{30})\big)\Big)</div>
-    <p>where <span class="mi">\phi</span> is physical automation (it grows over the six years after the Automated Coder milestone, as robots follow software) and <span class="mi">F</span> is the public fund's stake. The stake starts at 3 and moves toward <span class="mi">100 f</span> each year: when buying in, at a rate of <span class="mi">0.4\,(1-0.85\,\sigma(\tfrac{C-80}{5}))</span> with <span class="mi">C</span> at the start of the year; when selling down, at a flat rate of 0.2. Buying in is slower later because buying into AI gets far more expensive once its value explodes, so funds built early own more; a full fund slows US capability growth by 5%. Coordination with China helps only when public trust is high: redistribution happens when voters demand it. This follows Craig Quiter's <a href="https://nationalsecurityresponse.ai/" target="_blank" rel="noopener">National Security Response</a>: competition forces automation, and value moves from labor to whoever owns AI. Otherwise the future ends in an Aligned Transition. Plurality <span class="mi">\rho</span> is high when a rival can replicate AGI before takeoff completes, open weights are near the frontier, or research is public so many labs can follow (the last from <span class="src a2040">AI 2040</span>). <b>In 2040</b>, a future that has not ended becomes Locked-In Power if <span class="mi">T &lt; 45</span> and a lock-in roll succeeds, The Careful Path if effective alignment <span class="mi">\hat{A} \ge C</span> (real alignment, after the test overstatement and any shortfall in what reaches a leading China) and <span class="mi">K &gt; 55</span>, and Muddling Through otherwise.</p>
+    <p>The bar <span class="mi">\beta</span> rises with hidden difficulty and with hidden internal AI, and falls when BCIs let humans check AI reasoning directly. A failed handoff is loss of control, which ends as a Benevolent Takeover if <span class="mi">W = 1</span>. A successful one still ends in <b>Locked-In Power</b>, a catastrophe, with probability</p>
+    <div class="math">P_{\text{lock}} = \min\Big(0.95,\ 1.8\,\big(0.45+0.55\,\sigma(\tfrac{P-64}{6})\big)\big(0.6+0.4\,\phi\big)(0.8+0.4\,r)\big(1.3-0.6\,\tfrac{T}{100}\big)\,(1-0.7\,\tfrac{F}{100})(1-0.45\,v)(1-0.35\,\tau)(1-0.6\,\omega)(1-0.15\,\rho)\big(1-0.1\,o\operatorname{clamp}(\tfrac{O}{C})\big)\big(1-0.2\,d\operatorname{clamp}(\tfrac{T-50}{30})\big)\Big)</div>
+    <div class="math">\rho = \max\Big(\operatorname{clamp}\big(1-\tfrac{|C_{\text{US}}-C_{\text{CN}}|}{15}\big),\ \operatorname{clamp}\big(\tfrac{O-80}{20}\big)\Big)</div>
+    <p>A few end up holding AI and nearly all its gains while most people lose their economic leverage and their say, whether power was seized or drifted there as automation moved value from labor to whoever owns AI. Concentrated power, automation, racing and low public trust raise it; a public wealth fund, oversight, transparency and whistleblowers lower it. Exponential growth pulls the frontier away from the pack, so a close rival or near-frontier open weights (<span class="mi">\rho</span>) protect only a little. The scale 1.8 is set so about half of status-quo futures where humans keep control end this way (Craig's estimate). Otherwise the future ends in an Aligned Transition. </p>
+    <p>where <span class="mi">\phi</span> is physical automation (it grows over the six years after the Automated Coder milestone, as robots follow software) and <span class="mi">F</span> is the public fund's stake. The stake starts at 3 and moves toward <span class="mi">100 f</span> each year: when buying in, at a rate of <span class="mi">0.4\,(1-0.85\,\sigma(\tfrac{C-80}{5}))</span> with <span class="mi">C</span> at the start of the year; when selling down, at a flat rate of 0.2. Buying in is slower later because buying into AI gets far more expensive once its value explodes, so funds built early own more; a full fund slows US capability growth by 5%. Coordination with China helps only when public trust is high: redistribution happens when voters demand it. This follows Craig Quiter's <a href="https://nationalsecurityresponse.ai/" target="_blank" rel="noopener">National Security Response</a>: competition forces automation, and value moves from labor to whoever owns AI. <b>In 2040</b>, a future that has not ended becomes Locked-In Power if <span class="mi">T &lt; 45</span> and a lock-in roll (the same formula) succeeds, The Careful Path if effective alignment <span class="mi">\hat{A} \ge C</span> (real alignment, after the test overstatement and any shortfall in what reaches a leading China) and <span class="mi">K &gt; 55</span>, and Muddling Through otherwise.</p>
 
     <h3>5. Yearly updates</h3>
     <p><b>Capability</b>:</p>
@@ -567,7 +566,7 @@
         <tr><td>p(alignment), Plan B: fight China</td><td>50% (AI 2040 median)</td><td>48%</td></tr>
         <tr><td>p(alignment), burn the lead</td><td>40% (AI 2040 median)</td><td>41%</td></tr>
         <tr><td>p(alignment), Plan A</td><td>72% (AI 2040 median)</td><td>75%</td></tr>
-        <tr><td>Shut Out share of status-quo futures where humans keep control</td><td>30–50% (Craig's estimate)</td><td>40%</td></tr>
+        <tr><td>Locked-In Power share of status-quo futures where humans keep control</td><td>about half (Craig's estimate)</td><td>47%</td></tr>
         <tr><td>Bio decade risk actually faced on the default path: median</td><td>1.2e-4</td><td>1.0e-4</td></tr>
         <tr><td>Bio decade risk: 95% interval</td><td>5e-7 to 3e-2</td><td>3.8e-7 to 2.5e-2</td></tr>
         <tr><td>Bio decade risk: P(&gt; 1%), P(&gt; 10%)</td><td>0.055, 0.007</td><td>0.052, 0.007</td></tr>
@@ -593,7 +592,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261012145955';
+const ASSET_VERSION = '20261012150947';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -888,7 +887,7 @@ function buildFan(paths) {
     fanLines.add(line);
     // Every line ends at the state it actually reached. Catastrophes get a
     // larger dot with a ring, so they stand out without bending the axes.
-    const catastrophe = ['bio', 'misalign', 'war'].includes(p.outcome);
+    const catastrophe = ['bio', 'misalign', 'war', 'lockin'].includes(p.outcome);
     const end = new THREE.Mesh(new THREE.SphereGeometry(catastrophe ? 0.14 : 0.08, 10, 8), new THREE.MeshBasicMaterial({ color: col }));
     if (catastrophe) {
       const ring = new THREE.Sprite(new THREE.SpriteMaterial({ map: RING_TEX, color: col, transparent: true, depthWrite: false }));
@@ -958,7 +957,7 @@ const C = (h) => new THREE.Color(h);
 const colLand = C(0x2fd4c4), colBio = C(0x7cff6b), colLock = C(0xc38bff), colGold = C(0xffd76a), colDead = C(0x30343c), colWar = C(0xff8a3d);
 const colRed = C(0xff2a4a), colGrey = C(0x8a97ad), colTeal = C(0x59f0b8), colCyan = C(0x7fe3ff), colArcBad = C(0xff3b5c), colAtmo = C(0x3d8bff);
 const colBen = C(0xff9ecf);
-const ATMO = Object.fromEntries(Object.entries({ benevolent: 0xff8fc8, flourish: 0xffd76a, bio: 0x6bff5a, misalign: 0xff2a4a, war: 0xff7a2a, lockin: 0xa86bff, shutout: 0xd9a679, pause: 0x7fe3ff, muddle: 0x7a8aa6 }).map(([k, v]) => [k, C(v)]));
+const ATMO = Object.fromEntries(Object.entries({ benevolent: 0xff8fc8, flourish: 0xffd76a, bio: 0x6bff5a, misalign: 0xff2a4a, war: 0xff7a2a, lockin: 0xa86bff, pause: 0x7fe3ff, muddle: 0x7a8aa6 }).map(([k, v]) => [k, C(v)]));
 
 function syncTarget(s, L) {
   Object.assign(target, { capUS: s.capUS, capCN: s.capCN, align: s.align, openCap: s.openCap, bio: s.bio, coord: s.coord, bci: s.bci, conc: s.conc, trust: s.trust });
@@ -1066,7 +1065,6 @@ function updateWorld(dt, t) {
     else if (out === 'misalign') tmpC.lerp(colRed, Math.min(1, k * 1.5 * (0.6 + s * 0.6)));
     else if (out === 'war') tmpC.lerp(s < 0.3 ? colWar : colDead, k);
     else if (out === 'lockin') tmpC.lerp(colLock, k * 0.8);
-    else if (out === 'shutout') tmpC.lerp(colGrey, k * 0.6);
     else if (out === 'benevolent') tmpC.lerp(colBen, k * (0.4 + 0.4 * Math.sin(t * 0.7 + s * 8)));
     else if (out === 'flourish') tmpC.lerp(colGold, k * (0.5 + 0.5 * Math.sin(t + s * 10)));
     else if (out === 'muddle') tmpC.lerp(colGrey, k * 0.5);
@@ -1343,7 +1341,7 @@ function yearChanges(a, b) {
 function showEnding() {
   const s = game.s, o = M.OUTCOMES[s.outcome];
   const good = ['flourish', 'pause'].includes(s.outcome);
-  $('endKicker').textContent = `${s.year} · ${good ? 'You made it' : s.outcome === 'muddle' ? 'Unresolved' : s.outcome === 'lockin' || s.outcome === 'shutout' ? 'Survived, but…' : s.outcome === 'benevolent' ? 'Out of our hands' : 'Catastrophe'}`;
+  $('endKicker').textContent = `${s.year} · ${good ? 'You made it' : s.outcome === 'muddle' ? 'Unresolved' : s.outcome === 'benevolent' ? 'Out of our hands' : 'Catastrophe'}`;
   $('endTitle').textContent = o.title;
   $('endTitle').style.color = o.color;
   $('endText').textContent = o.text;
@@ -1527,7 +1525,7 @@ function runLab() {
   const mc = M.monteCarlo(labL, 2000, 260, 42, labA);
   lastMC = mc;
   renderOutcomeRows(mc);
-  const cat = (mc.counts.bio + mc.counts.misalign + mc.counts.war) / mc.n;
+  const cat = (mc.counts.bio + mc.counts.misalign + mc.counts.war + mc.counts.lockin) / mc.n;
   $('catNum').textContent = pct(cat, cat < 0.1 ? 1 : 0);
   $('catNum').style.color = cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)';
   $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, cat < 0.1 ? 1 : 0)}</b> of futures · outcome reached after ${mc.meanYears.toFixed(1)} years on average (${avgDate(mc.meanYears)}) · click an outcome to isolate it`;
@@ -1625,7 +1623,7 @@ ${start}.
 |---|---|---|
 ${outcomes}
 
-- Catastrophe (pandemic, loss of control or war): ${p1(r.catastrophe)}
+- Catastrophe (pandemic, loss of control, war or locked-in power): ${p1(r.catastrophe)}
 - Automated Coder (capability 70) reached in ${p1(r.acShare)} of futures${r.acMedian ? `, median year ${r.acMedian}` : ''}
 - Superintelligence (capability 100) reached in ${p1(r.asiShare)} of futures${r.asiMedian ? `, median year ${r.asiMedian}` : ''}
 - p(alignment), excluding pandemic and war futures: ${r.pAlignment == null ? 'n/a' : p1(r.pAlignment)}
