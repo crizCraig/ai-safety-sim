@@ -22,6 +22,9 @@ oversight, whistleblowers, and takeoff speed vs. how fast rivals replicate AGI. 
 version adds time, geopolitics, open weights, bio risk, and a 3D world, and
 calibrates its timelines and plan outcomes to [AI 2040: Plan A](https://ai-2040.com/). The Futures Lab
 has presets for all five plans in AI 2040's [plan comparison](https://ai-2040.com/supplements/comparing-possible-plans).
+The Shut Out ending and the public wealth fund follow
+[National Security Response](https://nationalsecurityresponse.ai/): automation can leave most
+people without economic leverage or a say even when humans keep control of AI.
 
 ## Two modes
 

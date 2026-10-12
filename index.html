@@ -298,11 +298,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261011224339"></script>
-<script src="events.js?v=20261011224339"></script>
-<script src="landmask.js?v=20261011224339"></script>
-<script src="presets.js?v=20261011224339"></script>
-<script src="trees.js?v=20261011224339"></script>
+<script src="model.js?v=20261012145955"></script>
+<script src="events.js?v=20261012145955"></script>
+<script src="landmask.js?v=20261012145955"></script>
+<script src="presets.js?v=20261012145955"></script>
+<script src="trees.js?v=20261012145955"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -443,7 +443,7 @@
     <h2>Game of AGI</h2>
     <h3 class="no-copy">Origins and sources</h3>
     <p>This version extends the original <a href="https://gist.github.com/crizCraig/f4c583f0ca535ce5565f3aa66353cf99" target="_blank" rel="noopener">Game of AGI</a>, a Monte Carlo of AGI risk driven by safe-by-default odds, safety spending, oversight, the number of labs that originate AGI, whistleblowers, and takeoff vs. replication time.</p>
-    <p>The main sources: <a href="https://ai-2040.com/" target="_blank" rel="noopener">AI 2040: Plan A</a> for timelines and the plans' odds of getting alignment right; a separate factored Monte Carlo estimate for open-weights pandemic risk; and <a href="https://www.nationalsecurity.ai/" target="_blank" rel="noopener"><i>Superintelligence Strategy</i></a> (Hendrycks, Schmidt and Wang) for why state bioweapons are treated as deterred; and experts on Chinese AI policy (Concordia AI, Matt Sheehan at Carnegie, SemiAnalysis) for how much alignment work China does itself and how readily it would slow down.</p>
+    <p>The main sources: <a href="https://ai-2040.com/" target="_blank" rel="noopener">AI 2040: Plan A</a> for timelines and the plans' odds of getting alignment right; a separate factored Monte Carlo estimate for open-weights pandemic risk; and <a href="https://www.nationalsecurity.ai/" target="_blank" rel="noopener"><i>Superintelligence Strategy</i></a> (Hendrycks, Schmidt and Wang) for why state bioweapons are treated as deterred; and experts on Chinese AI policy (Concordia AI, Matt Sheehan at Carnegie, SemiAnalysis) for how much alignment work China does itself and how readily it would slow down; and Craig Quiter's <a href="https://nationalsecurityresponse.ai/" target="_blank" rel="noopener">National Security Response</a> for how automation can leave most people without economic leverage or a say even when humans keep control of AI (the Shut Out ending and the public wealth fund).</p>
     <p class="no-copy">The code is open source on <a href="https://github.com/crizCraig/ai-safety-sim" target="_blank" rel="noopener">GitHub</a> (MIT license).</p>
     <p class="no-copy">This game was built in conversation with Claude Code. Each session's full history is browsable as a memtree:</p>
     <ol class="treelist no-copy" id="treeList"></ol>
@@ -593,7 +593,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261011224339';
+const ASSET_VERSION = '20261012145955';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
