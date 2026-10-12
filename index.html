@@ -200,6 +200,7 @@
   #splash { background: radial-gradient(ellipse at center, rgba(2,4,10,0.15) 0%, rgba(2,4,10,0.7) 75%); backdrop-filter: none; z-index: 12; }
   .splash-box { text-align: center; max-width: 560px; }
   .splash-box h1 { margin: 10px 0 8px; font-size: clamp(34px, 7vw, 60px); line-height: 1.05; letter-spacing: .01em; text-shadow: 0 4px 30px rgba(0,0,0,.7); }
+  .splash-save { margin: 2px 0 14px; font-size: clamp(26px, 5.2vw, 44px); font-weight: 600; line-height: 1.1; color: var(--accent); text-shadow: 0 0 24px rgba(127,227,255,.55), 0 4px 30px rgba(0,0,0,.7); }
   .splash-box p { margin: 0 0 26px; font-size: 18px; color: #c3cee0; text-shadow: 0 2px 12px rgba(0,0,0,.8); }
   #splash .splash-play { font-size: 20px; padding: 14px 56px; border-radius: 999px; }
   .linkbtn { display: block; margin: 16px auto 0; background: none; border: none; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; }
@@ -294,11 +295,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261011165135"></script>
-<script src="events.js?v=20261011165135"></script>
-<script src="landmask.js?v=20261011165135"></script>
-<script src="presets.js?v=20261011165135"></script>
-<script src="trees.js?v=20261011165135"></script>
+<script src="model.js?v=20261011170347"></script>
+<script src="events.js?v=20261011170347"></script>
+<script src="landmask.js?v=20261011170347"></script>
+<script src="presets.js?v=20261011170347"></script>
+<script src="trees.js?v=20261011170347"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -406,7 +407,8 @@
   <div class="splash-box">
     <div class="kicker">2027 · thirteen years to superintelligence</div>
     <h1>Can you win the<br>Game of AGI?</h1>
-    <p>…and save the world. One decision a year.</p>
+    <div class="splash-save">…and save the world?</div>
+    <p>One decision a year.</p>
     <button class="btn splash-play" id="playBtn">Play</button>
     <button class="linkbtn" id="splashLab">or explore 2,000 possible futures →</button>
   </div>
@@ -588,7 +590,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261011165135';
+const ASSET_VERSION = '20261011170347';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
