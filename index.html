@@ -298,11 +298,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261011224107"></script>
-<script src="events.js?v=20261011224107"></script>
-<script src="landmask.js?v=20261011224107"></script>
-<script src="presets.js?v=20261011224107"></script>
-<script src="trees.js?v=20261011224107"></script>
+<script src="model.js?v=20261011224339"></script>
+<script src="events.js?v=20261011224339"></script>
+<script src="landmask.js?v=20261011224339"></script>
+<script src="presets.js?v=20261011224339"></script>
+<script src="trees.js?v=20261011224339"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -361,7 +361,7 @@
     <h3>2,000 simulated futures</h3>
     <div class="sub" id="labSub"></div>
     <div id="outcomes"></div>
-    <button class="btn copybtn" id="copyPage" title="Copies these settings, the model's formulas and source, and the results as a prompt for an AI assistant">Copy for LLMs</button>
+    <button class="btn copybtn" id="copyPage">Copy for LLMs</button>
     <div class="note">Copies these settings, the formulas, the model's code and the results as one prompt. Paste it into Claude or another AI and ask it to poke holes in the assumptions.</div>
     <div class="divider"></div>
     <p class="note">Each line in the 3D view is one simulated future, 2027 → its outcome. Height is frontier capability and depth is alignment. Each line ends at the state its future reached; a ringed dot marks a catastrophe (pandemic, loss of control or war) at the year it struck. Hover or tap a line to read its values.</p>
@@ -593,7 +593,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261011224107';
+const ASSET_VERSION = '20261011224339';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
