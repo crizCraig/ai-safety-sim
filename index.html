@@ -298,11 +298,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261011214449"></script>
-<script src="events.js?v=20261011214449"></script>
-<script src="landmask.js?v=20261011214449"></script>
-<script src="presets.js?v=20261011214449"></script>
-<script src="trees.js?v=20261011214449"></script>
+<script src="model.js?v=20261011215108"></script>
+<script src="events.js?v=20261011215108"></script>
+<script src="landmask.js?v=20261011215108"></script>
+<script src="presets.js?v=20261011215108"></script>
+<script src="trees.js?v=20261011215108"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -593,7 +593,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261011214449';
+const ASSET_VERSION = '20261011215108';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1774,7 +1774,7 @@ const visible = (el) => { if (!el) return false; const r = el.getBoundingClientR
 function startTour(m) {
   const steps = TOURS[m].filter(([sel]) => visible(document.querySelector(sel)));
   if (!steps.length) return;
-  tour = { steps, i: 0 };
+  tour = { steps, i: 0, mode: m };
   $('tour').hidden = false;
   showTourStep();
 }
@@ -1810,14 +1810,19 @@ function showTourStep() {
     $('tourNext').focus({ preventScroll: true });
   });
 }
-function endTour() { tour = null; $('tour').hidden = true; }
+function endTour() {
+  if (tour) { try { localStorage.setItem('goagi-tour-' + tour.mode, '1'); } catch (e) {} }
+  tour = null; $('tour').hidden = true;
+}
 $('tourNext').onclick = () => { if (++tour.i >= tour.steps.length) endTour(); else showTourStep(); };
 $('tourSkip').onclick = endTour;
 addEventListener('resize', () => { if (tour) showTourStep(); });
 // Run each mode's tutorial once, the first time that mode is used.
 function maybeTour(m) {
   let seen = false;
-  try { seen = localStorage.getItem('goagi-tour-' + m) === '1'; localStorage.setItem('goagi-tour-' + m, '1'); } catch (e) {}
+  // Marked seen only when the tutorial is finished or skipped (endTour), so closing the tab
+  // mid-tutorial, or opening another tab first, still shows it.
+  try { seen = localStorage.getItem('goagi-tour-' + m) === '1'; } catch (e) {}
   if (!seen) setTimeout(() => { if (mode === m && !tour) startTour(m); }, 700);
 }
 $('tourBtn').onclick = () => {
