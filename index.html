@@ -110,6 +110,8 @@
   .roll.on { display: flex; flex-direction: column; }
   .roll.on .verdict { order: -1; margin: 0 0 10px; }
   .roll .lane.skipped { opacity: 0.35; }
+  .roll .lane .est { width: 92px; flex: none; font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap; }
+  @media (max-width: 640px) { .roll .lane span:first-child { width: 128px; } .roll .lane .est { width: 70px; } }
   .roll .youchose { font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 4px; }
   .roll .changes { margin-top: 8px; }
   .roll .next { display: block; margin: 12px 0 0 auto; }
@@ -295,11 +297,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261011172535"></script>
-<script src="events.js?v=20261011172535"></script>
-<script src="landmask.js?v=20261011172535"></script>
-<script src="presets.js?v=20261011172535"></script>
-<script src="trees.js?v=20261011172535"></script>
+<script src="model.js?v=20261011173125"></script>
+<script src="events.js?v=20261011173125"></script>
+<script src="landmask.js?v=20261011173125"></script>
+<script src="presets.js?v=20261011173125"></script>
+<script src="trees.js?v=20261011173125"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -590,7 +592,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261011172535';
+const ASSET_VERSION = '20261011173125';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1254,16 +1256,27 @@ function rollYear() {
   $('choices').style.display = 'none';
   const roll = $('roll'); roll.classList.add('on');
   $('card').classList.add('resolved');
-  // Roll first, so the lanes can include the superintelligence handoff when it happens.
+  // The same 16 dice step() will draw this year (same seeded stream), so each needle sits
+  // exactly where its die landed. Bars show the real risk from this game's hidden world.
+  const rngPeek = yearRng(2), dice = Array.from({ length: 16 }, () => rngPeek());
   const res = M.step(s, L, yearRng(2), true);
-  const lanes = [['Pandemic', r.bio, 'bio'], ['Loss of control', r.misalign, 'loc'], ['Great-power war', r.war, 'war']];
-  if (res.stage === 'handoff') lanes.push(['Handoff fails', 1 - M.transitionOdds(s, false, L), 'handoff']);
-  // Bars are drawn to scale (a sliver for tiny risks). Each lane shows the risk as you
-  // could know it; the dice use the hidden truth, so the needle shows only hit or miss.
-  const hitStage = res.stage === 'handoff' ? (['misalign', 'benevolent'].includes(res.event) ? 'handoff' : null) : res.stage;
-  const hitLane = lanes.findIndex((l) => l[2] === hitStage);
-  roll.innerHTML = lanes.map(([n, p], i) => `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${p > 0 ? Math.max(p * 100, 1.2) : 0}%"></div><div class="needle" id="nd${i}"></div></div></div>`).join('') +
-    `<div class="note">Red shows the chance of each catastrophe, to scale. A needle inside the red means it happened.</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
+  const lanes = [
+    ['Pandemic', r.bioTrue, r.bio, 'bio', dice[0]],
+    ['Loss of control', r.misalignTrue, r.misalign, 'loc', dice[1]],
+    ['Great-power war', r.war, r.war, 'war', dice[2]],
+  ];
+  if (res.stage === 'handoff') {
+    // The handoff fails when its die is at or above the chance of success; flip it so
+    // "inside the red" still means it happened.
+    const q = M.transitionOdds(s, true, L);
+    lanes.push(['Handoff fails', 1 - q, 1 - M.transitionOdds(s, false, L), 'handoff', 1 - dice[13]]);
+  }
+  const hitLane = lanes.findIndex(([, p, , , u]) => u < p);
+  roll.innerHTML = lanes.map(([n, p, est], i) => {
+    const differs = Math.abs(p - est) > 0.0005 && pct(p) !== pct(est);
+    return `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${p > 0 ? Math.max(p * 100, 0.8) : 0}%"></div><div class="needle" id="nd${i}"></div></div>${differs ? `<span class="est">you saw ${pct(est)}</span>` : '<span class="est"></span>'}</div>`;
+  }).join('') +
+    `<div class="note">Red is the real chance of each catastrophe this year, from this game's hidden world, drawn to scale. The needle is where the die landed: inside the red, it happened. "You saw" is the estimate you had while choosing.</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
   const t0 = performance.now();
   const wiggle = () => {
     const el = performance.now() - t0;
@@ -1271,12 +1284,10 @@ function rollYear() {
       const n = $('nd' + i); if (!n) return;
       const settle = Math.min(1, el / 1300);
       // Lanes after a hit were never rolled.
-      const hit = hitLane === i;
       if (hitLane >= 0 && i > hitLane) { n.style.display = 'none'; n.parentElement.parentElement.classList.add('skipped'); continue; }
-      const zone = lanes[i][1] > 0 ? Math.max(lanes[i][1] * 100, 1.2) : 0;
-      const final = hit ? Math.max(0.6, zone * 0.5) : Math.min(99, zone + Math.max(3, (100 - zone) * (0.25 + 0.2 * (i % 3))));
+      const final = Math.min(99.7, Math.max(0.3, lanes[i][4] * 100));
       const x = settle < 1 ? (Math.sin(el / 60 + i * 2) * 0.5 + 0.5) * 100 * (1 - settle) + final * settle : final;
-      n.style.left = Math.min(99, x) + '%';
+      n.style.left = x + '%';
     }
     if (el < 1300) requestAnimationFrame(wiggle);
   };
@@ -1285,7 +1296,7 @@ function rollYear() {
     syncTarget(s, L);
     renderAll();
     const how = res.stage === 'handoff'
-      ? `<div class="youchose">Every yearly hazard was survived; this was decided at the superintelligence handoff (it had a ${pct(M.transitionOdds(s, false, L), 0)} chance of going well).</div>`
+      ? `<div class="youchose">Every yearly hazard was survived; this was decided at the superintelligence handoff (in this world it had a ${pct(M.transitionOdds(s, true, L), 0)} chance of going well; you estimated ${pct(M.transitionOdds(s, false, L), 0)}).</div>`
       : res.stage === 'end' ? '<div class="youchose">2040 arrives.</div>' : '';
     const verdict = res.event
       ? `<span style="color:${M.OUTCOMES[res.event].color}">${M.OUTCOMES[res.event].title}</span>${how}`
