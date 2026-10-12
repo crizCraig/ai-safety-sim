@@ -452,6 +452,8 @@
     return clamp(LOCK_K * conc * automation * pressure * keep, 0, 0.95);
   }
   const LOCK_K = 1.8;
+  // Endings that count as catastrophes (a kind takeover does not).
+  const CATASTROPHES = ['bio', 'misalign', 'war', 'lockin'];
   // Shown (belief) lock-in odds: the capped probability averaged over the whistleblower
   // distribution, not evaluated at its mean. The dice use the hidden draw.
   function lockinBelief(s, L) {
@@ -672,7 +674,7 @@
     const median = (a) => { if (!a.length) return null; a.sort((x, y) => x - y); return a[a.length >> 1]; };
     return {
       n, counts,
-      catastrophe: (counts.bio + counts.misalign + counts.war + counts.lockin) / n,
+      catastrophe: CATASTROPHES.reduce((a, k) => a + counts[k], 0) / n,
       acShare: acYears.length / n, acMedian: median(acYears),
       asiShare: asiYears.length / n, asiMedian: median(asiYears),
       pAlignment: nAlign ? pAlign / nAlign : null,
@@ -693,6 +695,6 @@
     AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
-    risks, transitionOdds, lockinOdds, lockinBelief, step, monteCarlo, summarize, mulberry32,
+    risks, transitionOdds, lockinOdds, lockinBelief, CATASTROPHES, step, monteCarlo, summarize, mulberry32,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -143,6 +143,9 @@
   .orow .odesc { grid-column: 1 / 4; font-size: 11.5px; line-height: 1.45; color: #c3cee0; margin-top: 2px; }
   .orow { display: grid; grid-template-columns: 12px 1fr 52px; gap: 8px; align-items: center; font-size: 12.5px; margin-bottom: 8px; }
   .orow .dot { width: 10px; height: 10px; border-radius: 50%; }
+  /* Catastrophes: a ringed dot (like their end markers in the 3D view) and a small tag. */
+  .orow.cat .dot { box-shadow: 0 0 0 2px var(--panel-solid), 0 0 0 3.5px currentColor; color: var(--bad); }
+  .orow .ctag { margin-left: 6px; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--bad); border: 1px solid rgba(255,77,106,.45); border-radius: 4px; padding: 0 4px; vertical-align: 1px; }
   .orow .bar { grid-column: 2 / 4; height: 6px; margin-top: -4px; }
   .orow .v { font-family: var(--mono); text-align: right; }
   .note { font-size: 11px; color: var(--muted); line-height: 1.45; }
@@ -298,11 +301,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261012153158"></script>
-<script src="events.js?v=20261012153158"></script>
-<script src="landmask.js?v=20261012153158"></script>
-<script src="presets.js?v=20261012153158"></script>
-<script src="trees.js?v=20261012153158"></script>
+<script src="model.js?v=20261012155737"></script>
+<script src="events.js?v=20261012155737"></script>
+<script src="landmask.js?v=20261012155737"></script>
+<script src="presets.js?v=20261012155737"></script>
+<script src="trees.js?v=20261012155737"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -592,7 +595,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261012153158';
+const ASSET_VERSION = '20261012155737';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -887,7 +890,7 @@ function buildFan(paths) {
     fanLines.add(line);
     // Every line ends at the state it actually reached. Catastrophes get a
     // larger dot with a ring, so they stand out without bending the axes.
-    const catastrophe = ['bio', 'misalign', 'war', 'lockin'].includes(p.outcome);
+    const catastrophe = M.CATASTROPHES.includes(p.outcome);
     const end = new THREE.Mesh(new THREE.SphereGeometry(catastrophe ? 0.14 : 0.08, 10, 8), new THREE.MeshBasicMaterial({ color: col }));
     if (catastrophe) {
       const ring = new THREE.Sprite(new THREE.SpriteMaterial({ map: RING_TEX, color: col, transparent: true, depthWrite: false }));
@@ -1525,7 +1528,7 @@ function runLab() {
   const mc = M.monteCarlo(labL, 2000, 260, 42, labA);
   lastMC = mc;
   renderOutcomeRows(mc);
-  const cat = (mc.counts.bio + mc.counts.misalign + mc.counts.war + mc.counts.lockin) / mc.n;
+  const cat = M.CATASTROPHES.reduce((a, k) => a + mc.counts[k], 0) / mc.n;
   $('catNum').textContent = pct(cat, cat < 0.1 ? 1 : 0);
   $('catNum').style.color = cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)';
   $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, cat < 0.1 ? 1 : 0)}</b> of futures · outcome reached after ${mc.meanYears.toFixed(1)} years on average (${avgDate(mc.meanYears)}) · click an outcome to isolate it`;
@@ -1536,8 +1539,8 @@ function runLab() {
 function renderOutcomeRows(mc) {
   const order = Object.keys(M.OUTCOMES).sort((a, b) => mc.counts[b] - mc.counts[a]);
   $('outcomes').innerHTML = order.map((k) => {
-    const p = mc.counts[k] / mc.n, o = M.OUTCOMES[k], open = labFocus === k;
-    return `<button class="orow${open ? ' open' : ''}" data-outcome="${k}" aria-expanded="${open}"><span class="dot" style="background:${o.color}"></span><span>${o.title}</span><span class="v">${pct(p)}</span><span class="bar"><i style="width:${p * 100}%;background:${o.color}"></i></span>${open ? `<span class="odesc">${o.text}</span>` : ''}</button>`;
+    const p = mc.counts[k] / mc.n, o = M.OUTCOMES[k], open = labFocus === k, cat = M.CATASTROPHES.includes(k);
+    return `<button class="orow${open ? ' open' : ''}${cat ? ' cat' : ''}" data-outcome="${k}" aria-expanded="${open}"><span class="dot" style="background:${o.color}"></span><span>${o.title}${cat ? ' <span class="ctag">catastrophe</span>' : ''}</span><span class="v">${pct(p)}</span><span class="bar"><i style="width:${p * 100}%;background:${o.color}"></i></span>${open ? `<span class="odesc">${o.text}</span>` : ''}</button>`;
   }).join('');
 }
 
