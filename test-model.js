@@ -133,7 +133,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   {
     const u = mk(0.5); u.capUS = 99; const r = M.risks(u, L2);
     M.step(u, L2, () => 0.99, false);
-    const q = M.transitionOdds(u, false, L2), k = 0.5, lock = M.lockinOdds(u, L2, u.world.whistleMean);
+    const q = M.transitionOdds(u, false, L2), k = 0.5, lock = M.lockinBelief(u, L2);
     const expect = (1 - r.bio) * r.misalign * k + (1 - r.bio) * (1 - r.misalign) * (1 - r.war) * (q * (1 - lock) + (1 - q) * k);
     check('Survival through a takeover year and handoff is sequential (kindness 0.5)', Math.abs(u.survival - expect) < 1e-9, `${u.survival.toFixed(4)} vs ${expect.toFixed(4)}`);
     const before = u.survival; M.step(u, L2, () => 0.99, false);
@@ -275,12 +275,23 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const pk = (st, o) => M.lockinOdds(st, { ...M.defaultLevers(), ...o });
   check('Diplomacy helps only with public pressure (trust above 50)', pk(at(70), { diplomacy: 1 }) < pk(at(70), { diplomacy: 0 }) && pk(at(40), { diplomacy: 1 }) === pk(at(40), { diplomacy: 0 }));
   // Survival: a successful handoff that locks in power is not survival.
-  const w = Object.assign({}, M.initialState().world, { safe: true, difficulty: 0.1, pBenevolent: 0, hazard: 0, hazardBelief: 0, whistle: 0.25, whistleMean: 0.25 });
+  const w = Object.assign({}, M.initialState().world, { safe: true, difficulty: 0.1, pBenevolent: 0, hazard: 0, hazardBelief: 0, whistle: 0.25, whistleNodes: [[1, 0.25]] });
   const sh = Object.assign(M.initialState(w), { capUS: 99.9, capCN: 70, align: 100, conc: 55, trust: 60, coord: 100, acYear: 2029, year: 2034 });
   const Ls = { ...M.defaultLevers(), openness: 0 }, r0 = M.risks(sh, Ls);
   M.step(sh, Ls, () => 0.99, false);
   const lk = M.lockinOdds(sh, Ls, 0.25), q = M.transitionOdds(sh, false, Ls), want = (1 - r0.bio) * (1 - r0.war) * q * (1 - lk);
   check('A sure handoff that may lock in power counts lock-in against survival', Math.abs(sh.survival - want) < 1e-9 && lk > 0.1, `survival ${sh.survival.toFixed(3)}, lock ${lk.toFixed(3)}`);
+}
+
+// --- Shown lock-in odds average the capped probability over whistleblowers (Codex C11-1) ---
+{
+  const A = M.defaultAssumptions(), L = M.defaultLevers();
+  const st = Object.assign(M.initialState(M.sampleWorld(A, M.mulberry32(2))), { capUS: 100, capCN: 60, conc: 65, trust: 60, acYear: 2028, year: 2036 });
+  const shown = M.lockinBelief(st, L);
+  const rng = M.mulberry32(17); let sum = 0; const n = 200000;
+  for (let i = 0; i < n; i++) sum += M.lockinOdds(st, L, M.sampleWorld(A, rng).whistle);
+  check('Shown lock-in odds = average over whistleblower odds with the cap binding (±0.2 pts)', Math.abs(shown - sum / n) < 0.002 && M.lockinOdds(st, L, M.sampleWorld(A, M.mulberry32(1)).whistleNodes.reduce((a, [w, v]) => a + w * v, 0)) > shown + 0.005,
+    `${(100 * shown).toFixed(2)}% vs ${(100 * sum / n).toFixed(2)}%`);
 }
 
 // --- The model reference uses the live G_ref, not a stale constant ---

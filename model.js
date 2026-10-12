@@ -79,7 +79,7 @@
     };
     const dd = diffDistOf(A);
     const difficulty = Math.min(5, Math.max(0.1, Math.pow(10, dd.mean + dd.sd * gauss(rng))));
-    const w = Object.assign({ difficulty, speed: draw('speed'), whistle: draw('whistle'), whistleMean: clippedMean(A.whistle) }, difficultyWorld(difficulty, dd));
+    const w = Object.assign({ difficulty, speed: draw('speed'), whistle: draw('whistle'), whistleNodes: clippedNodes(A.whistle, 0, 1).nodes }, difficultyWorld(difficulty, dd));
     const pBen = draw('benevolent');
     Object.assign(w, { pBenevolent: clippedMean(A.benevolent), benevolent: rng() < pBen });
     // Bio: the decade risk is unclamped in log space (the tails are the point), capped below 1.
@@ -98,7 +98,7 @@
   function meanWorld() {
     const A = defaultAssumptions();
     const dd = diffDistOf(A), d = Math.pow(10, dd.mean);
-    return Object.assign({ difficulty: d, speed: A.speed.mean, whistle: clippedMean(A.whistle), whistleMean: clippedMean(A.whistle),
+    return Object.assign({ difficulty: d, speed: A.speed.mean, whistle: clippedMean(A.whistle), whistleNodes: clippedNodes(A.whistle, 0, 1).nodes,
       pBenevolent: clippedMean(A.benevolent), benevolent: false }, difficultyWorld(d, dd),
       chinaWorld(A, clippedMean(A.cnAlign), clippedMean(A.cnCaution)),
       evalWorld(A, clippedMean(A.evalGap)),
@@ -107,28 +107,31 @@
 
   // How much tests overstate alignment, plus belief nodes over it (the clipped bell curve,
   // with its endpoint masses kept exactly; cached per distribution). The dice use the hidden draw.
-  const EG_CACHE = new Map();
-  function evalWorld(A, evalGap) {
-    const p = A.evalGap, key = p.mean + '|' + p.sd;
-    if (!EG_CACHE.has(key)) {
+  // Belief nodes [weight, value] over N(mean, sd) clipped to [lo, hi]: the clipping's point
+  // masses at the ends kept exactly, 40 midpoint nodes inside. Cached per distribution.
+  const CLIP_CACHE = new Map();
+  function clippedNodes(p, lo, hi) {
+    const key = p.mean + '|' + p.sd + '|' + lo + '|' + hi;
+    if (!CLIP_CACHE.has(key)) {
       let nodes;
-      if (!(p.sd > 0)) nodes = [[1, clamp(p.mean, 0, 0.6)]];
+      if (!(p.sd > 0)) nodes = [[1, clamp(p.mean, lo, hi)]];
       else {
-        // Clipping puts point masses at 0 and 0.6; the interior gets 40 midpoint nodes.
-        const z0 = (0 - p.mean) / p.sd, z1 = (0.6 - p.mean) / p.sd;
-        const lo = normCdf(z0), hi = 1 - normCdf(z1);
-        nodes = [[lo, 0], [hi, 0.6]];
+        const z0 = (lo - p.mean) / p.sd, z1 = (hi - p.mean) / p.sd;
+        nodes = [[normCdf(z0), lo], [1 - normCdf(z1), hi]];
         const a = Math.max(z0, -8), b = Math.min(z1, 8), dz = (b - a) / 40;
         if (b > a) for (let i = 0; i < 40; i++) {
           const zl = a + i * dz, zm = zl + dz / 2;
-          nodes.push([normCdf(zl + dz) - normCdf(zl), clamp(p.mean + p.sd * zm, 0, 0.6)]);
+          nodes.push([normCdf(zl + dz) - normCdf(zl), clamp(p.mean + p.sd * zm, lo, hi)]);
         }
         const t = nodes.reduce((x, [w]) => x + w, 0);
         nodes = nodes.filter(([w]) => w > 1e-12).map(([w, v]) => [w / t, v]);
       }
-      EG_CACHE.set(key, { nodes, mean: nodes.reduce((a, [w, v]) => a + w * v, 0) });
+      CLIP_CACHE.set(key, { nodes, mean: nodes.reduce((a, [w, v]) => a + w * v, 0) });
     }
-    const c = EG_CACHE.get(key);
+    return CLIP_CACHE.get(key);
+  }
+  function evalWorld(A, evalGap) {
+    const c = clippedNodes(A.evalGap, 0, 0.6);
     return { evalGap, egNodes: c.nodes, egMean: c.mean };
   }
 
@@ -449,6 +452,14 @@
     return clamp(LOCK_K * conc * automation * pressure * keep, 0, 0.95);
   }
   const LOCK_K = 1.8;
+  // Shown (belief) lock-in odds: the capped probability averaged over the whistleblower
+  // distribution, not evaluated at its mean. The dice use the hidden draw.
+  function lockinBelief(s, L) {
+    const nodes = s.world.whistleNodes || [[1, s.world.whistle]];
+    let p = 0;
+    for (const [w, v] of nodes) p += w * lockinOdds(s, L, v);
+    return p;
+  }
 
   /*
    * Advance one year. `rng` is a function returning [0,1). If `roll` is false
@@ -556,7 +567,7 @@
     // Superintelligence threshold.
     if (maxCap(s) >= 100) {
       const good = s.fast ? 0 : transitionOdds(s, false, L);
-      const lock = s.fast ? 0 : lockinOdds(s, L, s.world.whistleMean ?? s.world.whistle);
+      const lock = s.fast ? 0 : lockinBelief(s, L);
       // Every future still running ends at the handoff. A failed handoff is a catastrophe
       // unless the AI is kind; a successful one is a catastrophe if power locks in.
       s.safeEnded += s.alive * (good * (1 - lock) + (1 - good) * s.world.pBenevolent);
@@ -573,7 +584,7 @@
     if (s.year >= END_YEAR) {
       // Without superintelligence, power can still lock in by 2040 if public trust has collapsed.
       if (s.trust < 45 && !s.fast) {
-        const lock = lockinOdds(s, L, s.world.whistleMean ?? s.world.whistle);
+        const lock = lockinBelief(s, L);
         s.alive *= 1 - lock; s.survival = s.safeEnded + s.alive;
       }
       if (s.trust < 45 && d[15] < lockinOdds(s, L)) return finish(s, 'lockin', r, 'end');
@@ -682,6 +693,6 @@
     AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
-    risks, transitionOdds, lockinOdds, step, monteCarlo, summarize, mulberry32,
+    risks, transitionOdds, lockinOdds, lockinBelief, step, monteCarlo, summarize, mulberry32,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

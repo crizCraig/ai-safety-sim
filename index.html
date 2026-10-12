@@ -103,7 +103,7 @@
   .roll .lane span:first-child { width: 250px; white-space: nowrap; color: var(--muted); }
   .roll .track { flex: 1; height: 14px; border-radius: 7px; background: rgba(255,255,255,0.05); position: relative; overflow: hidden; }
   .roll .zone { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,77,106,0.5); }
-  .roll .needle { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 8px #fff; }
+  .roll .needle { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #fff; box-shadow: 0 0 8px #fff; }
   .roll .verdict { font-size: 15px; font-weight: 600; margin-top: 10px; min-height: 20px; }
   /* After a choice the situation text hides and the outcome leads the card, above the dice. */
   #card.resolved #cardText, #card.resolved #cardDyn { display: none; }
@@ -298,11 +298,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261012150947"></script>
-<script src="events.js?v=20261012150947"></script>
-<script src="landmask.js?v=20261012150947"></script>
-<script src="presets.js?v=20261012150947"></script>
-<script src="trees.js?v=20261012150947"></script>
+<script src="model.js?v=20261012152322"></script>
+<script src="events.js?v=20261012152322"></script>
+<script src="landmask.js?v=20261012152322"></script>
+<script src="presets.js?v=20261012152322"></script>
+<script src="trees.js?v=20261012152322"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -364,7 +364,7 @@
     <button class="btn copybtn" id="copyPage">Copy for LLMs</button>
     <div class="note">Copies these settings, the formulas, the model's code and the results as one prompt. Paste it into Claude or another AI and ask it to poke holes in the assumptions.</div>
     <div class="divider"></div>
-    <p class="note">Each line in the 3D view is one simulated future, 2027 → its outcome. Height is frontier capability and depth is alignment. Each line ends at the state its future reached; a ringed dot marks a catastrophe (pandemic, loss of control or war) at the year it struck. Hover or tap a line to read its values.</p>
+    <p class="note">Each line in the 3D view is one simulated future, 2027 → its outcome. Height is frontier capability and depth is alignment. Each line ends at the state its future reached; a ringed dot marks a catastrophe (pandemic, loss of control, war or locked-in power) at the year it struck. Hover or tap a line to read its values.</p>
   </div>
 </div>
 
@@ -592,7 +592,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261012150947';
+const ASSET_VERSION = '20261012152322';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1273,7 +1273,7 @@ function rollYear() {
   const hitLane = lanes.findIndex(([, p, , , u]) => u < p);
   roll.innerHTML = lanes.map(([n, p, est], i) => {
     const differs = Math.abs(p - est) > 0.0005 && pct(p) !== pct(est);
-    return `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${p > 0 ? Math.max(p * 100, 0.8) : 0}%"></div><div class="needle" id="nd${i}"></div></div>${differs ? `<span class="est"><span class="estl">your estimate </span><span class="ests">est. </span>${pct(est)}</span>` : '<span class="est"></span>'}</div>`;
+    return `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${p * 100}%"></div><div class="needle" id="nd${i}"></div></div>${differs ? `<span class="est"><span class="estl">your estimate </span><span class="ests">est. </span>${pct(est)}</span>` : '<span class="est"></span>'}</div>`;
   }).join('') +
     `<div class="note">Each red bar is the real chance of that catastrophe this year, drawn to scale. The white needle is where the die landed: inside the red means it happened. Your estimate (est.) can differ from the real chance because some facts, like how hard alignment really is, stay secret until the game ends.</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
   const t0 = performance.now();
@@ -1284,7 +1284,7 @@ function rollYear() {
       const settle = Math.min(1, el / 1300);
       // Lanes after a hit were never rolled.
       if (hitLane >= 0 && i > hitLane) { n.style.display = 'none'; n.parentElement.parentElement.classList.add('skipped'); continue; }
-      const final = Math.min(99.7, Math.max(0.3, lanes[i][4] * 100));
+      const final = lanes[i][4] * 100; // same scale as the zone, unclamped
       const x = settle < 1 ? (Math.sin(el / 60 + i * 2) * 0.5 + 0.5) * 100 * (1 - settle) + final * settle : final;
       n.style.left = x + '%';
     }
