@@ -100,7 +100,7 @@
   .roll { display: none; margin-top: 10px; }
   .roll.on { display: block; }
   .roll .lane { display: flex; align-items: center; gap: 10px; font-size: 12px; margin: 6px 0; }
-  .roll .lane span:first-child { width: 190px; white-space: nowrap; color: var(--muted); }
+  .roll .lane span:first-child { width: 250px; white-space: nowrap; color: var(--muted); }
   .roll .track { flex: 1; height: 14px; border-radius: 7px; background: rgba(255,255,255,0.05); position: relative; overflow: hidden; }
   .roll .zone { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,77,106,0.5); }
   .roll .needle { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 8px #fff; }
@@ -110,8 +110,9 @@
   .roll.on { display: flex; flex-direction: column; }
   .roll.on .verdict { order: -1; margin: 0 0 10px; }
   .roll .lane.skipped { opacity: 0.35; }
-  .roll .lane .est { width: 92px; flex: none; font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap; }
-  @media (max-width: 640px) { .roll .lane span:first-child { width: 140px; white-space: normal; line-height: 1.2; } .roll .lane .est { width: 70px; } }
+  .roll .ests { display: none; }
+  .roll .lane .est { width: 128px; flex: none; font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap; }
+  @media (max-width: 640px) { .roll .lane span:first-child { width: 140px; white-space: normal; line-height: 1.2; } .roll .lane .est { width: 64px; } .roll .estl { display: none; } .roll .ests { display: inline !important; } }
   .roll .youchose { font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 4px; }
   .roll .changes { margin-top: 8px; }
   .roll .next { display: block; margin: 12px 0 0 auto; }
@@ -297,11 +298,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261011174652"></script>
-<script src="events.js?v=20261011174652"></script>
-<script src="landmask.js?v=20261011174652"></script>
-<script src="presets.js?v=20261011174652"></script>
-<script src="trees.js?v=20261011174652"></script>
+<script src="model.js?v=20261011175220"></script>
+<script src="events.js?v=20261011175220"></script>
+<script src="landmask.js?v=20261011175220"></script>
+<script src="presets.js?v=20261011175220"></script>
+<script src="trees.js?v=20261011175220"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -592,7 +593,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261011174652';
+const ASSET_VERSION = '20261011175220';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -929,7 +930,7 @@ function setHover(hit) {
     <div class="tip-row"><span>z · alignment</span><b>${Math.round(q.align)}</b></div>
     <div class="tip-row"><span>coordination</span><b>${Math.round(q.coord)}</b></div>
     <div class="tip-end" style="color:${o.color}">Ends ${end.year}: ${o.title}</div>
-    <div class="tip-world">Hidden world: alignment ${(1 / path.world.difficulty).toFixed(1)}× as easy${path.world.safe ? ' (short-term fixes were enough)' : ''} · progress ${path.world.speed.toFixed(1)}× speed · bio risk ${pct(path.world.bioDecade, 2)}/decade</div>`;
+    <div class="tip-world">Secret facts in this future: alignment ${(1 / path.world.difficulty).toFixed(1)}× as easy${path.world.safe ? ' (short-term fixes were enough)' : ''} · progress ${path.world.speed.toFixed(1)}× speed · bio risk ${pct(path.world.bioDecade, 2)}/decade</div>`;
   const tip = $('fanTip'), x = hit.x + 16, y = hit.y + 16;
   tip.style.left = Math.min(x, innerWidth - tip.offsetWidth - 16) + 'px';
   tip.style.top = Math.min(y, innerHeight - tip.offsetHeight - 16) + 'px';
@@ -1262,21 +1263,21 @@ function rollYear() {
   const res = M.step(s, L, yearRng(2), true);
   const lanes = [
     ['Pandemic', r.bioTrue, r.bio, 'bio', dice[0]],
-    ['Loss of control', r.misalignTrue, r.misalign, 'loc', dice[1]],
+    ['AI escapes control (this year)', r.misalignTrue, r.misalign, 'loc', dice[1]],
     ['Great-power war', r.war, r.war, 'war', dice[2]],
   ];
   if (res.stage === 'handoff') {
     // The handoff fails when its die is at or above the chance of success; flip it so
     // "inside the red" still means it happened.
     const q = M.transitionOdds(s, true, L);
-    lanes.push(['Handoff: control lost', 1 - q, 1 - M.transitionOdds(s, false, L), 'handoff', 1 - dice[13]]);
+    lanes.push(['Superintelligence handoff fails', 1 - q, 1 - M.transitionOdds(s, false, L), 'handoff', 1 - dice[13]]);
   }
   const hitLane = lanes.findIndex(([, p, , , u]) => u < p);
   roll.innerHTML = lanes.map(([n, p, est], i) => {
     const differs = Math.abs(p - est) > 0.0005 && pct(p) !== pct(est);
-    return `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${p > 0 ? Math.max(p * 100, 0.8) : 0}%"></div><div class="needle" id="nd${i}"></div></div>${differs ? `<span class="est">you saw ${pct(est)}</span>` : '<span class="est"></span>'}</div>`;
+    return `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${p > 0 ? Math.max(p * 100, 0.8) : 0}%"></div><div class="needle" id="nd${i}"></div></div>${differs ? `<span class="est"><span class="estl">your estimate </span><span class="ests">est. </span>${pct(est)}</span>` : '<span class="est"></span>'}</div>`;
   }).join('') +
-    `<div class="note">Red is the real chance of each catastrophe this year, from this game's hidden world, drawn to scale. The needle is where the die landed: inside the red, it happened. "You saw" is the estimate you had while choosing.</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
+    `<div class="note">Each red bar is the real chance of that catastrophe this year, drawn to scale. The white needle is where the die landed: inside the red means it happened. Your estimate (est.) can differ from the real chance because some facts, like how hard alignment really is, stay secret until the game ends.</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
   const t0 = performance.now();
   const wiggle = () => {
     const el = performance.now() - t0;
@@ -1299,8 +1300,8 @@ function rollYear() {
     const failed = ['misalign', 'benevolent'].includes(res.event);
     const how = res.stage === 'handoff'
       ? `<div class="youchose">${failed
-        ? 'This year\'s yearly rolls all missed, but then AI became superintelligent and the handoff failed: humans lost control at that moment, not in the yearly loss-of-control roll. Its needle is in the red on the last bar.'
-        : 'This year\'s yearly rolls all missed, and then AI became superintelligent and the handoff succeeded (last bar).'} In this world the handoff had a ${pct(qReal, 0)} chance of going well; you estimated ${pct(qEst, 0)}.</div>`
+        ? 'You got through this year\'s risks, but then AI became superintelligent, smarter than people at everything. Its alignment wasn\'t good enough to keep it on humanity\'s side, so control was lost for good (last bar).'
+        : 'You got through this year\'s risks, and then AI became superintelligent, smarter than people at everything, with alignment good enough to keep it on humanity\'s side (last bar).'} The real chance this would go well was ${pct(qReal, 0)}; your estimate was ${pct(qEst, 0)}.</div>`
       : res.stage === 'end' ? '<div class="youchose">2040 arrives.</div>' : '';
     const verdict = res.event
       ? `<span style="color:${M.OUTCOMES[res.event].color}">${M.OUTCOMES[res.event].title}</span>${how}`
@@ -1351,7 +1352,7 @@ function showEnding() {
   const w = s.world;
   const egTxt = ` · tests overstated alignment (base ${pct(w.evalGap, 0)}): at the end, real alignment was <b>${pct(M.hiddenShare(s, game.L) * w.evalGap, 0)}</b> below what tests showed, after oversight and transparency exposed part of the gap and secret internal AI widened it`;
   const cnTxt = egTxt + ` · China did <b>${pct(w.cnAlign, 0)}</b> of the US bloc's alignment work and would slow <b>${pct(w.cnCaution, 0)}</b> near the brink`;
-  $('endWorld').innerHTML = `<b>The hidden world, revealed:</b> alignment was <b>${(1 / w.difficulty).toFixed(2)}×</b> as easy as baseline${w.safe ? ' (<span style="color:var(--good)">easy enough that short-term fixes led to long-term alignment</span>)' : ''}, against a ${pct(w.pSafe, 0)} chance of that · whistleblower odds <b>${pct(w.whistle, 0)}</b> · an uncontrolled AI ${w.benevolent ? '<span style="color:#ff9ecf">would have been benevolent</span>' : 'would not have been benevolent'} · open-weights bio risk <b>${pct(w.bioDecade, 2)}</b> per decade${cnTxt}.`;
+  $('endWorld').innerHTML = `<b>What you couldn't know until now:</b> alignment was <b>${(1 / w.difficulty).toFixed(2)}×</b> as easy as baseline${w.safe ? ' (<span style="color:var(--good)">easy enough that short-term fixes led to long-term alignment</span>)' : ''}, against a ${pct(w.pSafe, 0)} chance of that · whistleblower odds <b>${pct(w.whistle, 0)}</b> · an uncontrolled AI ${w.benevolent ? '<span style="color:#ff9ecf">would have been benevolent</span>' : 'would not have been benevolent'} · open-weights bio risk <b>${pct(w.bioDecade, 2)}</b> per decade${cnTxt}.`;
   $('endMC').innerHTML = `<p class="mcline">If the whole decade had run under your <i>final</i> policy settings, 1,500 simulated futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
 }
@@ -1403,10 +1404,10 @@ function renderRisks(prev) {
   const s = game.s, r = M.risks(s, game.L);
   const why = {
     bio: `Open-model capability ${Math.round(s.openCap)} (danger zone ≈ 60+), biodefense ${Math.round(s.bio)}.`,
-    misalign: `Capability ${Math.round(M.maxCap(s))} vs measured alignment ${Math.round(s.align)}; tests may overstate it. Hidden internal AI ${Math.round(s.internal)} raises it. Allows a ${pct(s.world.pSafe, 0)} chance that short-term fixes lead to long-term alignment.`,
+    misalign: `A powerful AI slips out of human control before superintelligence. Grows as AI capability (${Math.round(M.maxCap(s))}) pulls ahead of alignment (${Math.round(s.align)}, as tests measure it; tests may flatter it). Secret AI inside labs (${Math.round(s.internal)}) adds to it.`,
     war: `Coordination ${Math.round(s.coord)}; the race is ${Math.abs(s.capUS - s.capCN) < 8 ? 'neck and neck' : 'lopsided'}.`,
   };
-  const rows = [['bio', 'Engineered pandemic', '#7cff6b'], ['misalign', 'Loss of control', '#ff3b5c'], ['war', 'Great-power war', '#ff8a3d']];
+  const rows = [['bio', 'Engineered pandemic', '#7cff6b'], ['misalign', 'AI escapes control', '#ff3b5c'], ['war', 'Great-power war', '#ff8a3d']];
   $('risks').innerHTML = rows.map(([k, name, c]) => {
     let d = '';
     if (prev) {
@@ -1415,7 +1416,7 @@ function renderRisks(prev) {
     }
     return `<div class="risk"><div class="row"><span style="color:${c}">${name}</span><span><span class="pct">${pct(prev ? prev.now[k] : r[k])}</span>${d}</span></div><div class="why">${why[k]}</div></div>`;
   }).join('');
-  $('riskSub').textContent = prev ? 'Projected risk next year with this choice, for a typical world (▲▼ vs. changing nothing).' : 'Hover a choice to preview where it leads.';
+  $('riskSub').textContent = prev ? 'Estimated risk next year with this choice (▲▼ vs. changing nothing).' : 'Hover a choice to preview where it leads.';
   $('survival').textContent = pct(s.survival, 1);
   $('survival').style.color = s.survival > 0.75 ? 'var(--good)' : s.survival > 0.45 ? 'var(--warn)' : 'var(--bad)';
 }
@@ -1753,7 +1754,7 @@ const TOURS = {
   campaign: [
     ['#card', 'One decision a year', 'Each year brings a new situation. Read it, then pick one of the options.'],
     ['#choices', 'What each option does', 'The tags under each option show what it changes: green makes things safer, red riskier. Hover or tap an option to preview next year\'s risk. You can also press 1, 2 or 3.'],
-    ['#right', 'This year\'s risk', 'After you choose, dice are rolled against these three catastrophes. The big number is your chance of having made it this far without one.'],
+    ['#right', 'This year\'s risk', 'Your estimate of each catastrophe this year. After you choose, a die is rolled for each one. When AI becomes superintelligent, there is one more test: whether its alignment is good enough to keep it on our side. The big number is your chance of having made it this far without catastrophe.'],
     ['#left', 'The state of the world', 'How powerful each side\'s AI is, how ready safety research is, and more. Your past decisions are listed underneath.'],
     ['#timeline', 'Go back in time', 'Click any earlier year to rewind and choose differently. Each year keeps its luck, so only your choice changes.'],
     ['#statsToggle', 'World state and risk', 'Tap Stats for the state of the world, this year\'s risk and your past decisions. Tap it again to return to the decision.'],
