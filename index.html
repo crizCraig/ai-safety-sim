@@ -295,11 +295,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261011170347"></script>
-<script src="events.js?v=20261011170347"></script>
-<script src="landmask.js?v=20261011170347"></script>
-<script src="presets.js?v=20261011170347"></script>
-<script src="trees.js?v=20261011170347"></script>
+<script src="model.js?v=20261011172535"></script>
+<script src="events.js?v=20261011172535"></script>
+<script src="landmask.js?v=20261011172535"></script>
+<script src="presets.js?v=20261011172535"></script>
+<script src="trees.js?v=20261011172535"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -590,7 +590,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261011170347';
+const ASSET_VERSION = '20261011172535';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1254,26 +1254,27 @@ function rollYear() {
   $('choices').style.display = 'none';
   const roll = $('roll'); roll.classList.add('on');
   $('card').classList.add('resolved');
-  const lanes = [['Pandemic', r.bio], ['Loss of control', r.misalign], ['Great-power war', r.war]];
-  // Zones are magnified (up to 4×) so small risks are visible, but never past 80% of the
-  // track, so a missed roll always has room to land outside its zone.
-  const maxP = Math.max(...lanes.map(([, p]) => p));
-  const scale = maxP > 0 ? Math.floor(Math.min(4, 0.8 / maxP) * 10) / 10 : 4;
-  roll.innerHTML = lanes.map(([n, p], i) => `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${Math.max(p * 100 * scale, p > 0 ? 0.6 : 0)}%"></div><div class="needle" id="nd${i}"></div></div></div>`).join('') +
-    `<div class="note">${scale === 1 ? 'Zones drawn to scale.' : `Zones drawn at ${scale}× scale so small risks are visible.`}</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
+  // Roll first, so the lanes can include the superintelligence handoff when it happens.
   const res = M.step(s, L, yearRng(2), true);
+  const lanes = [['Pandemic', r.bio, 'bio'], ['Loss of control', r.misalign, 'loc'], ['Great-power war', r.war, 'war']];
+  if (res.stage === 'handoff') lanes.push(['Handoff fails', 1 - M.transitionOdds(s, false, L), 'handoff']);
+  // Bars are drawn to scale (a sliver for tiny risks). Each lane shows the risk as you
+  // could know it; the dice use the hidden truth, so the needle shows only hit or miss.
+  const hitStage = res.stage === 'handoff' ? (['misalign', 'benevolent'].includes(res.event) ? 'handoff' : null) : res.stage;
+  const hitLane = lanes.findIndex((l) => l[2] === hitStage);
+  roll.innerHTML = lanes.map(([n, p], i) => `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${p > 0 ? Math.max(p * 100, 1.2) : 0}%"></div><div class="needle" id="nd${i}"></div></div></div>`).join('') +
+    `<div class="note">Red shows the chance of each catastrophe, to scale. A needle inside the red means it happened.</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
   const t0 = performance.now();
   const wiggle = () => {
     const el = performance.now() - t0;
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < lanes.length; i++) {
       const n = $('nd' + i); if (!n) return;
       const settle = Math.min(1, el / 1300);
-      // Only an annual hazard hits a lane; lanes after the hit were never rolled.
-      const hitLane = ['bio', 'loc', 'war'].indexOf(res.stage);
+      // Lanes after a hit were never rolled.
       const hit = hitLane === i;
       if (hitLane >= 0 && i > hitLane) { n.style.display = 'none'; n.parentElement.parentElement.classList.add('skipped'); continue; }
-      const zone = lanes[i][1] * 100 * scale;
-      const final = hit ? zone * 0.5 : Math.min(97, Math.max(zone + 4, 30 + i * 22));
+      const zone = lanes[i][1] > 0 ? Math.max(lanes[i][1] * 100, 1.2) : 0;
+      const final = hit ? Math.max(0.6, zone * 0.5) : Math.min(99, zone + Math.max(3, (100 - zone) * (0.25 + 0.2 * (i % 3))));
       const x = settle < 1 ? (Math.sin(el / 60 + i * 2) * 0.5 + 0.5) * 100 * (1 - settle) + final * settle : final;
       n.style.left = Math.min(99, x) + '%';
     }
@@ -1284,7 +1285,7 @@ function rollYear() {
     syncTarget(s, L);
     renderAll();
     const how = res.stage === 'handoff'
-      ? `<div class="youchose">Every yearly hazard was survived; this was decided at the superintelligence handoff (${pct(M.transitionOdds(s, false, L), 0)} expected odds it would go well).</div>`
+      ? `<div class="youchose">Every yearly hazard was survived; this was decided at the superintelligence handoff (it had a ${pct(M.transitionOdds(s, false, L), 0)} chance of going well).</div>`
       : res.stage === 'end' ? '<div class="youchose">2040 arrives.</div>' : '';
     const verdict = res.event
       ? `<span style="color:${M.OUTCOMES[res.event].color}">${M.OUTCOMES[res.event].title}</span>${how}`

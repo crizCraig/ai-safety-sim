@@ -9,7 +9,7 @@
   const CARDS = [
     {
       id: 'posture', year: 2027, tag: 'Opening move',
-      title: 'The AI Race Begins',
+      title: 'Setting the Pace',
       text: 'Spies estimate China\'s best AI lab is about a year behind America\'s. US AI companies want an all-out national push. Allies want a treaty to slow things down. You set the tone.',
       choices: [
         { label: 'Sprint to stay ahead', note: 'A bigger lead gives more room to be careful later.', lev: { race: +0.3, diplomacy: -0.1 }, st: { capUS: +4, coord: -6 } },
