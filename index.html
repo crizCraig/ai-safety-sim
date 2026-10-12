@@ -100,7 +100,7 @@
   .roll { display: none; margin-top: 10px; }
   .roll.on { display: block; }
   .roll .lane { display: flex; align-items: center; gap: 10px; font-size: 12px; margin: 6px 0; }
-  .roll .lane span:first-child { width: 160px; white-space: nowrap; color: var(--muted); }
+  .roll .lane span:first-child { width: 190px; white-space: nowrap; color: var(--muted); }
   .roll .track { flex: 1; height: 14px; border-radius: 7px; background: rgba(255,255,255,0.05); position: relative; overflow: hidden; }
   .roll .zone { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,77,106,0.5); }
   .roll .needle { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 8px #fff; }
@@ -111,7 +111,7 @@
   .roll.on .verdict { order: -1; margin: 0 0 10px; }
   .roll .lane.skipped { opacity: 0.35; }
   .roll .lane .est { width: 92px; flex: none; font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap; }
-  @media (max-width: 640px) { .roll .lane span:first-child { width: 128px; } .roll .lane .est { width: 70px; } }
+  @media (max-width: 640px) { .roll .lane span:first-child { width: 140px; white-space: normal; line-height: 1.2; } .roll .lane .est { width: 70px; } }
   .roll .youchose { font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 4px; }
   .roll .changes { margin-top: 8px; }
   .roll .next { display: block; margin: 12px 0 0 auto; }
@@ -297,11 +297,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261011173125"></script>
-<script src="events.js?v=20261011173125"></script>
-<script src="landmask.js?v=20261011173125"></script>
-<script src="presets.js?v=20261011173125"></script>
-<script src="trees.js?v=20261011173125"></script>
+<script src="model.js?v=20261011173803"></script>
+<script src="events.js?v=20261011173803"></script>
+<script src="landmask.js?v=20261011173803"></script>
+<script src="presets.js?v=20261011173803"></script>
+<script src="trees.js?v=20261011173803"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -592,7 +592,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261011173125';
+const ASSET_VERSION = '20261011173803';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1269,7 +1269,7 @@ function rollYear() {
     // The handoff fails when its die is at or above the chance of success; flip it so
     // "inside the red" still means it happened.
     const q = M.transitionOdds(s, true, L);
-    lanes.push(['Handoff fails', 1 - q, 1 - M.transitionOdds(s, false, L), 'handoff', 1 - dice[13]]);
+    lanes.push(['Handoff: control lost', 1 - q, 1 - M.transitionOdds(s, false, L), 'handoff', 1 - dice[13]]);
   }
   const hitLane = lanes.findIndex(([, p, , , u]) => u < p);
   roll.innerHTML = lanes.map(([n, p, est], i) => {
@@ -1295,8 +1295,12 @@ function rollYear() {
   setTimeout(() => {
     syncTarget(s, L);
     renderAll();
+    const qReal = M.transitionOdds(s, true, L), qEst = M.transitionOdds(s, false, L);
+    const failed = ['misalign', 'benevolent'].includes(res.event);
     const how = res.stage === 'handoff'
-      ? `<div class="youchose">Every yearly hazard was survived; this was decided at the superintelligence handoff (in this world it had a ${pct(M.transitionOdds(s, true, L), 0)} chance of going well; you estimated ${pct(M.transitionOdds(s, false, L), 0)}).</div>`
+      ? `<div class="youchose">${failed
+        ? 'This year\'s yearly rolls all missed, but then AI became superintelligent and the handoff failed: humans lost control at that moment, not in the yearly loss-of-control roll. Its needle is in the red on the last bar.'
+        : 'This year\'s yearly rolls all missed, and then AI became superintelligent and the handoff succeeded (last bar).'} In this world the handoff had a ${pct(qReal, 0)} chance of going well; you estimated ${pct(qEst, 0)}.</div>`
       : res.stage === 'end' ? '<div class="youchose">2040 arrives.</div>' : '';
     const verdict = res.event
       ? `<span style="color:${M.OUTCOMES[res.event].color}">${M.OUTCOMES[res.event].title}</span>${how}`
@@ -1691,11 +1695,19 @@ document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('cli
   const m = b.dataset.mode;
   if (m === 'campaign' && !game) { openSplash(); return; }
   closeSplash();
+  if (m === 'lab') campaignToLab();
   setMode(m);
   if (m === 'lab') maybeTour('lab');
 }));
 $('againBtn').onclick = () => { setMode('campaign'); newGame(); };
-$('toLabBtn').onclick = () => { $('ending').classList.add('hidden'); Object.assign(labL, game.L); syncSliders(); setMode('lab'); };
+// After a campaign ends, the Lab opens on the levers that game ended with (once; later
+// Lab changes are kept).
+function campaignToLab() {
+  if (!game || game.phase !== 'over' || game.sentToLab) return;
+  game.sentToLab = true;
+  Object.assign(labL, game.L); syncSliders(); selectPreset(null);
+}
+$('toLabBtn').onclick = () => { $('ending').classList.add('hidden'); campaignToLab(); setMode('lab'); };
 $('viewBtn').onclick = () => $('ending').classList.add('hidden');
 // Numbers in the reference that come straight from the code.
 function fillModelNumbers() {

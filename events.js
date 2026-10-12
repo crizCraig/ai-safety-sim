@@ -80,9 +80,9 @@
     {
       id: 'publish', when: (s) => s.year >= 2028, tag: 'Transparency',
       title: 'Open the Lab Notebooks?',
-      text: 'A bill would make top AI companies publish all their research: how they build and test their AI, their safety plans, and how they use AI internally, but not the AI itself. Supporters say it lets many companies and countries keep up and lets outsiders check the work. Opponents say it hands China the playbook.',
+      text: 'A bill would make top AI companies publish all their research: how they build and test their AI, their safety plans, and how they use AI internally, but not the model weights: the trained AI itself, which anyone could run. Supporters say it lets many companies and countries keep up and lets outsiders check the work. Opponents say it hands China the playbook.',
       choices: [
-        { label: 'Publish all research', note: 'Full transparency; the AI itself stays private.', lev: { transparency: +0.35 }, st: { internal: -6, conc: -5, capCN: +2 } },
+        { label: 'Publish all research', note: 'Full transparency; the model weights stay private.', lev: { transparency: +0.35 }, st: { internal: -6, conc: -5, capCN: +2 } },
         { label: 'Publish safety research only', note: 'Share how to make AI safe; keep how to make it powerful secret.', lev: { transparency: +0.12 }, st: { align: +3 } },
         { label: 'Keep research secret', note: 'Protect the lead.', lev: { transparency: -0.15 }, st: { internal: +5, conc: +4 } },
       ],
