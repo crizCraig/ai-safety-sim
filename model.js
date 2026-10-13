@@ -36,7 +36,7 @@
     // Ease of alignment = 1 / difficulty. Lognormal, set in log10 units: median
     // 10^mean, spread ×10^sd. Calibrated to AI 2040's p(alignment) estimates.
     ease: { label: 'Ease of alignment', mean: 0.12, sd: 0.4, min: -0.6, max: 0.7, fmt: 'logx',
-      help: 'How easy alignment turns out to be. Easy enough (above 3.3×), fixing safety problems as they come up leads to long-term alignment without a general solution, and loss of control cannot happen. At 1× alignment needs this model\'s baseline research; at 0.5× progress comes at half the speed. The wide default spread reflects how little today\'s evidence tells us: current AIs can often tell when they are being evaluated and behave better under test, so good test results may overstate how easy alignment is.' },
+      help: 'How hard the problem really is: how much real alignment the superintelligence handoff needs. Policy cannot change it. Easy enough (above 3.3×), fixing safety problems as they come up leads to long-term alignment and loss of control cannot happen; at 0.5×, progress comes at half the speed. Compare "Tests overstate alignment", which is about measuring progress, not the problem itself.' },
     speed: { label: 'AI progress speed', mean: 1, sd: 0.3, min: 0.3, max: 2.5, fmt: 'x',
       help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2031 and superintelligence to about 2033.' },
     benevolent: { label: 'Kind even if uncontrolled', mean: 0.1, sd: 0.08, min: 0, max: 1, fmt: 'pct',
@@ -51,7 +51,7 @@
     // Evaluation awareness: current AIs can often tell when they are being tested and behave
     // better then, so measured alignment may overstate the real thing.
     evalGap: { label: 'Tests overstate alignment', mean: 0.15, sd: 0.1, min: 0, max: 0.6, fmt: 'pct',
-      help: 'How much safety tests overstate real alignment, because AIs can tell when they are being evaluated and behave better under test. The alignment you see is the measured value; loss of control and the handoff depend on the real one. Independent oversight, published research and safety work expose more of the gap; secret internal AI hides more of it.' },
+      help: 'How wrong the measurements are: how far the alignment you see sits above the real level, because AIs can tell when they are being tested and behave better. Policy can change it: independent oversight, published research and safety work expose more of the gap, and secret internal AI hides more. This is why your estimate and the real risk can differ. Compare "Ease of alignment", which is how hard the problem itself is.' },
     whistle: { label: 'Whistleblower odds', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
       help: 'Chance that insiders expose or refuse to carry out a power grab by whoever controls AGI.' },
     // Lognormal, set in log10 units. Calibrated to a separate factored Monte Carlo
