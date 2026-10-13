@@ -270,7 +270,7 @@
     body.mode-lab { overflow-y: auto; display: flex; flex-direction: column; }
     body.mode-lab .panel { position: static; width: auto; max-height: none; overflow: visible; flex-shrink: 0; margin: 0 16px 16px; }
     body.mode-lab #right { order: 1; margin-top: calc(var(--graph-bottom, 50vh) + 12px); }
-    #catBig { top: calc(var(--graph-top, 53px) + 8px); z-index: 5; }
+    #catBig { top: calc(var(--graph-top, 53px) + 8px); z-index: 5; pointer-events: auto; cursor: pointer; }
     #catBig .cb-num { font-size: 34px; }
     #catBig .cb-lbl { font-size: 9.5px; }
     body.mode-lab canvas#gl { z-index: 4; border-bottom: 1px solid var(--line); }
@@ -301,11 +301,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261012174209"></script>
-<script src="events.js?v=20261012174209"></script>
-<script src="landmask.js?v=20261012174209"></script>
-<script src="presets.js?v=20261012174209"></script>
-<script src="trees.js?v=20261012174209"></script>
+<script src="model.js?v=20261012174533"></script>
+<script src="events.js?v=20261012174533"></script>
+<script src="landmask.js?v=20261012174533"></script>
+<script src="presets.js?v=20261012174533"></script>
+<script src="trees.js?v=20261012174533"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -595,7 +595,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261012174209';
+const ASSET_VERSION = '20261012174533';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1841,6 +1841,11 @@ function placeTour() {
 }
 // Keep the ring on its target if the page or a panel scrolls during the tour.
 addEventListener('scroll', () => { if (tour && tour.el) placeTour(); }, true);
+// Tapping the headline number jumps to the outcome breakdown (on phones, just below the graph).
+$('catBig').addEventListener('click', () => {
+  const t = $('labSub'), cover = pinnedCover();
+  if (cover) scrollBelow(t, cover); else t.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+});
 function endTour() {
   if (tour) { try { localStorage.setItem('goagi-tour-' + tour.mode, '1'); } catch (e) {} }
   // The Lab tour ends with the policy panel back at the plans: on phones just below the
