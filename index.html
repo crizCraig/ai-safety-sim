@@ -301,11 +301,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261012173213"></script>
-<script src="events.js?v=20261012173213"></script>
-<script src="landmask.js?v=20261012173213"></script>
-<script src="presets.js?v=20261012173213"></script>
-<script src="trees.js?v=20261012173213"></script>
+<script src="model.js?v=20261012174209"></script>
+<script src="events.js?v=20261012174209"></script>
+<script src="landmask.js?v=20261012174209"></script>
+<script src="presets.js?v=20261012174209"></script>
+<script src="trees.js?v=20261012174209"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -595,7 +595,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261012173213';
+const ASSET_VERSION = '20261012174209';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1794,6 +1794,15 @@ function scrollTopTo(el, y) {
   if (sc && sc !== document.body) sc.scrollBy(0, dy);
   else { document.body.scrollBy(0, dy); document.scrollingElement.scrollBy(0, el.getBoundingClientRect().top - y); }
 }
+// Scroll el's top to just below the pinned graph using the browser's own scrollIntoView
+// (with scroll-margin), which finds the right scroller on iOS Safari too; then correct
+// any leftover offset by hand.
+function scrollBelow(el, cover) {
+  el.style.scrollMarginTop = cover + 'px';
+  el.scrollIntoView({ block: 'start', behavior: 'instant' });
+  el.style.scrollMarginTop = '';
+  if (Math.abs(el.getBoundingClientRect().top - cover) > 4) scrollTopTo(el, cover);
+}
 const isPinned = (el) => { for (let e = el; e && e !== document.body; e = e.parentElement) if (getComputedStyle(e).position === 'fixed') return true; return false; };
 function showTourStep() {
   const [sel, title, text] = tour.steps[tour.i], el = document.querySelector(sel);
@@ -1807,7 +1816,7 @@ function showTourStep() {
   // Pinned elements (the header, the headline number, the graph) never need scrolling.
   if (!isPinned(el)) {
     const cover = pinnedCover(), vh = (window.visualViewport ? visualViewport.height : innerHeight);
-    if (cover) { const r0 = el.getBoundingClientRect(); if (r0.top < cover || r0.top > vh - 80) scrollTopTo(el, cover); }
+    if (cover) { const r0 = el.getBoundingClientRect(); if (r0.top < cover || r0.top > vh - 80) scrollBelow(el, cover); }
     else el.scrollIntoView({ block: 'nearest' });
   }
   // iOS finishes scrolling asynchronously, so keep the ring on its target until it settles.
@@ -1838,7 +1847,7 @@ function endTour() {
   // pinned graph, on desktop at the top of the panel.
   if (tour && tour.mode === 'lab') {
     const cover = pinnedCover();
-    if (cover) scrollTopTo($('left'), cover);
+    if (cover) scrollBelow($('left'), cover);
     else $('left').scrollTo({ top: 0, behavior: 'smooth' });
   }
   tour = null; $('tour').hidden = true;
