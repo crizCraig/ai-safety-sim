@@ -307,11 +307,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261013135625"></script>
-<script src="events.js?v=20261013135625"></script>
-<script src="landmask.js?v=20261013135625"></script>
-<script src="presets.js?v=20261013135625"></script>
-<script src="trees.js?v=20261013135625"></script>
+<script src="model.js?v=20261013135849"></script>
+<script src="events.js?v=20261013135849"></script>
+<script src="landmask.js?v=20261013135849"></script>
+<script src="presets.js?v=20261013135849"></script>
+<script src="trees.js?v=20261013135849"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -603,7 +603,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261013135625';
+const ASSET_VERSION = '20261013135849';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1435,7 +1435,7 @@ function syncSecrets() {
 }
 $('secretsBtn').onclick = () => { secretsOn = !secretsOn; try { localStorage.setItem('goagi-secrets', secretsOn ? '1' : '0'); } catch (e) {} syncSecrets(); };
 // Chances shown as words at the extremes, so 0.000020% does not read as a precise number.
-const chance = (p) => p < 0.001 ? 'almost none (under 0.1%)' : p > 0.999 ? 'almost certain (over 99.9%)' : pct(p, 0);
+const chance = (p) => p < 0.001 ? 'almost none (under 0.1%)' : p > 0.999 ? 'almost certain (over 99.9%)' : pct(p, p < 0.01 || p > 0.99 ? 1 : 0);
 
 function renderRisks(prev) {
   const s = game.s, r = M.risks(s, game.L);
