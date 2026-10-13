@@ -301,11 +301,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261012160140"></script>
-<script src="events.js?v=20261012160140"></script>
-<script src="landmask.js?v=20261012160140"></script>
-<script src="presets.js?v=20261012160140"></script>
-<script src="trees.js?v=20261012160140"></script>
+<script src="model.js?v=20261012173213"></script>
+<script src="events.js?v=20261012173213"></script>
+<script src="landmask.js?v=20261012173213"></script>
+<script src="presets.js?v=20261012173213"></script>
+<script src="trees.js?v=20261012173213"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -595,7 +595,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261012160140';
+const ASSET_VERSION = '20261012173213';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1766,7 +1766,7 @@ const TOURS = {
     ['#sliders', 'Or set your own policy', 'Drag any slider. The results update right away.'],
     ['#catBig', 'The headline number', 'The share of simulated futures that end in catastrophe.'],
     ['#outcomes', 'How the futures end', 'Click an outcome to see only those futures in the 3D view, and to read what it means.'],
-    ['#gl', 'Each line is one future', 'Height is how powerful AI gets, depth is how far alignment has come, and the lines run from 2027 to where each future ends. Drag to rotate, zoom with scroll or a pinch, and hover a line for details.'],
+    ['#gl', 'Each path is one future', 'Watch them draw: each path runs from 2027 to where that future ends. Height is how powerful AI gets and depth is how far alignment has come; a ringed dot marks a catastrophe. Drag to rotate, zoom with scroll or a pinch, and hover a path for details.'],
     ['.tabs', 'Play it yourself', 'Switch to the Campaign to make the decisions one year at a time.'],
   ],
 };
@@ -1779,40 +1779,68 @@ function startTour(m) {
   $('tour').hidden = false;
   showTourStep();
 }
+// On phones the Lab pins the 3D graph over the top of the page; targets go just below it.
+function pinnedCover() {
+  const gl = $('gl');
+  if (mode !== 'lab' || getComputedStyle(gl).position !== 'fixed') return 0;
+  const b = gl.getBoundingClientRect().bottom;
+  return b < innerHeight * 0.8 ? b + 8 : 0;
+}
+// Scroll the nearest scrolling ancestor (or the page) so el's top sits at y.
+function scrollTopTo(el, y) {
+  let sc = el.parentElement;
+  while (sc && sc !== document.body && !(/(auto|scroll)/.test(getComputedStyle(sc).overflowY) && sc.scrollHeight > sc.clientHeight)) sc = sc.parentElement;
+  const dy = el.getBoundingClientRect().top - y;
+  if (sc && sc !== document.body) sc.scrollBy(0, dy);
+  else { document.body.scrollBy(0, dy); document.scrollingElement.scrollBy(0, el.getBoundingClientRect().top - y); }
+}
+const isPinned = (el) => { for (let e = el; e && e !== document.body; e = e.parentElement) if (getComputedStyle(e).position === 'fixed') return true; return false; };
 function showTourStep() {
   const [sel, title, text] = tour.steps[tour.i], el = document.querySelector(sel);
-  el.scrollIntoView({ block: 'nearest' });
-  // On phones the Lab pins the 3D graph over the top of the page; scroll the target below it.
-  const gl = $('gl'), pinned = sel !== '#gl' && mode === 'lab' && getComputedStyle(gl).position === 'fixed' && gl.getBoundingClientRect().bottom < innerHeight * 0.8;
-  if (pinned && !el.closest('#top')) {
-    const cover = gl.getBoundingClientRect().bottom + 8, r0 = el.getBoundingClientRect();
-    if (r0.top < cover || r0.top > innerHeight - 80) {
-      let sc = el.parentElement;
-      while (sc && sc !== document.body && !(/(auto|scroll)/.test(getComputedStyle(sc).overflowY) && sc.scrollHeight > sc.clientHeight)) sc = sc.parentElement;
-      (sc && sc !== document.body ? sc : document.scrollingElement).scrollBy(0, r0.top - cover);
-      if (document.body.scrollHeight > document.body.clientHeight) document.body.scrollBy(0, el.getBoundingClientRect().top - cover);
-    }
+  tour.el = el;
+  if (sel === '#gl') fanAnim = 0; // replay the paths drawing in
+  const box = $('tour').querySelector('.tour-box');
+  box.querySelector('.tour-step').textContent = `${tour.i + 1} of ${tour.steps.length}`;
+  box.querySelector('h4').textContent = title;
+  box.querySelector('p').textContent = text;
+  $('tourNext').textContent = tour.i === tour.steps.length - 1 ? 'Done' : 'Next';
+  // Pinned elements (the header, the headline number, the graph) never need scrolling.
+  if (!isPinned(el)) {
+    const cover = pinnedCover(), vh = (window.visualViewport ? visualViewport.height : innerHeight);
+    if (cover) { const r0 = el.getBoundingClientRect(); if (r0.top < cover || r0.top > vh - 80) scrollTopTo(el, cover); }
+    else el.scrollIntoView({ block: 'nearest' });
   }
-  requestAnimationFrame(() => {
-    const r = el.getBoundingClientRect(), pad = 6, ring = $('tour').querySelector('.tour-ring'), box = $('tour').querySelector('.tour-box');
-    const top = Math.max(0, r.top - pad), bottom = Math.min(innerHeight, r.bottom + pad);
-    Object.assign(ring.style, { left: (r.left - pad) + 'px', top: top + 'px', width: (r.width + 2 * pad) + 'px', height: (bottom - top) + 'px' });
-    box.querySelector('.tour-step').textContent = `${tour.i + 1} of ${tour.steps.length}`;
-    box.querySelector('h4').textContent = title;
-    box.querySelector('p').textContent = text;
-    $('tourNext').textContent = tour.i === tour.steps.length - 1 ? 'Done' : 'Next';
-    // Place the note below the highlighted area, else above it, else over its middle.
-    const bw = box.offsetWidth, bh = box.offsetHeight;
-    let y = bottom + 10;
-    if (y + bh > innerHeight - 12) y = top - bh - 10;
-    if (y < 12) y = Math.min(innerHeight - bh - 12, Math.max(12, (top + bottom - bh) / 2));
-    const x = Math.min(innerWidth - bw - 16, Math.max(16, r.left + r.width / 2 - bw / 2));
-    Object.assign(box.style, { left: x + 'px', top: y + 'px' });
-    $('tourNext').focus({ preventScroll: true });
-  });
+  // iOS finishes scrolling asynchronously, so keep the ring on its target until it settles.
+  const t0 = performance.now();
+  const follow = () => { if (!tour || tour.el !== el) return; placeTour(); if (performance.now() - t0 < 800) requestAnimationFrame(follow); };
+  requestAnimationFrame(follow);
+  $('tourNext').focus({ preventScroll: true });
 }
+// Draw the ring around the current target and put the note beside it.
+function placeTour() {
+  const el = tour.el, r = el.getBoundingClientRect(), pad = 6, ring = $('tour').querySelector('.tour-ring'), box = $('tour').querySelector('.tour-box');
+  const vh = window.visualViewport ? visualViewport.height : innerHeight;
+  const top = Math.max(0, r.top - pad), bottom = Math.min(vh, r.bottom + pad);
+  Object.assign(ring.style, { left: (r.left - pad) + 'px', top: top + 'px', width: (r.width + 2 * pad) + 'px', height: Math.max(0, bottom - top) + 'px' });
+  // Place the note below the highlighted area, else above it, else over its middle.
+  const bw = box.offsetWidth, bh = box.offsetHeight;
+  let y = bottom + 10;
+  if (y + bh > vh - 12) y = top - bh - 10;
+  if (y < 12) y = Math.min(vh - bh - 12, Math.max(12, (top + bottom - bh) / 2));
+  const x = Math.min(innerWidth - bw - 16, Math.max(16, r.left + r.width / 2 - bw / 2));
+  Object.assign(box.style, { left: x + 'px', top: y + 'px' });
+}
+// Keep the ring on its target if the page or a panel scrolls during the tour.
+addEventListener('scroll', () => { if (tour && tour.el) placeTour(); }, true);
 function endTour() {
   if (tour) { try { localStorage.setItem('goagi-tour-' + tour.mode, '1'); } catch (e) {} }
+  // The Lab tour ends with the policy panel back at the plans: on phones just below the
+  // pinned graph, on desktop at the top of the panel.
+  if (tour && tour.mode === 'lab') {
+    const cover = pinnedCover();
+    if (cover) scrollTopTo($('left'), cover);
+    else $('left').scrollTo({ top: 0, behavior: 'smooth' });
+  }
   tour = null; $('tour').hidden = true;
 }
 $('tourNext').onclick = () => { if (++tour.i >= tour.steps.length) endTour(); else showTourStep(); };
