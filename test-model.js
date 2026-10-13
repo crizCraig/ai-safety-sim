@@ -294,6 +294,17 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
     `${(100 * shown).toFixed(2)}% vs ${(100 * sum / n).toFixed(2)}%`);
 }
 
+// --- China's own AI speeds up alignment in proportion to its own effort ---
+{
+  const gain = (own) => {
+    const w = Object.assign({}, M.initialState().world, { cnAlign: own, difficulty: 1, hazard: 0, hazardBelief: 0 });
+    const st = Object.assign(M.initialState(w), { capUS: 44, capCN: 85, align: 40 });
+    M.step(st, { ...M.defaultLevers(), safety: 1 }, () => 0.5, false);
+    return st.align - 40;
+  };
+  check('A China far ahead with full own effort speeds alignment up a lot more than one with none', gain(1) > 2 * gain(0), `${gain(0).toFixed(1)} -> ${gain(1).toFixed(1)} points/yr`);
+}
+
 // --- The model reference uses the live G_ref, not a stale constant ---
 {
   const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');

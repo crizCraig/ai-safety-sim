@@ -35,7 +35,7 @@
   const ASSUMPTION_INFO = {
     // Ease of alignment = 1 / difficulty. Lognormal, set in log10 units: median
     // 10^mean, spread ×10^sd. Calibrated to AI 2040's p(alignment) estimates.
-    ease: { label: 'Ease of alignment', mean: 0.12, sd: 0.4, min: -0.6, max: 0.7, fmt: 'logx',
+    ease: { label: 'Ease of alignment', mean: 0.10, sd: 0.4, min: -0.6, max: 0.7, fmt: 'logx',
       help: 'How hard the problem really is: how much real alignment the superintelligence handoff needs. Policy cannot change it. Easy enough (above 3.3×), fixing safety problems as they come up leads to long-term alignment and loss of control cannot happen; at 0.5×, progress comes at half the speed. Compare "Tests overstate alignment", which is about measuring progress, not the problem itself.' },
     speed: { label: 'AI progress speed', mean: 1, sd: 0.3, min: 0.3, max: 2.5, fmt: 'x',
       help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2031 and superintelligence to about 2033.' },
@@ -45,7 +45,7 @@
     // Matt Sheehan, SemiAnalysis, CSET translations): real and growing safety research, official
     // "human control" language, but no case of Beijing slowing frontier AI for safety.
     cnAlign: { label: 'China\'s own alignment work', mean: 0.35, sd: 0.17, min: 0, max: 1, fmt: 'pct',
-      help: 'How much alignment research China\'s labs do themselves, relative to the US bloc. It fills part of the gap that published US research and coordination do not reach. Work on keeping AI loyal to the Party\'s line does not count.' },
+      help: 'How much alignment research China\'s labs do themselves, relative to the US bloc. It fills part of the gap that published US research and coordination do not reach, and China\'s AI speeds this research up as it improves (100% is a serious program, like a US bloc putting 30% of compute on safety). Work on keeping AI loyal to the Party\'s line does not count.' },
     cnCaution: { label: 'China slows near the brink', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
       help: 'How far China cuts its AI race once there are signs of losing control. It notices later than the US would, slows more if the US slows or a deal is in force, and never slows for fear of concentrated power: an AI that obeys the Party counts as aligned in Beijing.' },
     // Evaluation awareness: current AIs can often tell when they are being tested and behave
@@ -298,6 +298,7 @@
   // At 100% no compute is left for capabilities, which amounts to a unilateral pause.
   const safetyEffect = (f) => f <= 0.3 ? Math.max(0, (f - 0.01) / 0.29) : 1 + 0.6 * (f - 0.3) / 0.7;
   const safetyLabor = (f) => 0.08 + 0.35 * Math.min(1, safetyEffect(f)) + 0.5 * Math.max(0, f - 0.3) / 0.7;
+  const CN_LABOR = safetyLabor(0.3); // AI labor share China puts on alignment at full own effort
 
   // A verified US–China deal: frontier scaling stops at top-human-expert level.
   // Once a deal has collapsed it stays dead.
@@ -491,7 +492,7 @@
       if (d[2] < r.war) return finish(s, 'war', r, 'war');
     }
 
-    const mc = maxCap(s), capUS0 = s.capUS;
+    const mc = maxCap(s), capUS0 = s.capUS, capCN0 = s.capCN;
     const w = s.world;
 
     // Capability: base pace × compute × hidden progress speed × AI R&D uplift.
@@ -526,8 +527,10 @@
     // safety (so it also speeds up during takeoff), shared international and
     // public research, and (speculatively) BCIs that widen human oversight.
     // Divided by the world's hidden alignment difficulty.
-    // Safety research is sped up by the US bloc's own AI.
-    const assist = 1 + (uplift(capUS0) - 1) * safetyLabor(L.safety);
+    // Safety research is sped up by each bloc's own AI: the US bloc's by its safety share,
+    // China's by its own alignment effort (100% = a serious program, like a US bloc spending
+    // 30% of compute on safety). So a cautious China that leads the race speeds alignment up too.
+    const assist = 1 + (uplift(capUS0) - 1) * safetyLabor(L.safety) + (uplift(capCN0) - 1) * CN_LABOR * (w.cnAlign || 0);
     const shared = 1 + 0.35 * (s.coord / 100) + 0.4 * L.transparency;
     const bciBoost = 1 + 0.5 * (s.bci / 100);
     s.align = clamp(s.align + 0.55 * (1.9 + 10 * sx + 1.5 * L.oversight) * assist * shared * bciBoost / w.difficulty + noise(9) * 0.5);
