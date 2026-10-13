@@ -127,6 +127,9 @@
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .pair label { font-size: 10px; color: var(--muted); }
   .world-reveal ul { margin: 6px 0 0; padding-left: 18px; }
+  .secbtn { display: block; width: 100%; margin: 10px 0 6px; pointer-events: auto; }
+  .world-reveal.secrets { font-size: 12px !important; margin-bottom: 8px; }
+  .realrisk { font-size: 11.5px; color: #ffb3c0; margin-top: 2px; }
   .world-reveal li { margin: 3px 0; line-height: 1.45; }
   .world-reveal .wk { color: var(--muted); }
   .world-reveal { font-size: 13px !important; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
@@ -304,11 +307,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261013132017"></script>
-<script src="events.js?v=20261013132017"></script>
-<script src="landmask.js?v=20261013132017"></script>
-<script src="presets.js?v=20261013132017"></script>
-<script src="trees.js?v=20261013132017"></script>
+<script src="model.js?v=20261013135625"></script>
+<script src="events.js?v=20261013135625"></script>
+<script src="landmask.js?v=20261013135625"></script>
+<script src="presets.js?v=20261013135625"></script>
+<script src="trees.js?v=20261013135625"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -359,6 +362,8 @@
       <div class="big" id="survival">100%</div>
       <div class="lbl">expected chance of getting this far without catastrophe</div>
     </div>
+    <button class="iconbtn secbtn" id="secretsBtn" aria-pressed="false">Show secret facts</button>
+    <div class="world-reveal secrets" id="secrets" hidden></div>
     <div class="divider"></div>
     <h3>Your policy levers</h3>
     <div id="levers"></div>
@@ -598,7 +603,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261013132017';
+const ASSET_VERSION = '20261013135625';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1279,9 +1284,9 @@ function rollYear() {
   const hitLane = lanes.findIndex(([, p, , , u]) => u < p);
   roll.innerHTML = lanes.map(([n, p, est], i) => {
     const differs = Math.abs(p - est) > 0.0005 && pct(p) !== pct(est);
-    return `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${p * 100}%"></div><div class="needle" id="nd${i}"></div></div>${differs ? `<span class="est"><span class="estl">your estimate </span><span class="ests">est. </span>${pct(est)}</span>` : '<span class="est"></span>'}</div>`;
+    return `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${p * 100}%"></div><div class="needle" id="nd${i}"></div></div>${differs ? `<span class="est"><span class="estl">expected </span><span class="ests">exp. </span>${pct(est)}</span>` : '<span class="est"></span>'}</div>`;
   }).join('') +
-    `<div class="note">Each red bar is the real chance of that catastrophe this year, drawn to scale. The white needle is where the die landed: inside the red means it happened. Your estimate (est.) can differ from the real chance because some facts, like how hard alignment really is, stay secret until the game ends.</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
+    `<div class="note">Each red bar is the real chance of that catastrophe this year, drawn to scale. The white needle is where the die landed: inside the red means it happened. "Expected" is the chance as it looked from what you could see: an average over every world you might be in. The real chance can differ because some facts, like how hard alignment really is, stay secret${secretsOn ? '' : ' (Show secret facts reveals them)'}.</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
   const t0 = performance.now();
   const wiggle = () => {
     const el = performance.now() - t0;
@@ -1305,7 +1310,7 @@ function rollYear() {
     const how = res.stage === 'handoff'
       ? `<div class="youchose">${failed
         ? 'You got through this year\'s risks, but then AI became superintelligent, smarter than people at everything. Its alignment wasn\'t good enough to keep it on humanity\'s side, so control was lost for good (last bar).'
-        : 'You got through this year\'s risks, and then AI became superintelligent, smarter than people at everything, with alignment good enough to keep it on humanity\'s side (last bar).'} The real chance this would go well was ${pct(qReal, 0)}; your estimate was ${pct(qEst, 0)}.</div>`
+        : 'You got through this year\'s risks, and then AI became superintelligent, smarter than people at everything, with alignment good enough to keep it on humanity\'s side (last bar).'} The real chance this would go well was ${chance(qReal)}. From what you could see, it looked like ${chance(qEst)}, an average over every world you might have been in${qEst > qReal ? ', including easier ones' : ', including harder ones'}.</div>`
       : res.stage === 'end' ? '<div class="youchose">2040 arrives.</div>' : '';
     const verdict = res.event
       ? `<span style="color:${M.OUTCOMES[res.event].color}">${M.OUTCOMES[res.event].title}</span>${how}`
@@ -1354,18 +1359,7 @@ function showEnding() {
   $('endDecisions').innerHTML = decisionItems();
   const mc = M.monteCarlo(game.L, 1500, 0, Date.now() % 100000);
   const w = s.world;
-  const gap = M.hiddenShare(s, game.L) * w.evalGap, ease = 1 / w.difficulty;
-  const rows = [
-    ['How hard alignment was', `${ease.toFixed(1)}× ${ease >= 1 ? 'easier' : 'as easy'} than the baseline. ${w.safe
-      ? '<span style="color:var(--good)">Easy enough that fixing problems as they came up was all it took</span>'
-      : 'Not easy enough for quick fixes to do the job'} (that had a ${pct(w.pSafe, 0)} chance).`],
-    ['How misleading the tests were', `By the end, real alignment was <b>${pct(gap, 0)}</b> lower than the tests showed.`],
-    ['China', `Did <b>${pct(w.cnAlign, 0)}</b> as much alignment work as the US bloc, and ${w.cnCaution < 0.005 ? 'would not have slowed down' : `would have slowed <b>${pct(w.cnCaution, 0)}</b>`} near the brink.`],
-    ['Insiders', `A <b>${pct(w.whistle, 0)}</b> chance they would expose a power grab.`],
-    ['If AI had escaped control', w.benevolent ? '<span style="color:#ff9ecf">It would have cared for humanity.</span>' : 'It would not have cared for humanity.'],
-    ['Pandemic risk from open models', `<b>${pct(w.bioDecade, 2)}</b> per decade.`],
-  ];
-  $('endWorld').innerHTML = `<b>What you couldn't know until now</b><ul>${rows.map(([k, v]) => `<li><span class="wk">${k}:</span> ${v}</li>`).join('')}</ul>`;
+  $('endWorld').innerHTML = `<b>What you couldn't know until now</b>${secretList(s, game.L)}`;
   $('endMC').innerHTML = `<p class="mcline">If the whole decade had run under your <i>final</i> policy settings, 1,500 simulated futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
 }
@@ -1413,6 +1407,36 @@ function renderStats() {
   ).join('') + `<div class="note" style="margin-top:10px">Gap between capability and alignment: <b style="color:${M.maxCap(s) - s.align > 30 ? 'var(--bad)' : 'var(--good)'}">${Math.round(M.maxCap(s) - s.align)}</b>. Capability 70 is an Automated Coder, 90 dominates top experts, 100 is superintelligence.${M.dealActive(s, game.L) ? ' <b style="color:var(--accent)">A verified US–China deal is holding frontier capability at top-expert level (78), or where a bloc already was if higher.</b>' : ''}${s.dealCollapsed ? ` <b style="color:var(--bad)">The US–China deal collapsed in ${s.dealCollapsed}.</b>` : ''}</div>`;
 }
 
+// The hidden facts of this game's world, as a list (ending reveal and the campaign's secrets view).
+function secretList(s, L) {
+  const w = s.world;
+  const gap = M.hiddenShare(s, L) * w.evalGap, ease = 1 / w.difficulty;
+  const rows = [
+    ['How hard alignment was', `${ease >= 1 ? `${ease.toFixed(1)}× easier than` : `${ease.toFixed(1)}× as easy as`} the baseline. ${w.safe
+      ? '<span style="color:var(--good)">Easy enough that fixing problems as they came up was all it took</span>'
+      : 'Not easy enough for quick fixes to do the job'} (that had a ${pct(w.pSafe, 0)} chance).`],
+    ['How misleading the tests were', `${game && game.phase === 'over' ? 'By the end, real alignment was' : 'Right now, real alignment is'} <b>${pct(gap, 0)}</b> lower than the tests showed.`],
+    ['China', `Did <b>${pct(w.cnAlign, 0)}</b> as much alignment work as the US bloc, and ${w.cnCaution < 0.005 ? 'would not have slowed down' : `would have slowed <b>${pct(w.cnCaution, 0)}</b>`} near the brink.`],
+    ['Insiders', `A <b>${pct(w.whistle, 0)}</b> chance they would expose a power grab.`],
+    ['If AI had escaped control', w.benevolent ? '<span style="color:#ff9ecf">It would have cared for humanity.</span>' : 'It would not have cared for humanity.'],
+    ['Pandemic risk from open models', `<b>${pct(w.bioDecade, 2)}</b> per decade.`],
+  ];
+  return `<ul>${rows.map(([k, v]) => `<li><span class="wk">${k}:</span> ${v}</li>`).join('')}</ul>`;
+}
+
+// Campaign option: reveal this game's hidden facts and real risks while playing.
+let secretsOn = false;
+try { secretsOn = localStorage.getItem('goagi-secrets') === '1'; } catch (e) {}
+function syncSecrets() {
+  $('secretsBtn').textContent = secretsOn ? 'Hide secret facts' : 'Show secret facts';
+  $('secretsBtn').setAttribute('aria-pressed', String(secretsOn));
+  $('secrets').hidden = !secretsOn;
+  if (game) renderRisks();
+}
+$('secretsBtn').onclick = () => { secretsOn = !secretsOn; try { localStorage.setItem('goagi-secrets', secretsOn ? '1' : '0'); } catch (e) {} syncSecrets(); };
+// Chances shown as words at the extremes, so 0.000020% does not read as a precise number.
+const chance = (p) => p < 0.001 ? 'almost none (under 0.1%)' : p > 0.999 ? 'almost certain (over 99.9%)' : pct(p, 0);
+
 function renderRisks(prev) {
   const s = game.s, r = M.risks(s, game.L);
   const why = {
@@ -1427,8 +1451,14 @@ function renderRisks(prev) {
       const dv = prev.now[k] - prev.base[k];
       if (Math.abs(dv) >= 0.0005) d = `<span class="delta ${dv > 0 ? 'up' : 'down'}">${dv > 0 ? '▲' : '▼'}${(Math.abs(dv) * 100).toFixed(1)}</span>`;
     }
-    return `<div class="risk"><div class="row"><span style="color:${c}">${name}</span><span><span class="pct">${pct(prev ? prev.now[k] : r[k])}</span>${d}</span></div><div class="why">${why[k]}</div></div>`;
+    const real = { bio: r.bioTrue, misalign: r.misalignTrue, war: r.war }[k];
+    const realTxt = secretsOn && !prev ? `<div class="realrisk">Real chance in this world: <b>${real > 0 ? pct(real) : 'none'}</b></div>` : '';
+    return `<div class="risk"><div class="row"><span style="color:${c}">${name}</span><span><span class="pct">${pct(prev ? prev.now[k] : r[k])}</span>${d}</span></div>${realTxt}<div class="why">${why[k]}</div></div>`;
   }).join('');
+  if (secretsOn) {
+    const q = M.transitionOdds(s, true, game.L), qe = M.transitionOdds(s, false, game.L);
+    $('secrets').innerHTML = `<div class="realrisk">If AI became superintelligent now, the real chance the handoff goes well: <b>${chance(q)}</b> (expected from what you can see: ${chance(qe)}).</div>${secretList(s, game.L)}`;
+  }
   $('riskSub').textContent = prev ? 'Estimated risk next year with this choice (▲▼ vs. changing nothing).' : 'Hover a choice to preview where it leads.';
   $('survival').textContent = pct(s.survival, 1);
   $('survival').style.color = s.survival > 0.75 ? 'var(--good)' : s.survival > 0.45 ? 'var(--warn)' : 'var(--bad)';
@@ -1886,6 +1916,7 @@ $('tourBtn').onclick = () => {
 };
 
 selectPreset('Status quo');
+syncSecrets();
 {
   let saved = null;
   try { saved = localStorage.getItem('goagi-mode'); } catch (e) {}

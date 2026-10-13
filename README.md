@@ -32,7 +32,7 @@ people without economic leverage or a say even when humans keep control of AI.
   assumptions (mean ± spread, as in the original), run 2,000 Monte Carlo futures,
   and see every trajectory as a 3D fan, colored by how it ends. Hover a line to
   read its values; click an outcome to read it and isolate its futures.
-- **Campaign (2027–2040; opens on a one-line title screen; Play starts right away, with a tutorial on the first visit; the page remembers the mode you used last).** Each year you get a decision card. Hover a choice to
+- **Campaign (2027–2040; opens on a one-line title screen; Play starts right away, with a tutorial on the first visit; the page remembers the mode you used last; "Show secret facts" reveals the hidden world and real risks while you play).** Each year you get a decision card. Hover a choice to
   see how it shifts next year's projected risk, then the dice roll against
   three catastrophes: an engineered pandemic, loss of control, and great-power war.
   The globe reacts in 3D:
