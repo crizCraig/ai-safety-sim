@@ -50,7 +50,7 @@
   #timeline .yr.now::before { background: var(--accent); box-shadow: 0 0 10px var(--accent); transform: scale(1.4); }
   #timeline .yr.end::before { background: var(--endc, var(--bad)); box-shadow: 0 0 12px var(--endc, var(--bad)); transform: scale(1.6); }
   #ghLink { margin-left: auto; }
-  #modelBtn .short, #tourBtn .short { display: none; }
+  #modelBtn .short, #tourBtn .short, #shareLink .short { display: none; }
   body.mode-lab #statsToggle { display: none !important; }
   a.iconbtn { text-decoration: none; }
   .iconbtn { background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 6px 11px; font-size: 13px; color: var(--muted); backdrop-filter: blur(8px); }
@@ -256,15 +256,18 @@
   }
   @media (max-width: 640px) {
     /* Header: brand, tabs and About on one row; Stats + year dots on a second row in the campaign. */
-    #top { flex-wrap: wrap; gap: 8px; padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px; background: var(--bg); border-bottom: 1px solid var(--line); }
-    .brand { font-size: 12px; letter-spacing: 0.08em; white-space: nowrap; }
+    #top { flex-wrap: wrap; gap: 6px; padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px; background: var(--bg); border-bottom: 1px solid var(--line); }
+    .brand { font-size: 11px; letter-spacing: 0.04em; white-space: nowrap; }
     .tabs button { font-size: 12.5px; }
     #modelBtn { font-size: 12.5px; }
     .brand small { display: none; }
-    .tabs button { padding: 6px 10px; }
-    #modelBtn { padding: 6px 10px; }
+    .tabs button { padding: 6px 8px; }
+    #modelBtn { padding: 6px 8px; }
     #modelBtn .long, #builtLink, #ghLink { display: none !important; }
-    #modelBtn .short, #tourBtn .short { display: inline; }
+    #modelBtn .short, #tourBtn .short, #shareLink .short { display: inline; }
+    #shareLink .long { display: none; }
+    /* No room in the phone header: float it in the corner of the pinned graph. */
+    #shareLink { position: fixed; top: calc(var(--graph-top, 53px) + 10px); right: 12px; z-index: 6; padding: 5px 10px; font-size: 12px; background: rgba(3,6,13,0.75); }
     #tourBtn .long { display: none; }
     #tourBtn { padding: 6px 10px; }
     #statsToggle { order: 5; padding: 4px 10px; }
@@ -307,11 +310,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261014122224"></script>
-<script src="events.js?v=20261014122224"></script>
-<script src="landmask.js?v=20261014122224"></script>
-<script src="presets.js?v=20261014122224"></script>
-<script src="trees.js?v=20261014122224"></script>
+<script src="model.js?v=20261014123458"></script>
+<script src="events.js?v=20261014123458"></script>
+<script src="landmask.js?v=20261014123458"></script>
+<script src="presets.js?v=20261014123458"></script>
+<script src="trees.js?v=20261014123458"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -324,6 +327,7 @@
   </div>
   <div id="timeline" class="campaign-only"></div>
   <button class="iconbtn" id="statsToggle" style="display:none">Stats</button>
+  <button class="iconbtn lab-only" id="shareLink" title="Copy a link to these settings"><span class="long">Share these settings</span><span class="short">Share</span></button>
   <a class="iconbtn" id="ghLink" href="https://github.com/crizCraig/ai-safety-sim" target="_blank" rel="noopener" title="Source code on GitHub">GitHub ↗</a>
   <button class="iconbtn" id="tourBtn" title="Show the tutorial"><span class="long">How to play</span><span class="short">?</span></button>
   <button class="iconbtn" id="modelBtn"><span class="long">How the model works</span><span class="short">About</span></button>
@@ -372,7 +376,6 @@
     <h3>2,000 simulated futures</h3>
     <div class="sub" id="labSub"></div>
     <div id="outcomes"></div>
-    <button class="btn copybtn" id="shareLink">Share these settings</button>
     <button class="btn copybtn" id="copyPage">Copy for LLMs</button>
     <div class="note">Copies these settings, the formulas, the model's code and the results as one prompt. Paste it into Claude or another AI and ask it to poke holes in the assumptions.</div>
     <div class="divider"></div>
@@ -604,7 +607,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261014122224';
+const ASSET_VERSION = '20261014123458';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1568,6 +1571,7 @@ function applyFocus() {
 }
 
 function runLab() {
+  syncURL();
   const mc = M.monteCarlo(labL, 2000, 260, 42, labA);
   lastMC = mc;
   renderOutcomeRows(mc);
@@ -1698,23 +1702,35 @@ function copyFallback(text) {
 // from their defaults (key:mean:sd). Opening it loads those settings in the Futures Lab.
 function shareURL() {
   const base = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin + location.pathname : SITE.replace(/\/?$/, '/');
-  const l = Object.keys(M.LEVER_INFO).map((k) => Math.round(labL[k] * 100)).join('.');
+  return base + '?' + shareQuery();
+}
+// Labelled query: every lever as a whole percentage (race=70&safety=5...), plus any unknown
+// changed from its default as name=mean:sd. Labels keep links valid if the order changes.
+function shareQuery() {
   const D = M.defaultAssumptions();
-  const a = Object.keys(M.ASSUMPTION_INFO).filter((k) => labA[k].mean !== D[k].mean || labA[k].sd !== D[k].sd)
-    .map((k) => `${k}:${+(+labA[k].mean).toFixed(3)}:${+(+labA[k].sd).toFixed(3)}`).join(',');
-  return base + '?l=' + l + (a ? '&a=' + a : '');
+  const parts = Object.keys(M.LEVER_INFO).map((k) => `${k}=${Math.round(labL[k] * 100)}`);
+  for (const k of Object.keys(M.ASSUMPTION_INFO)) if (labA[k].mean !== D[k].mean || labA[k].sd !== D[k].sd)
+    parts.push(`${k}=${+(+labA[k].mean).toFixed(3)}:${+(+labA[k].sd).toFixed(3)}`);
+  return parts.join('&');
+}
+// Keep the address bar in step with the Lab, so the page's own URL is always shareable.
+function syncURL() {
+  try { history.replaceState(null, '', location.pathname + (mode === 'lab' ? '?' + shareQuery() : '')); } catch (e) {}
 }
 function loadShared() {
   let q; try { q = new URLSearchParams(location.search); } catch (e) { return false; }
-  const l = q.get('l'); if (!l) return false;
-  const keys = Object.keys(M.LEVER_INFO), vals = l.split('.').map(Number);
-  keys.forEach((k, i) => { if (Number.isFinite(vals[i])) labL[k] = Math.min(100, Math.max(0, vals[i])) / 100; });
-  for (const part of (q.get('a') || '').split(',')) {
-    const [k, m, sd] = part.split(':');
+  const keys = Object.keys(M.LEVER_INFO), vals = {}, unk = {};
+  if (q.get('l')) q.get('l').split('.').forEach((v, i) => { if (keys[i]) vals[keys[i]] = v; }); // older positional links
+  for (const part of (q.get('a') || '').split(',')) { const [k, ...rest] = part.split(':'); if (k) unk[k] = rest; }
+  for (const k of keys) if (q.has(k)) vals[k] = q.get(k);
+  for (const k of Object.keys(M.ASSUMPTION_INFO)) if (q.has(k)) unk[k] = q.get(k).split(':');
+  if (!Object.keys(vals).length && !Object.keys(unk).length) return false;
+  for (const [k, v] of Object.entries(vals)) if (v !== '' && Number.isFinite(+v)) labL[k] = Math.min(100, Math.max(0, +v)) / 100;
+  for (const [k, [m, sd]] of Object.entries(unk)) {
     if (!M.ASSUMPTION_INFO[k]) continue;
     const fit = (id, v) => { const el = $(id); return Math.min(+el.max, Math.max(+el.min, v)); };
-    if (Number.isFinite(+m)) labA[k].mean = fit('am-' + k, +m);
-    if (Number.isFinite(+sd)) labA[k].sd = fit('as-' + k, +sd);
+    if (m !== undefined && m !== '' && Number.isFinite(+m)) labA[k].mean = fit('am-' + k, +m);
+    if (sd !== undefined && sd !== '' && Number.isFinite(+sd)) labA[k].sd = fit('as-' + k, +sd);
   }
   syncSliders(); syncAssumptions(true);
   const match = Object.keys(PRESETS).find((p) => keys.every((k) => Math.round(PRESETS[p][k] * 100) === Math.round(labL[k] * 100)));
@@ -1744,6 +1760,7 @@ function setMode(m) {
   try { localStorage.setItem('goagi-mode', m); } catch (e) {}
   document.body.classList.remove('mode-campaign', 'mode-lab', 'deciding');
   document.body.classList.add('mode-' + m);
+  if (m !== 'lab') syncURL();
   if (m === 'campaign' && game && game.phase === 'choose') document.body.classList.add('deciding');
   document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.mode === m));
   world.visible = m === 'campaign';
