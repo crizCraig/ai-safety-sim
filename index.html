@@ -307,11 +307,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261013135849"></script>
-<script src="events.js?v=20261013135849"></script>
-<script src="landmask.js?v=20261013135849"></script>
-<script src="presets.js?v=20261013135849"></script>
-<script src="trees.js?v=20261013135849"></script>
+<script src="model.js?v=20261013221311"></script>
+<script src="events.js?v=20261013221311"></script>
+<script src="landmask.js?v=20261013221311"></script>
+<script src="presets.js?v=20261013221311"></script>
+<script src="trees.js?v=20261013221311"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -421,7 +421,7 @@
   <div class="splash-box">
     <div class="kicker">2027 · thirteen years to superintelligence</div>
     <h1>Can you win the<br>Game of AGI?</h1>
-    <div class="splash-save">…and save the world?</div>
+    <div class="splash-save">…and save humanity?</div>
     <p>One decision a year.</p>
     <button class="btn splash-play" id="playBtn">Play</button>
     <button class="linkbtn" id="splashLab">or explore 2,000 possible futures →</button>
@@ -603,7 +603,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261013135849';
+const ASSET_VERSION = '20261013221311';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
