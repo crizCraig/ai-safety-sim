@@ -14,6 +14,9 @@ out = Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
 for name in ("model.js", "events.js", "landmask.js", "presets.js", "trees.js"):
     shutil.copy(root / name, out / name)
+(out / "assets").mkdir(exist_ok=True)
+for img in sorted((root / "assets").glob("milkyway-*.jpg")):
+    shutil.copy(img, out / "assets" / img.name)
 
 s = (root / "index.html").read_text()
 s = re.sub(r"<!doctype html>\s*<html[^>]*>\s*<head>\s*<meta charset[^>]*>\s*<meta name=\"viewport\"[^>]*>\s*", "", s)
