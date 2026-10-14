@@ -310,11 +310,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261014123458"></script>
-<script src="events.js?v=20261014123458"></script>
-<script src="landmask.js?v=20261014123458"></script>
-<script src="presets.js?v=20261014123458"></script>
-<script src="trees.js?v=20261014123458"></script>
+<script src="model.js?v=20261014124726"></script>
+<script src="events.js?v=20261014124726"></script>
+<script src="landmask.js?v=20261014124726"></script>
+<script src="presets.js?v=20261014124726"></script>
+<script src="trees.js?v=20261014124726"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -607,7 +607,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261014123458';
+const ASSET_VERSION = '20261014124726';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1714,9 +1714,28 @@ function shareQuery() {
   return parts.join('&');
 }
 // Keep the address bar in step with the Lab, so the page's own URL is always shareable.
+// Each settled change is a history entry, so Back works as undo; changes less than 0.8 s
+// apart (a slider drag) fold into one entry. Entering or leaving the Lab never adds one.
+let lastSync = 0;
 function syncURL() {
-  try { history.replaceState(null, '', location.pathname + (mode === 'lab' ? '?' + shareQuery() : '')); } catch (e) {}
+  const url = location.pathname + (mode === 'lab' ? '?' + shareQuery() : '');
+  const now = performance.now(), quick = now - lastSync < 800;
+  lastSync = now;
+  if (url === location.pathname + location.search) return;
+  try {
+    if (mode === 'lab' && location.search && !quick) history.pushState(null, '', url);
+    else history.replaceState(null, '', url);
+  } catch (e) {}
 }
+// Back and Forward restore the settings in that history entry.
+addEventListener('popstate', () => {
+  if (!location.search) return;
+  const D = M.defaultAssumptions();
+  for (const k in D) labA[k] = { ...D[k] };
+  if (!loadShared()) return;
+  if (mode !== 'lab') setMode('lab'); else runLab();
+  lastSync = 0;
+});
 function loadShared() {
   let q; try { q = new URLSearchParams(location.search); } catch (e) { return false; }
   const keys = Object.keys(M.LEVER_INFO), vals = {}, unk = {};
