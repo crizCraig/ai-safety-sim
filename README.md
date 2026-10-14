@@ -63,5 +63,3 @@ The council, labs and companies in the game are fictional composites.
 ## License
 
 MIT. The coastline data in `landmask.js` is derived from Natural Earth (public domain).
-
-The sky is NASA's [Deep Star Maps 2020](https://svs.gsfc.nasa.gov/4851) (NASA/Goddard Space Flight Center Scientific Visualization Studio; Gaia DR2: ESA/Gaia/DPAC), brightened and saved as `assets/milkyway-{4k,8k}.jpg`.
