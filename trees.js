@@ -10,6 +10,6 @@ globalThis.MEMTREES = [
     session: 'cf649598-ab0d-4759-9683-97ff0d83d9be',
     title: 'Building the game: 3D simulator, AI 2040 calibration, Futures Lab',
     updated: '2026-10-14',
-    url: 'https://app.polychat.co/m/68sGo0H819XI',
+    url: 'https://app.polychat.co/m/FCb2k3FYsZBc',
   },
 ];
