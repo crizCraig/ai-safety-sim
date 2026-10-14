@@ -129,6 +129,7 @@
   .world-reveal ul { margin: 6px 0 0; padding-left: 18px; }
   .secbtn { display: block; width: 100%; margin: 10px 0 6px; pointer-events: auto; }
   .world-reveal.secrets { font-size: 12px !important; margin-bottom: 8px; }
+  .secnote { font-size: 11px; line-height: 1.45; color: var(--muted); margin-top: 6px; }
   .realrisk { font-size: 11.5px; color: #ffb3c0; margin-top: 2px; }
   .world-reveal li { margin: 3px 0; line-height: 1.45; }
   .world-reveal .wk { color: var(--muted); }
@@ -310,11 +311,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261014124726"></script>
-<script src="events.js?v=20261014124726"></script>
-<script src="landmask.js?v=20261014124726"></script>
-<script src="presets.js?v=20261014124726"></script>
-<script src="trees.js?v=20261014124726"></script>
+<script src="model.js?v=20261014165312"></script>
+<script src="events.js?v=20261014165312"></script>
+<script src="landmask.js?v=20261014165312"></script>
+<script src="presets.js?v=20261014165312"></script>
+<script src="trees.js?v=20261014165312"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -607,7 +608,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261014124726';
+const ASSET_VERSION = '20261014165312';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1363,7 +1364,7 @@ function showEnding() {
   $('endDecisions').innerHTML = decisionItems();
   const mc = M.monteCarlo(game.L, 1500, 0, Date.now() % 100000);
   const w = s.world;
-  $('endWorld').innerHTML = `<b>What you couldn't know until now</b>${secretList(s, game.L)}`;
+  $('endWorld').innerHTML = `<b>What you couldn't know until now</b>${secretList(s, game.L)}${SECRETS_NOTE}`;
   $('endMC').innerHTML = `<p class="mcline">If the whole decade had run under your <i>final</i> policy settings, 1,500 simulated futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
 }
@@ -1428,6 +1429,8 @@ function secretList(s, L) {
   return `<ul>${rows.map(([k, v]) => `<li><span class="wk">${k}:</span> ${v}</li>`).join('')}</ul>`;
 }
 
+// How a game's secret facts are set (shown with them).
+const SECRETS_NOTE = '<div class="secnote">Each new game draws these at random when it starts, from the same ranges as the Futures Lab\'s unknowns at their defaults, so every campaign is a different world. Your choices can\'t change them, though oversight and openness change how much of the test gap stays hidden.</div>';
 // Campaign option: reveal this game's hidden facts and real risks while playing.
 let secretsOn = false;
 try { secretsOn = localStorage.getItem('goagi-secrets') === '1'; } catch (e) {}
@@ -1461,7 +1464,7 @@ function renderRisks(prev) {
   }).join('');
   if (secretsOn) {
     const q = M.transitionOdds(s, true, game.L), qe = M.transitionOdds(s, false, game.L);
-    $('secrets').innerHTML = `<div class="realrisk">If AI became superintelligent now, the real chance the handoff goes well: <b>${chance(q)}</b> (expected from what you can see: ${chance(qe)}).</div>${secretList(s, game.L)}`;
+    $('secrets').innerHTML = `<div class="realrisk">If AI became superintelligent now, the real chance the handoff goes well: <b>${chance(q)}</b> (expected from what you can see: ${chance(qe)}).</div>${secretList(s, game.L)}${SECRETS_NOTE}`;
   }
   $('riskSub').textContent = prev ? 'Estimated risk next year with this choice (▲▼ vs. changing nothing).' : 'Hover a choice to preview where it leads.';
   $('survival').textContent = pct(s.survival, 1);
