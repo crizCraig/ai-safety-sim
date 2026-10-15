@@ -1,3 +1,6 @@
 .DS_Store
 node_modules/
 .agent-bus/
+
+# Local secrets (API keys); never commit
+.env
