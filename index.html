@@ -322,11 +322,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261014170811"></script>
-<script src="events.js?v=20261014170811"></script>
-<script src="landmask.js?v=20261014170811"></script>
-<script src="presets.js?v=20261014170811"></script>
-<script src="trees.js?v=20261014170811"></script>
+<script src="model.js?v=20261014202138"></script>
+<script src="events.js?v=20261014202138"></script>
+<script src="landmask.js?v=20261014202138"></script>
+<script src="presets.js?v=20261014202138"></script>
+<script src="trees.js?v=20261014202138"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -451,7 +451,7 @@
     <h2>Rolling a hidden world</h2>
     <p>Nobody knows these facts about the future yet, so the game draws them at random for this playthrough and keeps them secret.</p>
     <ul class="unk-list" id="unkList"></ul>
-    <p class="roll-job" id="rollJob"><b>Your job:</b> make good decisions without knowing which world you're in. At the end you'll see the secrets, and how hard your world was.</p>
+    <p class="roll-job" id="rollJob"><b>Your job:</b> steer the world through 2040 without knowing any of these, just as real leaders must. When it's over, you'll see what they were and how hard your world turned out to be.</p>
     <button class="btn" id="rollGo" disabled>Begin 2027</button>
   </div>
 </div>
@@ -632,7 +632,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261014170811';
+const ASSET_VERSION = '20261014202138';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
