@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500">
+<title>An unlocked AI on a laptop feeds a DNA strand toward a virus flask, and a green screening gate flags the order just in time</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#03060d"/><stop offset="1" stop-color="#0b1630"/></linearGradient>
+<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="1200" height="500" fill="url(#bg)"/>
+<g fill="#8b98b3">
+<circle cx="80" cy="70" r="1.4" opacity=".35"/><circle cx="300" cy="40" r="1.2" opacity=".25"/><circle cx="520" cy="86" r="1.6" opacity=".4"/><circle cx="760" cy="38" r="1.3" opacity=".3"/><circle cx="980" cy="76" r="1.5" opacity=".45"/><circle cx="1150" cy="44" r="1.2" opacity=".3"/><circle cx="160" cy="450" r="1.5" opacity=".3"/><circle cx="420" cy="420" r="1.2" opacity=".4"/><circle cx="690" cy="466" r="1.4" opacity=".25"/><circle cx="930" cy="430" r="1.3" opacity=".35"/><circle cx="1120" cy="460" r="1.6" opacity=".4"/>
+</g>
+<g filter="url(#glow)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<!-- laptop with stripped AI -->
+<g stroke="#7fe3ff" stroke-width="3">
+<rect x="90" y="175" width="190" height="120" rx="8" fill="#7fe3ff" fill-opacity=".1"/>
+<path d="M66 295 H304 L290 318 H80 Z" fill="#7fe3ff" fill-opacity=".15"/>
+</g>
+<g stroke="#ff8a3d" stroke-width="3">
+<rect x="158" y="230" width="54" height="42" rx="5" fill="#ff8a3d" fill-opacity=".2"/>
+<path d="M168 230 V210 C168 190 196 186 202 200"/>
+<circle cx="185" cy="250" r="5" fill="#ff8a3d"/>
+</g>
+<!-- DNA helix -->
+<g stroke-width="3">
+<path d="M330 250 Q355 170 380 250 T430 250 T480 250 T530 250 T580 250 T630 250 T680 250 T730 250" stroke="#7fe3ff"/>
+<path d="M330 250 Q355 330 380 250 T430 250 T480 250 T530 250 T580 250 T630 250 T680 250 T730 250" stroke="#ff8a3d"/>
+</g>
+<g stroke="#8b98b3" stroke-width="2" opacity=".7">
+<path d="M355 212 V288 M345 222 V278 M365 222 V278 M405 212 V288 M395 222 V278 M415 222 V278 M455 212 V288 M445 222 V278 M465 222 V278 M505 212 V288 M495 222 V278 M515 222 V278 M555 212 V288 M545 222 V278 M565 222 V278 M655 212 V288 M645 222 V278 M665 222 V278 M705 212 V288 M695 222 V278 M715 222 V278"/>
+</g>
+<!-- screening gate -->
+<g stroke="#59f0b8" stroke-width="3">
+<rect x="588" y="160" width="34" height="180" rx="10" fill="#59f0b8" fill-opacity=".18"/>
+<path d="M605 140 V360" stroke-width="2" stroke-dasharray="5 7"/>
+<path d="M560 160 Q605 130 650 160 M560 340 Q605 370 650 340" stroke-width="2"/>
+</g>
+<g stroke="#ff3b5c" stroke-width="3">
+<circle cx="605" cy="250" r="22" fill="#ff3b5c" fill-opacity=".25"/>
+<path d="M591 236 L619 264 M619 236 L591 264"/>
+</g>
+<!-- flask -->
+<g stroke="#c38bff" stroke-width="3">
+<path d="M800 170 H850 M810 170 V225 L770 320 Q765 335 780 335 H870 Q885 335 880 320 L840 225 V170" fill="#c38bff" fill-opacity=".08"/>
+<path d="M783 290 H867 L880 320 Q885 335 870 335 H780 Q765 335 770 320 Z" fill="#ff3b5c" fill-opacity=".3" stroke="#ff3b5c"/>
+</g>
+<g fill="#ff3b5c"><circle cx="805" cy="312" r="4"/><circle cx="835" cy="320" r="3"/><circle cx="852" cy="306" r="3.5"/><circle cx="822" cy="270" r="3"/><circle cx="830" cy="245" r="2.5"/></g>
+<!-- virus -->
+<g stroke="#ff3b5c" stroke-width="3">
+<circle cx="1030" cy="250" r="52" fill="#ff3b5c" fill-opacity=".18"/>
+<path d="M1030 198 V170 M1030 302 V330 M978 250 H950 M1082 250 H1110 M993 213 L973 193 M1067 287 L1087 307 M1067 213 L1087 193 M993 287 L973 307"/>
+</g>
+<g fill="#ff3b5c"><circle cx="1030" cy="166" r="7"/><circle cx="1030" cy="334" r="7"/><circle cx="946" cy="250" r="7"/><circle cx="1114" cy="250" r="7"/><circle cx="970" cy="190" r="7"/><circle cx="1090" cy="310" r="7"/><circle cx="1090" cy="190" r="7"/><circle cx="970" cy="310" r="7"/></g>
+<g stroke="#ff3b5c" stroke-width="2" opacity=".6"><circle cx="1012" cy="236" r="10"/><circle cx="1046" cy="262" r="13"/><circle cx="1016" cy="274" r="6"/></g>
+</g>
+</svg>

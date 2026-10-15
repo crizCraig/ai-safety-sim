@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500">
+<title>A crowd of protesters holding blank signs faces a glowing AI data center, while an empty office desk with an AI monitor sits between them</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#03060d"/><stop offset="1" stop-color="#0b1630"/></linearGradient>
+<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<g id="p"><circle cx="0" cy="0" r="13"/><path d="M-25 62 Q-25 22 0 20 Q25 22 25 62 Z"/></g>
+</defs>
+<rect width="1200" height="500" fill="url(#bg)"/>
+<g fill="#8b98b3">
+<circle cx="90" cy="54" r="1.5" opacity=".35"/><circle cx="330" cy="30" r="1.2" opacity=".3"/><circle cx="560" cy="70" r="1.6" opacity=".4"/><circle cx="780" cy="34" r="1.3" opacity=".25"/><circle cx="1000" cy="66" r="1.4" opacity=".45"/><circle cx="1170" cy="30" r="1.2" opacity=".3"/><circle cx="40" cy="430" r="1.3" opacity=".3"/><circle cx="270" cy="466" r="1.5" opacity=".4"/><circle cx="520" cy="440" r="1.2" opacity=".25"/><circle cx="820" cy="470" r="1.4" opacity=".35"/><circle cx="1080" cy="440" r="1.6" opacity=".3"/>
+</g>
+<g filter="url(#glow)" stroke-linecap="round" stroke-linejoin="round">
+<!-- signs -->
+<g fill="#ff8a3d" fill-opacity=".2" stroke="#ff8a3d" stroke-width="2.5">
+<rect x="98" y="162" width="64" height="40" rx="3"/><rect x="292" y="152" width="70" height="42" rx="3"/><rect x="460" y="168" width="60" height="38" rx="3"/>
+<path d="M130 202 V248 M327 194 V240 M490 206 V250" fill="none"/>
+</g>
+<!-- back row -->
+<g fill="#8b98b3" fill-opacity=".15" stroke="#8b98b3" stroke-width="2" opacity=".75">
+<use href="#p" x="90" y="250"/><use href="#p" x="170" y="246"/><use href="#p" x="250" y="250"/><use href="#p" x="330" y="244"/><use href="#p" x="410" y="250"/><use href="#p" x="490" y="248"/>
+</g>
+<!-- front row -->
+<g fill="#ff8a3d" fill-opacity=".22" stroke="#ff8a3d" stroke-width="3">
+<use href="#p" x="50" y="272"/><use href="#p" x="130" y="268"/><use href="#p" x="210" y="274"/><use href="#p" x="290" y="268"/><use href="#p" x="370" y="274"/><use href="#p" x="450" y="270"/><use href="#p" x="530" y="274"/>
+</g>
+<!-- empty desk with AI monitor -->
+<g fill="none" stroke="#7fe3ff" stroke-width="3">
+<rect x="625" y="218" width="78" height="54" rx="5" fill="#7fe3ff" fill-opacity=".12"/>
+<path d="M664 272 V292 M644 292 H684 M600 300 H730 M612 300 V340 M718 300 V340"/>
+<circle cx="664" cy="245" r="12" fill="#7fe3ff" fill-opacity=".35"/>
+<g stroke="#8b98b3" stroke-width="2.5" opacity=".8"><rect x="742" y="236" width="30" height="40" rx="6" fill="#8b98b3" fill-opacity=".12"/><path d="M734 288 H780 M757 276 V288 M757 288 V322 M738 334 L757 322 L776 334"/></g>
+</g>
+<!-- data center -->
+<g fill="none" stroke="#7fe3ff" stroke-width="3">
+<path d="M820 340 V190 L960 150 L1120 190 V340 Z" fill="#7fe3ff" fill-opacity=".08"/>
+<rect x="850" y="205" width="56" height="125" rx="4"/><rect x="942" y="200" width="56" height="130" rx="4"/><rect x="1034" y="205" width="56" height="125" rx="4"/>
+<path d="M860 230 H896 M860 255 H896 M860 280 H896 M860 305 H896 M952 225 H988 M952 250 H988 M952 275 H988 M952 300 H988 M1044 230 H1080 M1044 255 H1080 M1044 280 H1080 M1044 305 H1080" stroke-width="2" opacity=".55"/>
+</g>
+<g fill="#59f0b8"><circle cx="900" cy="218" r="3"/><circle cx="992" cy="213" r="3"/><circle cx="1084" cy="218" r="3"/></g>
+<!-- unrest sparks -->
+<g fill="none" stroke="#ff3b5c" stroke-width="2.5">
+<path d="M800 200 L786 216 L798 220 L784 238"/><path d="M806 290 L790 300 L802 306 L788 320"/>
+</g>
+</g>
+</svg>

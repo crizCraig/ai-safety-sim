@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500">
+<title>Open the Lab Notebooks: an open lab notebook radiates its research to globes of many nations, while a padlocked vault keeps the model weights private</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#03060d"/><stop offset="1" stop-color="#0b1630"/></linearGradient>
+<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<g id="gl"><circle r="38"/><ellipse rx="17" ry="38" fill="none"/><path d="M0 -38 V38 M-34 -16 H34 M-34 16 H34" fill="none"/></g>
+</defs>
+<rect width="1200" height="500" fill="url(#bg)"/>
+<g fill="#fff">
+<circle cx="80" cy="60" r="1.4" opacity=".4"/><circle cx="260" cy="100" r="1" opacity=".3"/><circle cx="430" cy="45" r="1.3" opacity=".45"/><circle cx="640" cy="90" r="1" opacity=".25"/><circle cx="830" cy="50" r="1.5" opacity=".4"/><circle cx="1000" cy="110" r="1" opacity=".3"/><circle cx="1150" cy="55" r="1.3" opacity=".4"/><circle cx="60" cy="430" r="1" opacity=".3"/><circle cx="300" cy="460" r="1.4" opacity=".35"/><circle cx="560" cy="440" r="1" opacity=".25"/><circle cx="780" cy="465" r="1.3" opacity=".4"/><circle cx="1110" cy="440" r="1" opacity=".3"/>
+</g>
+<g filter="url(#glow)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<g stroke="#ffd76a" stroke-width="2" opacity=".55">
+<path d="M560 170 L548 150 M600 165 V142 M640 170 L652 150 M448 178 L428 166 M752 178 L772 166"/>
+</g>
+<g stroke="#ffd76a" stroke-width="2" stroke-dasharray="3 9" opacity=".6">
+<path d="M455 225 L300 205 M455 280 L230 300 M745 225 L860 205 M745 280 L800 300"/>
+</g>
+<g stroke="#5aa9ff" stroke-width="2.5" fill="#5aa9ff" fill-opacity=".14"><use href="#gl" x="260" y="205"/></g>
+<g stroke="#8b98b3" stroke-width="2.5" fill="#8b98b3" fill-opacity=".14"><use href="#gl" x="190" y="300"/></g>
+<g stroke="#ff6b5a" stroke-width="2.5" fill="#ff6b5a" fill-opacity=".14"><use href="#gl" x="900" y="205"/></g>
+<g stroke="#ffd76a" stroke-width="2.5" fill="#ffd76a" fill-opacity=".12"><use href="#gl" x="840" y="300"/></g>
+<g stroke="#7fe3ff" stroke-width="3" fill="#7fe3ff" fill-opacity=".1">
+<path d="M600 195 C560 178 500 178 460 190 V318 C500 306 560 306 600 322 Z"/>
+<path d="M600 195 C640 178 700 178 740 190 V318 C700 306 640 306 600 322 Z"/>
+</g>
+<path d="M452 196 V328 C500 316 560 316 600 332 C640 316 700 316 748 328 V196" stroke="#7fe3ff" stroke-width="2" opacity=".5"/>
+<g stroke="#7fe3ff" stroke-width="2" opacity=".7">
+<path d="M478 214 C510 206 550 206 584 216 M478 238 C510 230 550 230 584 240 M478 262 C505 255 530 255 550 259"/>
+<path d="M616 216 C650 206 690 206 722 214 M616 240 C650 230 690 230 722 238 M616 264 C650 254 690 254 722 262"/>
+</g>
+<g stroke="#59f0b8" stroke-width="2.5">
+<path d="M478 286 C510 278 550 278 584 288"/>
+<path d="M616 288 C650 278 690 278 722 286"/>
+</g>
+<g stroke="#8b98b3" stroke-width="3">
+<rect x="985" y="185" width="140" height="140" rx="10" fill="#8b98b3" fill-opacity=".1"/>
+<rect x="997" y="197" width="116" height="116" rx="6" stroke-width="1.5" opacity=".5"/>
+<path d="M1000 325 v10 M1110 325 v10" stroke-width="2"/>
+</g>
+<g fill="#7fe3ff" fill-opacity=".25" stroke="#7fe3ff" stroke-width="1.5" opacity=".7">
+<rect x="1010" y="210" width="16" height="16" rx="2"/><rect x="1030" y="210" width="16" height="16" rx="2"/><rect x="1010" y="230" width="16" height="16" rx="2"/><rect x="1030" y="230" width="16" height="16" rx="2"/><rect x="1010" y="250" width="16" height="16" rx="2"/><rect x="1030" y="250" width="16" height="16" rx="2"/>
+</g>
+<g stroke="#c38bff" stroke-width="3">
+<path d="M1068 248 V234 a14 14 0 0 1 28 0 V248"/>
+<rect x="1060" y="246" width="44" height="34" rx="5" fill="#c38bff" fill-opacity=".3"/>
+<path d="M1082 258 v10" stroke-width="3.5"/>
+</g>
+</g>
+</svg>

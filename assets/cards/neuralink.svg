@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500">
+<title>Merging With AI: a brain laced with circuit traces, its purple implant wired by a signal wave to an AI chip</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#03060d"/><stop offset="1" stop-color="#0b1630"/></linearGradient>
+<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="1200" height="500" fill="url(#bg)"/>
+<g fill="#fff">
+<circle cx="60" cy="90" r="1.3" opacity=".4"/><circle cx="210" cy="40" r="1" opacity=".3"/><circle cx="380" cy="75" r="1.5" opacity=".45"/><circle cx="600" cy="60" r="1" opacity=".25"/><circle cx="780" cy="105" r="1.3" opacity=".35"/><circle cx="960" cy="55" r="1.5" opacity=".4"/><circle cx="1130" cy="95" r="1" opacity=".3"/><circle cx="110" cy="440" r="1.4" opacity=".35"/><circle cx="330" cy="420" r="1" opacity=".25"/><circle cx="560" cy="460" r="1.3" opacity=".4"/><circle cx="900" cy="440" r="1" opacity=".3"/><circle cx="1090" cy="420" r="1.5" opacity=".45"/>
+</g>
+<g transform="translate(-90 0)" filter="url(#glow)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<path d="M290 270 C270 220 300 175 350 170 C380 150 440 150 470 170 C520 170 545 210 530 250 C545 290 510 320 470 315 C450 335 400 335 385 318 C350 330 300 315 290 270 Z" stroke="#c38bff" stroke-width="3" fill="#c38bff" fill-opacity=".1"/>
+<path d="M438 318 C440 335 448 345 462 352" stroke="#c38bff" stroke-width="3"/>
+<g stroke="#c38bff" stroke-width="2" opacity=".5">
+<path d="M350 170 C345 195 365 205 360 225"/><path d="M430 160 C420 180 440 190 430 210"/><path d="M490 300 C470 290 480 270 465 260"/><path d="M300 240 C320 245 325 260 315 275"/>
+</g>
+<g stroke="#7fe3ff" stroke-width="2">
+<polyline points="325,262 375,262 395,242 440,242 455,227 500,227"/>
+<polyline points="345,292 405,292 425,278 470,278 488,262"/>
+<polyline points="378,198 378,218 420,218"/>
+</g>
+<g fill="#7fe3ff">
+<circle cx="325" cy="262" r="4"/><circle cx="345" cy="292" r="4"/><circle cx="378" cy="198" r="4"/><circle cx="420" cy="218" r="4"/><circle cx="440" cy="242" r="3"/><circle cx="470" cy="278" r="3"/>
+</g>
+<rect x="500" y="232" width="34" height="34" rx="5" stroke="#c38bff" stroke-width="3" fill="#c38bff" fill-opacity=".35"/>
+<path d="M534 249 q12.5 -24 25 0 t25 0 t25 0 t25 0 t25 0 t25 0 t25 0 t25 0" stroke="#7fe3ff" stroke-width="3"/>
+<rect x="734" y="234" width="16" height="30" rx="3" stroke="#7fe3ff" stroke-width="2" fill="#7fe3ff" fill-opacity=".3"/>
+<rect x="750" y="179" width="140" height="140" rx="10" stroke="#7fe3ff" stroke-width="3" fill="#7fe3ff" fill-opacity=".1"/>
+<rect x="785" y="214" width="70" height="70" rx="6" stroke="#7fe3ff" stroke-width="2" fill="#7fe3ff" fill-opacity=".3"/>
+<g stroke="#7fe3ff" stroke-width="2">
+<path d="M785 249 H855 M820 214 V284 M800 229 L840 269 M840 229 L800 269" opacity=".5"/>
+<path d="M775 179 v-14 M800 179 v-14 M825 179 v-14 M850 179 v-14 M875 179 v-14 M775 319 v14 M800 319 v14 M825 319 v14 M850 319 v14 M875 319 v14 M890 204 h14 M890 229 h14 M890 254 h14 M890 279 h14 M890 304 h14"/>
+</g>
+<g stroke="#8b98b3" stroke-width="2" opacity=".4">
+<path d="M904 229 H980 L1010 199 H1090 M904 279 H1000 L1030 309 H1110 M904 254 H1140"/>
+</g>
+<g fill="#8b98b3" opacity=".5"><circle cx="1090" cy="199" r="4"/><circle cx="1110" cy="309" r="4"/><circle cx="1140" cy="254" r="4"/></g>
+</g>
+</svg>

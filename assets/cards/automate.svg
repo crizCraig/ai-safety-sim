@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500">
+<title>A central AI chip wrapped in a self-improvement loop, flanked by grids of copies of itself, with a steep orange growth curve and a broken green containment ring</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#03060d"/><stop offset="1" stop-color="#0b1630"/></linearGradient>
+<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<g id="c" fill="none" stroke="#7fe3ff" stroke-width="2"><rect x="-13" y="-13" width="26" height="26" rx="3" fill="#7fe3ff" fill-opacity=".12"/><rect x="-5" y="-5" width="10" height="10" fill="#7fe3ff" fill-opacity=".4"/><path d="M-7 -13 V-19 M7 -13 V-19 M-7 13 V19 M7 13 V19"/></g>
+</defs>
+<rect width="1200" height="500" fill="url(#bg)"/>
+<g fill="#8b98b3">
+<circle cx="70" cy="40" r="1.3" opacity=".35"/><circle cx="250" cy="84" r="1.6" opacity=".25"/><circle cx="450" cy="30" r="1.2" opacity=".4"/><circle cx="800" cy="60" r="1.5" opacity=".3"/><circle cx="1000" cy="36" r="1.2" opacity=".45"/><circle cx="1160" cy="92" r="1.4" opacity=".3"/><circle cx="60" cy="460" r="1.5" opacity=".3"/><circle cx="300" cy="430" r="1.2" opacity=".4"/><circle cx="560" cy="470" r="1.4" opacity=".25"/><circle cx="880" cy="452" r="1.6" opacity=".35"/><circle cx="1120" cy="424" r="1.2" opacity=".3"/>
+</g>
+<!-- growth curve -->
+<path d="M40 430 C500 420 800 380 960 230 S1120 40 1150 20" fill="none" stroke="#ff8a3d" stroke-width="3" opacity=".4" filter="url(#glow)"/>
+<!-- copies -->
+<g filter="url(#glow)">
+<g opacity=".9"><use href="#c" x="380" y="190"/><use href="#c" x="380" y="250"/><use href="#c" x="380" y="310"/><use href="#c" x="320" y="190"/><use href="#c" x="320" y="250"/><use href="#c" x="320" y="310"/></g>
+<g opacity=".6"><use href="#c" x="260" y="190"/><use href="#c" x="260" y="250"/><use href="#c" x="260" y="310"/><use href="#c" x="200" y="190"/><use href="#c" x="200" y="250"/><use href="#c" x="200" y="310"/></g>
+<g opacity=".3"><use href="#c" x="140" y="190"/><use href="#c" x="140" y="250"/><use href="#c" x="140" y="310"/><use href="#c" x="80" y="190"/><use href="#c" x="80" y="250"/><use href="#c" x="80" y="310"/></g>
+<g opacity=".9"><use href="#c" x="820" y="190"/><use href="#c" x="820" y="250"/><use href="#c" x="820" y="310"/><use href="#c" x="880" y="190"/><use href="#c" x="880" y="250"/><use href="#c" x="880" y="310"/></g>
+<g opacity=".6"><use href="#c" x="940" y="190"/><use href="#c" x="940" y="250"/><use href="#c" x="940" y="310"/><use href="#c" x="1000" y="190"/><use href="#c" x="1000" y="250"/><use href="#c" x="1000" y="310"/></g>
+<g opacity=".3"><use href="#c" x="1060" y="190"/><use href="#c" x="1060" y="250"/><use href="#c" x="1060" y="310"/><use href="#c" x="1120" y="190"/><use href="#c" x="1120" y="250"/><use href="#c" x="1120" y="310"/></g>
+</g>
+<g filter="url(#glow)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<!-- links from copies into the core -->
+<path d="M410 250 H520 M790 250 H680" stroke="#7fe3ff" stroke-width="2" stroke-dasharray="3 7" opacity=".7"/>
+<!-- containment ring, broken -->
+<path d="M600 128 A122 122 0 0 1 712 200 M716 290 A122 122 0 0 1 560 366 M520 343 A122 122 0 0 1 540 144" stroke="#59f0b8" stroke-width="2.5" stroke-dasharray="14 8"/>
+<!-- self-improvement loop -->
+<g stroke="#c38bff" stroke-width="3">
+<path d="M520 205 A92 92 0 0 1 690 225"/>
+<path d="M680 295 A92 92 0 0 1 510 275"/>
+<path d="M678 210 L691 228 L670 232 M522 290 L509 272 L530 268" stroke-width="3"/>
+</g>
+<!-- core chip -->
+<g stroke="#7fe3ff" stroke-width="3.5">
+<rect x="555" y="205" width="90" height="90" rx="10" fill="#7fe3ff" fill-opacity=".15"/>
+<rect x="580" y="230" width="40" height="40" rx="4" fill="#7fe3ff" fill-opacity=".35"/>
+<path d="M575 205 V188 M600 205 V188 M625 205 V188 M575 295 V312 M600 295 V312 M625 295 V312 M555 230 H538 M555 270 H538 M645 230 H662 M645 270 H662" stroke-width="2.5"/>
+</g>
+</g>
+</svg>
