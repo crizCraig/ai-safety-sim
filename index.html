@@ -328,11 +328,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261015122356"></script>
-<script src="events.js?v=20261015122356"></script>
-<script src="landmask.js?v=20261015122356"></script>
-<script src="presets.js?v=20261015122356"></script>
-<script src="trees.js?v=20261015122356"></script>
+<script src="model.js?v=20261014204344"></script>
+<script src="events.js?v=20261014204344"></script>
+<script src="landmask.js?v=20261014204344"></script>
+<script src="presets.js?v=20261014204344"></script>
+<script src="trees.js?v=20261014204344"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -639,7 +639,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261015122356';
+const ASSET_VERSION = '20261014204344';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1225,9 +1225,8 @@ function rewind(i) {
 function showCardArt(c) {
   const art = $('cardArt'), img = $('cardImg');
   art.hidden = false; art.classList.remove('expanded'); art.setAttribute('aria-expanded', 'false');
-  // Painted art first; fall back to the vector drawing, then hide the slot.
-  img.onerror = () => { if (img.src.includes('cards-gpt')) img.src = `assets/cards/${c.id}.svg?v=${ASSET_VERSION}`; else art.hidden = true; };
-  img.src = `assets/cards-gpt/${c.id}.webp?v=${ASSET_VERSION}`;
+  img.onerror = () => { art.hidden = true; };
+  img.src = `assets/cards/${c.id}.svg?v=${ASSET_VERSION}`;
 }
 $('cardArt').onclick = () => {
   const open = $('cardArt').classList.toggle('expanded');
