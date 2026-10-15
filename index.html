@@ -212,6 +212,17 @@
   /* Opening screen: the globe stays clear behind a short title and a Play button. */
   #splash { background: radial-gradient(ellipse at center, rgba(2,4,10,0.15) 0%, rgba(2,4,10,0.7) 75%); backdrop-filter: none; z-index: 12; }
   .splash-box { text-align: center; max-width: 560px; }
+  /* World roll: each unknown shuffles, then locks as hidden. */
+  .roll-box h2 { margin: 4px 0 8px; font-size: 24px; }
+  .roll-box p { color: #c3cee0; font-size: 14px; line-height: 1.5; }
+  .unk-list { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 6px; }
+  .unk-list li { display: flex; justify-content: space-between; gap: 12px; align-items: center; font-size: 13.5px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,0.02); }
+  .unk-list .uv { font-family: var(--mono); font-size: 12.5px; color: var(--accent); white-space: nowrap; }
+  .unk-list li.locked .uv { color: var(--muted); }
+  .roll-job { border-left: 2px solid var(--accent); padding-left: 10px; opacity: 0; transition: opacity .5s; }
+  .roll-job.on { opacity: 1; }
+  .world-reveal.difficulty { margin-bottom: 10px; }
+  .diff-tier { font-family: var(--mono); font-weight: 600; letter-spacing: .06em; }
   .splash-box h1 { margin: 10px 0 8px; font-size: clamp(34px, 7vw, 60px); line-height: 1.05; letter-spacing: .01em; text-shadow: 0 4px 30px rgba(0,0,0,.7); }
   .splash-save { margin: 4px 0 14px; font-size: clamp(20px, 3.6vw, 30px); font-weight: 500; line-height: 1.15; color: var(--accent); text-shadow: 0 0 16px rgba(127,227,255,.35), 0 3px 20px rgba(0,0,0,.7); }
   .splash-box p { margin: 0 0 26px; font-size: 18px; color: #c3cee0; text-shadow: 0 2px 12px rgba(0,0,0,.8); }
@@ -311,11 +322,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261014165312"></script>
-<script src="events.js?v=20261014165312"></script>
-<script src="landmask.js?v=20261014165312"></script>
-<script src="presets.js?v=20261014165312"></script>
-<script src="trees.js?v=20261014165312"></script>
+<script src="model.js?v=20261014170811"></script>
+<script src="events.js?v=20261014170811"></script>
+<script src="landmask.js?v=20261014170811"></script>
+<script src="presets.js?v=20261014170811"></script>
+<script src="trees.js?v=20261014170811"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -433,12 +444,25 @@
   </div>
 </div>
 
+<!-- Before 2027: the game secretly rolls this world's unknowns -->
+<div class="modal hidden" id="worldRoll">
+  <div class="box roll-box">
+    <div class="kicker">Before 2027 begins</div>
+    <h2>Rolling a hidden world</h2>
+    <p>Nobody knows these facts about the future yet, so the game draws them at random for this playthrough and keeps them secret.</p>
+    <ul class="unk-list" id="unkList"></ul>
+    <p class="roll-job" id="rollJob"><b>Your job:</b> make good decisions without knowing which world you're in. At the end you'll see the secrets, and how hard your world was.</p>
+    <button class="btn" id="rollGo" disabled>Begin 2027</button>
+  </div>
+</div>
+
 <!-- Ending -->
 <div class="modal hidden" id="ending">
   <div class="box">
     <div class="kicker" id="endKicker"></div>
     <h1 id="endTitle"></h1>
     <p id="endText"></p>
+    <div class="world-reveal difficulty" id="endDiff"></div>
     <div class="world-reveal" id="endWorld"></div>
     <div id="endMC"></div>
     <h3 style="font-size:11px;letter-spacing:.16em;color:var(--muted);margin:16px 0 0">YOUR DECISIONS</h3>
@@ -608,7 +632,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261014165312';
+const ASSET_VERSION = '20261014170811';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1364,6 +1388,10 @@ function showEnding() {
   $('endDecisions').innerHTML = decisionItems();
   const mc = M.monteCarlo(game.L, 1500, 0, Date.now() % 100000);
   const w = s.world;
+  const d = worldDifficulty(w, game.seed), mine = worldCatastrophe(w, game.L, 400, game.seed + 1);
+  const harder = Math.round(d.rank * 100);
+  $('endDiff').innerHTML = `<b>How hard your world was: <span class="diff-tier" style="color:${d.tier[1]}">${d.tier[0]}</span></b>
+    <p style="margin:6px 0 0">Even a strong plan (AI 2040's Plan A) would end in catastrophe <b>${pct(d.here, 0)}</b> of the time in this world, against ${pct(d.typical, 0)} in a typical one. It was harder than ${harder}% of worlds${harder >= 50 ? '' : ` and easier than ${100 - harder}%`}. Your final policy, run from 2027 in this same world, would end in catastrophe <b>${pct(mine, 0)}</b> of the time.</p>`;
   $('endWorld').innerHTML = `<b>What you couldn't know until now</b>${secretList(s, game.L)}${SECRETS_NOTE}`;
   $('endMC').innerHTML = `<p class="mcline">If the whole decade had run under your <i>final</i> policy settings, 1,500 simulated futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
@@ -1420,6 +1448,7 @@ function secretList(s, L) {
     ['How hard alignment was', `${ease >= 1 ? `${ease.toFixed(1)}× easier than` : `${ease.toFixed(1)}× as easy as`} the baseline. ${w.safe
       ? '<span style="color:var(--good)">Easy enough that fixing problems as they came up was all it took</span>'
       : 'Not easy enough for quick fixes to do the job'} (that had a ${pct(w.pSafe, 0)} chance).`],
+    ['How fast AI progressed', `${w.speed.toFixed(1)}× the expected pace for the compute spent.`],
     ['How misleading the tests were', `${game && game.phase === 'over' ? 'By the end, real alignment was' : 'Right now, real alignment is'} <b>${pct(gap, 0)}</b> lower than the tests showed.`],
     ['China', `Did <b>${pct(w.cnAlign, 0)}</b> as much alignment work as the US bloc, and ${w.cnCaution < 0.005 ? 'would not have slowed down' : `would have slowed <b>${pct(w.cnCaution, 0)}</b>`} near the brink.`],
     ['Insiders', `A <b>${pct(w.whistle, 0)}</b> chance they would expose a power grab.`],
@@ -1430,7 +1459,7 @@ function secretList(s, L) {
 }
 
 // How a game's secret facts are set (shown with them).
-const SECRETS_NOTE = '<div class="secnote">Each new game draws these at random when it starts, from the same ranges as the Futures Lab\'s unknowns at their defaults, so every campaign is a different world. Your choices can\'t change them, though oversight and openness change how much of the test gap stays hidden.</div>';
+const SECRETS_NOTE = '<div class="secnote">These were rolled at random before 2027 began, from the same ranges as the Futures Lab\'s unknowns at their defaults, so every campaign is a different world. Your job is to decide well without knowing them. Your choices can\'t change them, though oversight and openness change how much of the test gap stays hidden.</div>';
 // Campaign option: reveal this game's hidden facts and real risks while playing.
 let secretsOn = false;
 try { secretsOn = localStorage.getItem('goagi-secrets') === '1'; } catch (e) {}
@@ -1803,7 +1832,65 @@ function setMode(m) {
   }
 }
 // The Campaign starts playing right away; the first-time tutorial explains the screen.
-function startCampaign() { closeSplash(); setMode('campaign'); newGame(); maybeTour('campaign'); }
+function startCampaign() { closeSplash(); setMode('campaign'); newGame(); rollWorld(() => maybeTour('campaign')); }
+// The unknowns each game draws, with a sample value to flash while "rolling".
+const UNKNOWNS = [
+  ['How hard alignment is', (r) => `${(Math.pow(10, -0.6 + 1.3 * r)).toFixed(1)}× ease`],
+  ['How fast AI progresses', (r) => `${(0.5 + r).toFixed(1)}× speed`],
+  ['How much safety tests overstate alignment', (r) => `${Math.round(r * 40)}%`],
+  ['How much alignment work China does itself', (r) => `${Math.round(r * 100)}%`],
+  ['Whether China slows down near the brink', (r) => `${Math.round(r * 70)}%`],
+  ['Whether insiders would expose a power grab', (r) => `${Math.round(r * 60)}%`],
+  ['Whether an AI that escaped control would be kind', (r) => (r < 0.5 ? 'yes' : 'no')],
+  ['Pandemic risk from open models', (r) => `${(Math.pow(10, -6 + 4 * r) * 100).toPrecision(2)}%`],
+];
+// Show the unknowns shuffling and locking one by one, then hand over to the game.
+function rollWorld(then) {
+  const list = $('unkList'), go = $('rollGo');
+  list.innerHTML = UNKNOWNS.map(([n]) => `<li><span>${n}</span><span class="uv">?</span></li>`).join('');
+  $('rollJob').classList.remove('on'); go.disabled = true;
+  $('worldRoll').classList.remove('hidden');
+  const rows = [...list.children], t0 = performance.now(), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const tick = () => {
+    const t = performance.now() - t0;
+    rows.forEach((li, i) => {
+      if (li.classList.contains('locked')) return;
+      if (reduce || t > 500 + i * 220) { li.classList.add('locked'); li.querySelector('.uv').textContent = 'drawn · hidden 🔒'; }
+      else li.querySelector('.uv').textContent = UNKNOWNS[i][1](Math.random());
+    });
+    if (rows.every((li) => li.classList.contains('locked'))) { $('rollJob').classList.add('on'); go.disabled = false; go.focus({ preventScroll: true }); }
+    else setTimeout(tick, 70);
+  };
+  tick();
+  go.onclick = () => { $('worldRoll').classList.add('hidden'); if (then) then(); };
+}
+
+// How hard a world is: the share of futures that end in catastrophe in it under a strong
+// plan (AI 2040's Plan A), ranked against 200 random worlds (computed once, deterministic).
+function worldCatastrophe(world, L, n, seed) {
+  const rng = M.mulberry32(seed); let c = 0;
+  for (let i = 0; i < n; i++) {
+    const s = M.initialState(world); s.fast = true;
+    let ev = null; while (!ev) ev = M.step(s, L, rng, true).event;
+    if (M.CATASTROPHES.includes(ev)) c++;
+  }
+  return c / n;
+}
+const DIFF_REF = 'Plan A: Verified slowdown';
+let diffBaseline = null;
+function worldDifficulty(world, seed) {
+  const L = PRESETS[DIFF_REF];
+  if (!diffBaseline) {
+    const rng = M.mulberry32(9), xs = [];
+    for (let i = 0; i < 200; i++) xs.push(worldCatastrophe(M.sampleWorld(M.defaultAssumptions(), rng), L, 40, 100 + i));
+    xs.sort((a, b) => a - b);
+    diffBaseline = { xs, median: xs[xs.length >> 1] }; // median: a few brutal worlds pull the mean up
+  }
+  const here = worldCatastrophe(world, L, 400, seed);
+  const rank = diffBaseline.xs.filter((x) => x < here).length / diffBaseline.xs.length;
+  const tier = rank < 0.25 ? ['Easy', 'var(--good)'] : rank < 0.6 ? ['Average', 'var(--accent)'] : rank < 0.85 ? ['Hard', 'var(--warn)'] : ['Brutal', 'var(--bad)'];
+  return { here, rank, tier, typical: diffBaseline.median };
+}
 // The Campaign opens on a one-line title screen over the globe; Play starts the game.
 function openSplash() { setMode('campaign'); document.body.classList.add('splash'); $('splash').classList.remove('hidden'); $('playBtn').focus({ preventScroll: true }); }
 function closeSplash() { document.body.classList.remove('splash'); $('splash').classList.add('hidden'); }
@@ -1817,7 +1904,7 @@ document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('cli
   setMode(m);
   if (m === 'lab') maybeTour('lab');
 }));
-$('againBtn').onclick = () => { setMode('campaign'); newGame(); };
+$('againBtn').onclick = () => { setMode('campaign'); newGame(); rollWorld(); };
 // After a campaign ends, the Lab opens on the levers that game ended with (once; later
 // Lab changes are kept).
 function campaignToLab() {
