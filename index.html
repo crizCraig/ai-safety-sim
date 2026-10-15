@@ -328,11 +328,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261014203406"></script>
-<script src="events.js?v=20261014203406"></script>
-<script src="landmask.js?v=20261014203406"></script>
-<script src="presets.js?v=20261014203406"></script>
-<script src="trees.js?v=20261014203406"></script>
+<script src="model.js?v=20261014204344"></script>
+<script src="events.js?v=20261014204344"></script>
+<script src="landmask.js?v=20261014204344"></script>
+<script src="presets.js?v=20261014204344"></script>
+<script src="trees.js?v=20261014204344"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -639,7 +639,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261014203406';
+const ASSET_VERSION = '20261014204344';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1507,9 +1507,7 @@ function renderRisks(prev) {
       const dv = prev.now[k] - prev.base[k];
       if (Math.abs(dv) >= 0.0005) d = `<span class="delta ${dv > 0 ? 'up' : 'down'}">${dv > 0 ? '▲' : '▼'}${(Math.abs(dv) * 100).toFixed(1)}</span>`;
     }
-    const real = { bio: r.bioTrue, misalign: r.misalignTrue, war: r.war }[k];
-    const realTxt = secretsOn && !prev ? `<div class="realrisk">Real chance in this world: <b>${real > 0 ? pct(real) : 'none'}</b></div>` : '';
-    return `<div class="risk"><div class="row"><span style="color:${c}">${name}</span><span><span class="pct">${pct(prev ? prev.now[k] : r[k])}</span>${d}</span></div>${realTxt}<div class="why">${why[k]}</div></div>`;
+    return `<div class="risk"><div class="row"><span style="color:${c}">${name}</span><span><span class="pct">${pct(prev ? prev.now[k] : r[k])}</span>${d}</span></div><div class="why">${why[k]}</div></div>`;
   }).join('');
   if (secretsOn) {
     const q = M.transitionOdds(s, true, game.L), qe = M.transitionOdds(s, false, game.L);
