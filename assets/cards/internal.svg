@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500">
+<title>The AI That Builds Its Successor: inside a sealed, locked lab, an AI chip spawns a swarm of copies that assemble a larger purple successor chip</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#03060d"/><stop offset="1" stop-color="#0b1630"/></linearGradient>
+<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="1200" height="500" fill="url(#bg)"/>
+<g fill="#fff">
+<circle cx="60" cy="70" r="1.4" opacity=".4"/><circle cx="280" cy="105" r="1" opacity=".3"/><circle cx="450" cy="55" r="1.3" opacity=".4"/><circle cx="740" cy="100" r="1" opacity=".25"/><circle cx="890" cy="45" r="1.5" opacity=".45"/><circle cx="1120" cy="90" r="1" opacity=".3"/><circle cx="100" cy="440" r="1.3" opacity=".35"/><circle cx="330" cy="465" r="1" opacity=".25"/><circle cx="620" cy="430" r="1.4" opacity=".4"/><circle cx="860" cy="455" r="1" opacity=".3"/><circle cx="1150" cy="420" r="1.3" opacity=".4"/>
+</g>
+<g filter="url(#glow)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<rect x="130" y="162" width="940" height="176" rx="18" stroke="#8b98b3" stroke-width="3" fill="#8b98b3" fill-opacity=".05"/>
+<rect x="140" y="172" width="920" height="156" rx="12" stroke="#8b98b3" stroke-width="1.5" opacity=".4"/>
+<g stroke="#8b98b3" stroke-width="3">
+<path d="M587 160 V146 a13 13 0 0 1 26 0 V160"/>
+<rect x="580" y="156" width="40" height="30" rx="4" fill="#0b1630"/>
+</g>
+<circle cx="600" cy="171" r="3.5" fill="#8b98b3" stroke="#8b98b3"/>
+<g stroke="#7fe3ff" stroke-width="3">
+<rect x="210" y="210" width="80" height="80" rx="8" fill="#7fe3ff" fill-opacity=".15"/>
+<rect x="232" y="232" width="36" height="36" rx="4" fill="#7fe3ff" fill-opacity=".35" stroke-width="2"/>
+<path d="M230 210v-10M250 210v-10M270 210v-10M230 290v10M250 290v10M270 290v10M210 230h-10M210 250h-10M210 270h-10M290 230h10M290 250h10M290 270h10" stroke-width="2"/>
+</g>
+<g stroke="#7fe3ff" stroke-width="2" stroke-dasharray="3 7" opacity=".6"><path d="M305 250 C340 250 345 203 380 203 M305 250 C340 250 345 311 380 311 M305 250 H380"/></g>
+<g stroke="#7fe3ff" stroke-width="2" fill="#7fe3ff" fill-opacity=".2">
+<rect x="384" y="193" width="20" height="20" rx="3" opacity=".8"/><rect x="426" y="193" width="20" height="20" rx="3" opacity=".8"/><rect x="468" y="193" width="20" height="20" rx="3" opacity=".4"/><rect x="510" y="193" width="20" height="20" rx="3" opacity="1"/><rect x="552" y="193" width="20" height="20" rx="3" opacity=".6"/><rect x="594" y="193" width="20" height="20" rx="3" opacity=".4"/><rect x="636" y="193" width="20" height="20" rx="3" opacity=".6"/><rect x="678" y="193" width="20" height="20" rx="3" opacity=".4"/><rect x="384" y="229" width="20" height="20" rx="3" opacity=".8"/><rect x="426" y="229" width="20" height="20" rx="3" opacity="1"/><rect x="468" y="229" width="20" height="20" rx="3" opacity=".6"/><rect x="510" y="229" width="20" height="20" rx="3" opacity="1"/><rect x="552" y="229" width="20" height="20" rx="3" opacity=".4"/><rect x="594" y="229" width="20" height="20" rx="3" opacity=".6"/><rect x="636" y="229" width="20" height="20" rx="3" opacity=".4"/><rect x="678" y="229" width="20" height="20" rx="3" opacity=".6"/><rect x="384" y="265" width="20" height="20" rx="3" opacity="1"/><rect x="426" y="265" width="20" height="20" rx="3" opacity=".8"/><rect x="468" y="265" width="20" height="20" rx="3" opacity=".6"/><rect x="510" y="265" width="20" height="20" rx="3" opacity="1"/><rect x="552" y="265" width="20" height="20" rx="3" opacity=".6"/><rect x="594" y="265" width="20" height="20" rx="3" opacity=".4"/><rect x="636" y="265" width="20" height="20" rx="3" opacity=".6"/><rect x="678" y="265" width="20" height="20" rx="3" opacity="1"/><rect x="384" y="301" width="20" height="20" rx="3" opacity=".6"/><rect x="426" y="301" width="20" height="20" rx="3" opacity=".6"/><rect x="468" y="301" width="20" height="20" rx="3" opacity=".4"/><rect x="510" y="301" width="20" height="20" rx="3" opacity=".4"/><rect x="552" y="301" width="20" height="20" rx="3" opacity=".6"/><rect x="594" y="301" width="20" height="20" rx="3" opacity=".6"/><rect x="636" y="301" width="20" height="20" rx="3" opacity=".6"/><rect x="678" y="301" width="20" height="20" rx="3" opacity=".6"/>
+</g>
+<g stroke="#c38bff" stroke-width="3">
+<polyline points="740,232 758,250 740,268"/><polyline points="770,232 788,250 770,268" opacity=".6"/>
+</g>
+<g stroke="#c38bff" stroke-width="3">
+<rect x="840" y="180" width="120" height="140" fill="#c38bff" fill-opacity=".1" stroke="none"/>
+<path d="M960 320 H840 V180 H900"/>
+<path d="M900 180 H960 V320" stroke-dasharray="6 8" opacity=".7"/>
+<rect x="870" y="210" width="60" height="80" rx="6" fill="#c38bff" fill-opacity=".35" stroke-width="2.5"/>
+<path d="M840 205h-12M840 230h-12M840 255h-12M840 280h-12M840 305h-12M860 320v12M885 320v12M910 320v12M935 320v12" stroke-width="2"/>
+<path d="M985 190 V320 M985 210 L1015 230 M985 260 L1015 280 M1015 200 V320" stroke-width="2" opacity=".45"/>
+</g>
+</g>
+</svg>

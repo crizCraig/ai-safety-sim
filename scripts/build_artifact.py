@@ -14,6 +14,8 @@ out = Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
 for name in ("model.js", "events.js", "landmask.js", "presets.js", "trees.js"):
     shutil.copy(root / name, out / name)
+if (root / "assets" / "cards").is_dir():
+    shutil.copytree(root / "assets" / "cards", out / "assets" / "cards", dirs_exist_ok=True)
 
 s = (root / "index.html").read_text()
 s = re.sub(r"<!doctype html>\s*<html[^>]*>\s*<head>\s*<meta charset[^>]*>\s*<meta name=\"viewport\"[^>]*>\s*", "", s)

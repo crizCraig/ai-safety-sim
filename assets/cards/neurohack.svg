@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500">
+<title>A software update streams into a brain implant whose hidden backdoor is open, with red signals from unknown sources (a state building, a hooded figure, an AI chip) flowing in</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#03060d"/><stop offset="1" stop-color="#0b1630"/></linearGradient>
+<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="1200" height="500" fill="url(#bg)"/>
+<g fill="#8b98b3">
+<circle cx="60" cy="80" r="1.4" opacity=".35"/><circle cx="280" cy="40" r="1.2" opacity=".3"/><circle cx="500" cy="64" r="1.6" opacity=".4"/><circle cx="720" cy="30" r="1.3" opacity=".25"/><circle cx="960" cy="58" r="1.5" opacity=".45"/><circle cx="1150" cy="36" r="1.2" opacity=".3"/><circle cx="110" cy="452" r="1.3" opacity=".3"/><circle cx="350" cy="430" r="1.5" opacity=".4"/><circle cx="600" cy="470" r="1.2" opacity=".25"/><circle cx="840" cy="440" r="1.4" opacity=".35"/><circle cx="1100" cy="462" r="1.6" opacity=".3"/>
+</g>
+<g filter="url(#glow)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<!-- update stream -->
+<g stroke="#7fe3ff" stroke-width="3">
+<rect x="90" y="200" width="110" height="100" rx="10" fill="#7fe3ff" fill-opacity=".1"/>
+<path d="M145 220 V270 M125 252 L145 274 L165 252 M120 284 H170"/>
+<path d="M210 250 H420" stroke-width="2.5" stroke-dasharray="10 8"/>
+<path d="M406 240 L422 250 L406 260"/>
+</g>
+<!-- brain -->
+<g stroke="#59f0b8" stroke-width="3">
+<path d="M598 160 C560 150 520 160 500 185 C470 190 455 220 462 245 C448 268 460 300 488 310 C500 336 540 346 570 332 C582 342 598 342 598 342 Z" fill="#59f0b8" fill-opacity=".14"/>
+<path d="M602 160 C640 150 680 160 700 185 C730 190 745 220 738 245 C752 268 740 300 712 310 C700 336 660 346 630 332 C618 342 602 342 602 342 Z" fill="#59f0b8" fill-opacity=".14"/>
+<path d="M520 200 Q545 215 535 240 Q525 262 548 280 M495 262 Q520 258 528 290 M565 180 Q580 205 570 225 Q560 250 585 262 M560 300 Q580 300 590 320" stroke-width="2" opacity=".75"/>
+<path d="M680 200 Q655 215 665 240 Q675 262 652 280 M705 262 Q680 258 672 290 M635 180 Q620 205 630 225 Q640 250 615 262 M640 300 Q620 300 610 320" stroke-width="2" opacity=".75"/>
+</g>
+<!-- implant with open backdoor -->
+<g stroke="#7fe3ff" stroke-width="3">
+<rect x="650" y="215" width="70" height="70" rx="8" fill="#03060d" fill-opacity=".8"/>
+<rect x="650" y="215" width="70" height="70" rx="8" fill="#7fe3ff" fill-opacity=".15"/>
+<path d="M650 230 H636 M650 270 H636 M720 230 H734 M720 270 H734 M670 215 V203 M700 215 V203 M670 285 V297 M700 285 V297" stroke-width="2"/>
+</g>
+<g stroke="#ff3b5c" stroke-width="3">
+<rect x="675" y="235" width="24" height="36" fill="#ff3b5c" fill-opacity=".45"/>
+<path d="M699 235 L716 228 V278 L699 271" fill="#ff3b5c" fill-opacity=".15"/>
+</g>
+<!-- intrusion signals -->
+<g stroke="#ff3b5c" stroke-width="2.5" stroke-dasharray="6 8" opacity=".85">
+<path d="M920 180 Q820 190 724 240"/><path d="M940 250 H740"/><path d="M920 322 Q820 312 724 262"/>
+</g>
+<!-- unknown sources -->
+<g stroke="#8b98b3" stroke-width="2.5">
+<path d="M950 196 V160 L985 142 L1020 160 V196 Z M950 164 H1020 M962 172 V196 M978 172 V196 M992 172 V196 M1008 172 V196" fill="#8b98b3" fill-opacity=".12"/>
+<path d="M985 222 C962 222 956 240 958 258 L940 290 H1030 L1012 258 C1014 240 1008 222 985 222 Z" fill="#8b98b3" fill-opacity=".12"/>
+<ellipse cx="985" cy="252" rx="13" ry="16" fill="#03060d" stroke-width="2"/>
+<rect x="960" y="310" width="50" height="50" rx="6" fill="#8b98b3" fill-opacity=".12"/>
+<rect x="975" y="325" width="20" height="20" fill="#8b98b3" fill-opacity=".35"/>
+<path d="M972 310 V300 M998 310 V300 M972 360 V370 M998 360 V370"/>
+</g>
+</g>
+</svg>

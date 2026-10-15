@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500">
+<title>A small island holding a glowing gold chip factory sits between a blue bloc and a red bloc, ringed by red warships with blue carriers approaching</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#03060d"/><stop offset="1" stop-color="#0b1630"/></linearGradient>
+<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<path id="s" d="M-22 -4 H22 L14 8 H-14 Z M-6 -4 V-12 H6 V-4"/>
+<path id="k" d="M-34 -5 H34 L24 9 H-24 Z M-30 -5 V-10 H18 V-5 M8 -10 V-18 H16 V-10"/>
+</defs>
+<rect width="1200" height="500" fill="url(#bg)"/>
+<g fill="#8b98b3">
+<circle cx="380" cy="50" r="1.4" opacity=".35"/><circle cx="520" cy="86" r="1.2" opacity=".3"/><circle cx="640" cy="34" r="1.6" opacity=".45"/><circle cx="760" cy="74" r="1.3" opacity=".25"/><circle cx="860" cy="40" r="1.5" opacity=".4"/><circle cx="420" cy="440" r="1.3" opacity=".3"/><circle cx="560" cy="470" r="1.5" opacity=".4"/><circle cx="700" cy="436" r="1.2" opacity=".25"/><circle cx="830" cy="462" r="1.4" opacity=".35"/>
+</g>
+<!-- sea lines -->
+<g fill="none" stroke="#7fe3ff" stroke-width="2" opacity=".18">
+<path d="M300 140 q30 -10 60 0 t60 0 M760 130 q30 -10 60 0 t60 0 M330 380 q30 -10 60 0 t60 0 M740 370 q30 -10 60 0 t60 0 M520 410 q30 -10 60 0 t60 0"/>
+</g>
+<g filter="url(#glow)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<!-- blocs -->
+<path d="M0 60 H170 L220 120 L250 200 L235 260 L270 330 L220 410 L160 440 H0 Z" stroke="#5aa9ff" stroke-width="3" fill="#5aa9ff" fill-opacity=".14"/>
+<path d="M1200 50 H1040 L990 110 L960 190 L980 250 L940 320 L990 400 L1040 450 H1200 Z" stroke="#ff6b5a" stroke-width="3" fill="#ff6b5a" fill-opacity=".14"/>
+<!-- tension -->
+<path d="M260 250 H330 M940 250 H870" stroke="#8b98b3" stroke-width="2" stroke-dasharray="4 8" opacity=".6"/>
+<!-- encirclement ring -->
+<ellipse cx="600" cy="250" rx="170" ry="104" stroke="#ff3b5c" stroke-width="2" stroke-dasharray="3 9" opacity=".7"/>
+<!-- island -->
+<path d="M618 168 C650 180 656 220 648 262 C640 300 614 334 592 338 C574 340 566 318 570 290 C574 250 562 214 580 186 C590 170 604 164 618 168 Z" stroke="#59f0b8" stroke-width="3" fill="#59f0b8" fill-opacity=".18"/>
+<!-- chip factory -->
+<g stroke="#ffd76a" stroke-width="3">
+<rect x="586" y="226" width="44" height="44" rx="5" fill="#ffd76a" fill-opacity=".3"/>
+<rect x="599" y="239" width="18" height="18" fill="#ffd76a" fill-opacity=".6"/>
+<path d="M596 226 V216 M608 226 V216 M620 226 V216 M596 270 V280 M608 270 V280 M620 270 V280" stroke-width="2"/>
+</g>
+<!-- red warships -->
+<g stroke="#ff6b5a" stroke-width="2.5" fill="#ff6b5a" fill-opacity=".25">
+<use href="#s" x="600" y="150"/><use href="#s" x="720" y="178"/><use href="#s" x="768" y="250"/><use href="#s" x="720" y="322"/><use href="#s" x="600" y="360"/><use href="#s" x="482" y="320"/>
+</g>
+<!-- blue carriers -->
+<g stroke="#5aa9ff" stroke-width="2.5" fill="#5aa9ff" fill-opacity=".25">
+<use href="#k" x="380" y="200"/><use href="#k" x="372" y="300"/>
+<path d="M420 200 H448 M418 300 H446" fill="none" stroke-dasharray="4 6"/>
+</g>
+</g>
+</svg>

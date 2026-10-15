@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500">
+<title>A blue command console's cable to a rival red data center is severed in a burst of sparks, while a red targeting crosshair locks onto the data center and a missile arc hangs overhead</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#03060d"/><stop offset="1" stop-color="#0b1630"/></linearGradient>
+<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="1200" height="500" fill="url(#bg)"/>
+<g fill="#8b98b3">
+<circle cx="70" cy="44" r="1.4" opacity=".35"/><circle cx="210" cy="96" r="1.2" opacity=".3"/><circle cx="460" cy="30" r="1.6" opacity=".4"/><circle cx="680" cy="20" r="1.3" opacity=".25"/><circle cx="1080" cy="40" r="1.5" opacity=".45"/><circle cx="1170" cy="110" r="1.2" opacity=".3"/><circle cx="90" cy="440" r="1.3" opacity=".3"/><circle cx="330" cy="468" r="1.5" opacity=".4"/><circle cx="590" cy="436" r="1.2" opacity=".25"/><circle cx="820" cy="462" r="1.4" opacity=".35"/><circle cx="1110" cy="450" r="1.6" opacity=".3"/>
+</g>
+<g filter="url(#glow)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<!-- missile arc (atmosphere) -->
+<path d="M200 170 Q560 -30 930 150" stroke="#ff8a3d" stroke-width="2" stroke-dasharray="6 10" opacity=".55"/>
+<path d="M560 70 L586 68 L598 74 L586 80 L560 78 Z M560 70 L552 64 M560 78 L552 84" stroke="#ff8a3d" stroke-width="2.5" fill="#ff8a3d" fill-opacity=".25"/>
+<!-- command console -->
+<g stroke="#5aa9ff" stroke-width="3">
+<rect x="90" y="190" width="150" height="100" rx="8" fill="#5aa9ff" fill-opacity=".12"/>
+<path d="M110 260 L140 230 L170 248 L215 210" stroke-width="2.5"/>
+<path d="M70 290 H260 L248 318 H82 Z" fill="#5aa9ff" fill-opacity=".18"/>
+</g>
+<!-- cable -->
+<g stroke="#7fe3ff" stroke-width="4">
+<path d="M262 260 C350 260 380 250 450 250 L545 250"/>
+<path d="M655 250 L760 250 C810 250 830 260 860 260"/>
+<path d="M545 240 V260 M655 240 V260" stroke-width="3"/>
+<path d="M545 244 L560 236 M545 256 L562 262 M655 244 L640 238 M655 256 L638 264" stroke-width="2"/>
+</g>
+<!-- sparks -->
+<g stroke="#ff8a3d" stroke-width="2.5">
+<path d="M589 232 L576 210 M611 232 L626 206 M588 268 L570 292 M612 268 L630 294 M600 228 V196 M600 272 V306 M582 250 H566 M618 250 H634"/>
+</g>
+<circle cx="600" cy="250" r="12" fill="#ffd76a" fill-opacity=".6" stroke="#ff8a3d" stroke-width="2.5" filter="url(#glow)"/>
+<!-- rival data center -->
+<g stroke="#ff6b5a" stroke-width="3">
+<path d="M880 330 V200 L990 168 L1100 200 V330 Z" fill="#ff6b5a" fill-opacity=".12"/>
+<rect x="910" y="215" width="44" height="105" rx="4"/><rect x="968" y="210" width="44" height="110" rx="4"/><rect x="1026" y="215" width="44" height="105" rx="4"/>
+<path d="M918 240 H946 M918 262 H946 M918 284 H946 M976 236 H1004 M976 258 H1004 M976 280 H1004 M1034 240 H1062 M1034 262 H1062 M1034 284 H1062" stroke-width="2" opacity=".55"/>
+</g>
+<!-- crosshair -->
+<g stroke="#ff3b5c" stroke-width="3">
+<circle cx="990" cy="252" r="96"/>
+<circle cx="990" cy="252" r="56" stroke-width="2" stroke-dasharray="8 8"/>
+<path d="M990 136 V176 M990 328 V368 M874 252 H914 M1066 252 H1106"/>
+</g>
+</g>
+</svg>

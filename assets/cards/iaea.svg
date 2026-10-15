@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500">
+<title>An International AI Watchdog: a watchful eye with a globe for an iris, ringed by a coalition of nations, sweeping inspection beams over two AI labs</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#03060d"/><stop offset="1" stop-color="#0b1630"/></linearGradient>
+<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<g id="lab"><rect width="140" height="130" rx="4"/><path d="M-10 0 H150 M30 0 V-18 H110 V0" fill="none"/><rect x="48" y="30" width="44" height="44" rx="4"/><rect x="61" y="43" width="18" height="18" rx="2" fill="none"/><path d="M59 30v-8M70 30v-8M81 30v-8M59 74v8M70 74v8M81 74v8M48 41h-8M48 52h-8M48 63h-8M92 41h8M92 52h8M92 63h8" fill="none"/><path d="M55 130 V102 H85 V130" fill="none"/></g>
+</defs>
+<rect width="1200" height="500" fill="url(#bg)"/>
+<g fill="#fff">
+<circle cx="70" cy="90" r="1.3" opacity=".4"/><circle cx="250" cy="45" r="1" opacity=".3"/><circle cx="430" cy="100" r="1.5" opacity=".4"/><circle cx="600" cy="40" r="1" opacity=".3"/><circle cx="760" cy="95" r="1.3" opacity=".45"/><circle cx="950" cy="50" r="1" opacity=".25"/><circle cx="1130" cy="85" r="1.4" opacity=".4"/><circle cx="130" cy="450" r="1" opacity=".3"/><circle cx="380" cy="425" r="1.4" opacity=".35"/><circle cx="620" cy="460" r="1" opacity=".25"/><circle cx="830" cy="430" r="1.3" opacity=".4"/><circle cx="1080" cy="455" r="1" opacity=".3"/>
+</g>
+<line x1="40" y1="335" x2="1160" y2="335" stroke="#8b98b3" stroke-width="1" opacity=".25"/>
+<path d="M480 250 L281 190 V334 Z M720 250 L919 190 V334 Z" fill="#7fe3ff" fill-opacity=".07"/>
+<g filter="url(#glow)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<g stroke="#7fe3ff" stroke-width="1.5" stroke-dasharray="2 8" opacity=".6"><path d="M480 250 L281 190 M480 250 L281 335 M720 250 L919 190 M720 250 L919 335"/></g>
+<g stroke="#5aa9ff" stroke-width="2.5" fill="#5aa9ff" fill-opacity=".1"><use href="#lab" x="140" y="205"/></g>
+<g stroke="#8b98b3" stroke-width="2.5" fill="#8b98b3" fill-opacity=".1"><use href="#lab" x="920" y="205"/></g>
+<ellipse cx="600" cy="250" rx="200" ry="72" stroke="#8b98b3" stroke-width="1.5" stroke-dasharray="4 8" opacity=".6"/>
+<path d="M480 250 Q600 150 720 250 Q600 350 480 250 Z" stroke="#7fe3ff" stroke-width="3.5" fill="#7fe3ff" fill-opacity=".1"/>
+<g stroke="#59f0b8" stroke-width="2">
+<circle cx="600" cy="250" r="44" stroke-width="3" fill="#59f0b8" fill-opacity=".15"/>
+<ellipse cx="600" cy="250" rx="20" ry="44"/><line x1="556" y1="250" x2="644" y2="250"/><path d="M562 228 H638 M562 272 H638"/>
+</g>
+<circle cx="600" cy="250" r="12" fill="#7fe3ff" fill-opacity=".35" stroke="#7fe3ff" stroke-width="2"/>
+<circle cx="400" cy="250" r="7" fill="#5aa9ff" stroke="#5aa9ff"/><circle cx="800" cy="250" r="7" fill="#ff6b5a" stroke="#ff6b5a"/>
+<circle cx="480" cy="192" r="6" fill="#ffd76a" stroke="#ffd76a"/><circle cx="720" cy="308" r="6" fill="#59f0b8" stroke="#59f0b8"/>
+<circle cx="700" cy="187" r="6" fill="#c38bff" stroke="#c38bff"/><circle cx="500" cy="313" r="6" fill="#7fe3ff" stroke="#7fe3ff"/>
+</g>
+</svg>
