@@ -328,11 +328,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261014202718"></script>
-<script src="events.js?v=20261014202718"></script>
-<script src="landmask.js?v=20261014202718"></script>
-<script src="presets.js?v=20261014202718"></script>
-<script src="trees.js?v=20261014202718"></script>
+<script src="model.js?v=20261014203406"></script>
+<script src="events.js?v=20261014203406"></script>
+<script src="landmask.js?v=20261014203406"></script>
+<script src="presets.js?v=20261014203406"></script>
+<script src="trees.js?v=20261014203406"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -639,7 +639,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261014202718';
+const ASSET_VERSION = '20261014203406';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1334,7 +1334,7 @@ function rollYear() {
     const differs = Math.abs(p - est) > 0.0005 && pct(p) !== pct(est);
     return `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${p * 100}%"></div><div class="needle" id="nd${i}"></div></div>${differs ? `<span class="est"><span class="estl">expected </span><span class="ests">exp. </span>${pct(est)}</span>` : '<span class="est"></span>'}</div>`;
   }).join('') +
-    `<div class="note">Each red bar is the real chance of that catastrophe this year, drawn to scale. The white needle is where the die landed: inside the red means it happened. "Expected" is the chance as it looked from what you could see: an average over every world you might be in. The real chance can differ because some facts, like how hard alignment really is, stay secret${secretsOn ? '' : ' (Show secret facts reveals them)'}.</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
+    `<div class="note">Each red bar is the real chance of that catastrophe this year, drawn to scale. The white needle is where the die landed: inside the red means it happened. "Expected" is your best guess without the secret facts: the average over every world you might be in. The real chance can differ because those facts, like how hard alignment really is, stay hidden${secretsOn ? '' : ' (Show secret facts reveals them)'}.</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
   const t0 = performance.now();
   const wiggle = () => {
     const el = performance.now() - t0;
@@ -1358,7 +1358,7 @@ function rollYear() {
     const how = res.stage === 'handoff'
       ? `<div class="youchose">${failed
         ? 'You got through this year\'s risks, but then AI became superintelligent, smarter than people at everything. Its alignment wasn\'t good enough to keep it on humanity\'s side, so control was lost for good (last bar).'
-        : 'You got through this year\'s risks, and then AI became superintelligent, smarter than people at everything, with alignment good enough to keep it on humanity\'s side (last bar).'} The real chance this would go well was ${chance(qReal)}. From what you could see, it looked like ${chance(qEst)}, an average over every world you might have been in${qEst > qReal ? ', including easier ones' : ', including harder ones'}.</div>`
+        : 'You got through this year\'s risks, and then AI became superintelligent, smarter than people at everything, with alignment good enough to keep it on humanity\'s side (last bar).'} The real chance this would go well was ${chance(qReal)}. Without the secret facts, your best guess was ${chance(qEst)}, the average over every world you might have been in${qEst > qReal ? ', including easier ones' : ', including harder ones'}.</div>`
       : res.stage === 'end' ? '<div class="youchose">2040 arrives.</div>' : '';
     const verdict = res.event
       ? `<span style="color:${M.OUTCOMES[res.event].color}">${M.OUTCOMES[res.event].title}</span>${how}`
@@ -1417,8 +1417,9 @@ function showEnding() {
 }
 
 function mcBar(mc) {
-  const segs = Object.keys(M.OUTCOMES).filter((k) => mc.counts[k]).map((k) => `<div title="${M.OUTCOMES[k].title}" style="width:${mc.counts[k] / mc.n * 100}%;background:${M.OUTCOMES[k].color}"></div>`).join('');
-  const legend = Object.keys(M.OUTCOMES).filter((k) => mc.counts[k] / mc.n >= 0.005).map((k) => `<span style="color:${M.OUTCOMES[k].color}">● ${M.OUTCOMES[k].title} ${pct(mc.counts[k] / mc.n, 0)}</span>`).join(' &nbsp; ');
+  const order = Object.keys(M.OUTCOMES).sort((a, b) => mc.counts[b] - mc.counts[a]);
+  const segs = order.filter((k) => mc.counts[k]).map((k) => `<div title="${M.OUTCOMES[k].title}" style="width:${mc.counts[k] / mc.n * 100}%;background:${M.OUTCOMES[k].color}"></div>`).join('');
+  const legend = order.filter((k) => mc.counts[k] / mc.n >= 0.005).map((k) => `<span style="color:${M.OUTCOMES[k].color}">● ${M.OUTCOMES[k].title} ${pct(mc.counts[k] / mc.n, 0)}</span>`).join(' &nbsp; ');
   return `<div class="mcbars">${segs}</div><div class="note">${legend}</div>`;
 }
 
@@ -1512,7 +1513,7 @@ function renderRisks(prev) {
   }).join('');
   if (secretsOn) {
     const q = M.transitionOdds(s, true, game.L), qe = M.transitionOdds(s, false, game.L);
-    $('secrets').innerHTML = `<div class="realrisk">If AI became superintelligent now, the real chance the handoff goes well: <b>${chance(q)}</b> (expected from what you can see: ${chance(qe)}).</div>${secretList(s, game.L)}${SECRETS_NOTE}`;
+    $('secrets').innerHTML = `<div class="realrisk">If AI became superintelligent now, the real chance the handoff goes well: <b>${chance(q)}</b>. Your best guess without the secret facts: ${chance(qe)}.</div>${secretList(s, game.L)}${SECRETS_NOTE}`;
   }
   $('riskSub').textContent = prev ? 'Estimated risk next year with this choice (▲▼ vs. changing nothing).' : 'Hover a choice to preview where it leads.';
   $('survival').textContent = pct(s.survival, 1);
