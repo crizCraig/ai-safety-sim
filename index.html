@@ -1229,8 +1229,9 @@ function rewind(i) {
 function showCardArt(c) {
   const art = $('cardArt'), img = $('cardImg');
   art.hidden = false; art.classList.remove('expanded'); art.setAttribute('aria-expanded', 'false');
-  img.onerror = () => { art.hidden = true; };
-  img.src = `assets/cards/${c.id}.svg?v=${ASSET_VERSION}`;
+  // Painted art first; fall back to the vector drawing, then hide the slot.
+  img.onerror = () => { if (img.src.includes('cards-gpt')) img.src = `assets/cards/${c.id}.svg?v=${ASSET_VERSION}`; else art.hidden = true; };
+  img.src = `assets/cards-gpt/${c.id}.webp?v=${ASSET_VERSION}`;
 }
 $('cardArt').onclick = () => {
   const open = $('cardArt').classList.toggle('expanded');
