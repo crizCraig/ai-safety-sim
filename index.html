@@ -87,14 +87,14 @@
   #card { max-height: calc(100vh - 100px); overflow-y: auto; position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(720px, calc(100vw - 640px)); min-width: 460px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px 16px; backdrop-filter: blur(12px); z-index: 4; transition: opacity .35s, transform .35s; }
   /* Card illustration: a wide slice across the top of the card; tap or click to see it whole. */
   .cardart { display: block; width: calc(100% + 40px); margin: -18px -20px 12px; padding: 0; border: 0; border-bottom: 1px solid var(--line);
-    border-radius: 16px 16px 0 0; overflow: hidden; background: #03060d; cursor: zoom-in; height: 150px; transition: height .35s ease; }
+    border-radius: 16px 16px 0 0; overflow: hidden; background: transparent; cursor: zoom-in; height: 150px; transition: height .35s ease; }
   .cardart img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
   .cardart.expanded { height: auto; aspect-ratio: 12 / 5; cursor: zoom-out; }
   /* Pencil sketches on light paper: dim and tone them slightly and fade the bottom edge into the
      dark card so they sit behind the text; full brightness on hover or when expanded. */
-  .cardart img { filter: brightness(.84) sepia(.18); transition: filter .3s ease;
+  .cardart img { filter: brightness(.84) sepia(.18); opacity: .72; transition: filter .3s ease, opacity .3s ease;
     -webkit-mask-image: linear-gradient(to bottom, #000 82%, rgba(0,0,0,.35)); mask-image: linear-gradient(to bottom, #000 82%, rgba(0,0,0,.35)); }
-  .cardart:hover img, .cardart.expanded img { filter: brightness(.95) sepia(.1); }
+  .cardart:hover img, .cardart.expanded img { filter: brightness(.95) sepia(.1); opacity: .92; }
   .cardart.expanded img { -webkit-mask-image: none; mask-image: none; }
   .cardart.endart { width: calc(100% + 56px); margin: -26px -28px 16px; border-radius: 18px 18px 0 0; height: 190px; }
   #card.hidden { opacity: 0; transform: translate(-50%, 30px); pointer-events: none; }
@@ -339,11 +339,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261016133711"></script>
-<script src="events.js?v=20261016133711"></script>
-<script src="landmask.js?v=20261016133711"></script>
-<script src="presets.js?v=20261016133711"></script>
-<script src="trees.js?v=20261016133711"></script>
+<script src="model.js?v=20261016150522"></script>
+<script src="events.js?v=20261016150522"></script>
+<script src="landmask.js?v=20261016150522"></script>
+<script src="presets.js?v=20261016150522"></script>
+<script src="trees.js?v=20261016150522"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -652,7 +652,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261016133711';
+const ASSET_VERSION = '20261016150522';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
