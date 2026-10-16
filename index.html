@@ -92,9 +92,9 @@
   .cardart.expanded { height: auto; aspect-ratio: 12 / 5; cursor: zoom-out; }
   /* Pencil sketches on light paper: dim and tone them slightly and fade the bottom edge into the
      dark card so they sit behind the text; full brightness on hover or when expanded. */
-  .cardart img { filter: brightness(.84) sepia(.18); opacity: .72; transition: filter .3s ease, opacity .3s ease;
+  .cardart img { filter: brightness(.84) sepia(.18); opacity: .5; transition: filter .3s ease, opacity .3s ease;
     -webkit-mask-image: linear-gradient(to bottom, #000 82%, rgba(0,0,0,.35)); mask-image: linear-gradient(to bottom, #000 82%, rgba(0,0,0,.35)); }
-  .cardart:hover img, .cardart.expanded img { filter: brightness(.95) sepia(.1); opacity: .92; }
+  .cardart:hover img, .cardart.expanded img { filter: brightness(.95) sepia(.1); opacity: .8; }
   .cardart.expanded img { -webkit-mask-image: none; mask-image: none; }
   .cardart.endart { width: calc(100% + 56px); margin: -26px -28px 16px; border-radius: 18px 18px 0 0; height: 190px; }
   #card.hidden { opacity: 0; transform: translate(-50%, 30px); pointer-events: none; }
