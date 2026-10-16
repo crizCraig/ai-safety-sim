@@ -227,8 +227,8 @@
   .unk-list li { display: flex; justify-content: space-between; gap: 12px; align-items: center; font-size: 13.5px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,0.02); }
   .unk-list .uv { font-family: var(--mono); font-size: 12.5px; color: var(--accent); white-space: nowrap; }
   .unk-list li.locked .uv { color: var(--muted); }
-  #worldRoll { cursor: pointer; transition: opacity .35s; }
-  #worldRoll.fading { opacity: 0; }
+  .roll-job { border-left: 2px solid var(--accent); padding-left: 10px; opacity: 0; transition: opacity .5s; }
+  .roll-job.on { opacity: 1; }
   .world-reveal.difficulty { margin-bottom: 10px; }
   .diff-tier { font-family: var(--mono); font-weight: 600; letter-spacing: .06em; }
   .splash-box h1 { margin: 10px 0 8px; font-size: clamp(34px, 7vw, 60px); line-height: 1.05; letter-spacing: .01em; text-shadow: 0 4px 30px rgba(0,0,0,.7); }
@@ -331,11 +331,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261016131735"></script>
-<script src="events.js?v=20261016131735"></script>
-<script src="landmask.js?v=20261016131735"></script>
-<script src="presets.js?v=20261016131735"></script>
-<script src="trees.js?v=20261016131735"></script>
+<script src="model.js?v=20261016133711"></script>
+<script src="events.js?v=20261016133711"></script>
+<script src="landmask.js?v=20261016133711"></script>
+<script src="presets.js?v=20261016133711"></script>
+<script src="trees.js?v=20261016133711"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -460,8 +460,10 @@
   <div class="box roll-box">
     <div class="kicker">Before 2027 begins</div>
     <h2>Rolling a hidden world</h2>
-    <p>Guessing the facts nobody knows yet. They stay secret until the end.</p>
+    <p>Nobody knows these facts about the future yet, so the game draws them at random for this playthrough and keeps them secret.</p>
     <ul class="unk-list" id="unkList"></ul>
+    <p class="roll-job" id="rollJob"><b>Your job:</b> steer the world through 2040 without knowing any of these, just as real leaders must. When it's over, you'll see what they were and how hard your world turned out to be.</p>
+    <button class="btn" id="rollGo">Begin 2027</button>
   </div>
 </div>
 
@@ -641,7 +643,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261016131735';
+const ASSET_VERSION = '20261016133711';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1888,33 +1890,28 @@ const UNKNOWNS = [
   ['Whether an AI that escaped control would be kind', (r) => (r < 0.5 ? 'yes' : 'no')],
   ['Pandemic risk from open models', (r) => `${(Math.pow(10, -6 + 4 * r) * 100).toPrecision(2)}%`],
 ];
-// Briefly show the unknowns shuffling and locking one by one, then go straight to the
-// first decision. A click or key skips ahead.
+// Show the unknowns shuffling and locking one by one, then hand over to the game.
+// Begin 2027 works at any time; pressing it early skips the rest of the roll.
 function rollWorld(then) {
-  const list = $('unkList'), box = $('worldRoll');
+  const list = $('unkList'), go = $('rollGo');
   list.innerHTML = UNKNOWNS.map(([n]) => `<li><span>${n}</span><span class="uv">?</span></li>`).join('');
-  box.classList.remove('hidden', 'fading');
+  $('rollJob').classList.remove('on');
+  $('worldRoll').classList.remove('hidden');
   const rows = [...list.children], t0 = performance.now(), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let done = false, timer = null;
-  const finish = () => {
-    if (done) return; done = true; clearTimeout(timer);
-    box.classList.add('fading');
-    setTimeout(() => { box.classList.add('hidden'); box.classList.remove('fading'); if (then) then(); }, reduce ? 0 : 350);
-    removeEventListener('keydown', finish);
-  };
-  box.onclick = finish; addEventListener('keydown', finish);
+  let done = false;
   const tick = () => {
     if (done) return;
     const t = performance.now() - t0;
     rows.forEach((li, i) => {
       if (li.classList.contains('locked')) return;
-      if (reduce || t > 250 + i * 130) { li.classList.add('locked'); li.querySelector('.uv').textContent = 'hidden 🔒'; }
+      if (reduce || t > 500 + i * 220) { li.classList.add('locked'); li.querySelector('.uv').textContent = 'drawn · hidden 🔒'; }
       else li.querySelector('.uv').textContent = UNKNOWNS[i][1](Math.random());
     });
-    if (rows.every((li) => li.classList.contains('locked'))) timer = setTimeout(finish, reduce ? 900 : 600);
-    else timer = setTimeout(tick, 60);
+    if (rows.every((li) => li.classList.contains('locked'))) { $('rollJob').classList.add('on'); go.focus({ preventScroll: true }); }
+    else setTimeout(tick, 70);
   };
   tick();
+  go.onclick = () => { done = true; $('worldRoll').classList.add('hidden'); if (then) then(); };
 }
 
 // How hard a world is: the share of futures that end in catastrophe in it under a strong
