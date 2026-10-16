@@ -90,6 +90,12 @@
     border-radius: 16px 16px 0 0; overflow: hidden; background: #03060d; cursor: zoom-in; height: 150px; transition: height .35s ease; }
   .cardart img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
   .cardart.expanded { height: auto; aspect-ratio: 12 / 5; cursor: zoom-out; }
+  /* Pencil sketches on light paper: dim and tone them slightly and fade the bottom edge into the
+     dark card so they sit behind the text; full brightness on hover or when expanded. */
+  .cardart img { filter: brightness(.84) sepia(.18); transition: filter .3s ease;
+    -webkit-mask-image: linear-gradient(to bottom, #000 82%, rgba(0,0,0,.35)); mask-image: linear-gradient(to bottom, #000 82%, rgba(0,0,0,.35)); }
+  .cardart:hover img, .cardart.expanded img { filter: brightness(.95) sepia(.1); }
+  .cardart.expanded img { -webkit-mask-image: none; mask-image: none; }
   .cardart.endart { width: calc(100% + 56px); margin: -26px -28px 16px; border-radius: 18px 18px 0 0; height: 190px; }
   #card.hidden { opacity: 0; transform: translate(-50%, 30px); pointer-events: none; }
   #card .tag { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
@@ -1230,7 +1236,7 @@ function rewind(i) {
 
 // Where each painted image's focal point (key face or subject) sits, as a % of its height,
 // so the thin header slice shows it. Written by scripts/process_card_art.py.
-const ART_FOCUS = {"posture":48,"openweights":35,"neuralink":45,"export":50,"whistle":50,"iaea":50,"internal":50,"publish":50,"sleeper":50,"nearmiss":45,"hotline":50,"automate":50,"jobs":50,"neurohack":33,"taiwan":50,"sabotage":38,"deal":48,"gap":50,"covert":50,"collapse":50,"fund":50,"cern":50,"agents":50,"threshold":48,"flourish":50,"pause":50,"muddle":50,"benevolent":50,"lockin":50,"war":50,"bio":50,"misalign":50};
+const ART_FOCUS = {"posture":50,"openweights":35,"neuralink":45,"export":50,"whistle":50,"iaea":50,"internal":50,"publish":50,"sleeper":50,"nearmiss":45,"hotline":50,"automate":50,"jobs":50,"neurohack":50,"taiwan":50,"sabotage":38,"deal":48,"gap":50,"covert":50,"collapse":50,"fund":50,"cern":50,"agents":50,"threshold":50,"flourish":50,"pause":50,"muddle":50,"benevolent":50,"lockin":50,"war":50,"bio":50,"misalign":50};
 const focusPos = (id) => `50% ${ART_FOCUS[id] ?? 50}%`;
 // Each card has an illustration at assets/cards/<id>.svg; the slot hides if it fails to load.
 function showCardArt(c) {

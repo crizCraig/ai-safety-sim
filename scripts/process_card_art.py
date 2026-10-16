@@ -1,7 +1,7 @@
 """Crop generated card and ending art to the 12:5 shape and save as WebP.
 
 Usage: python3 scripts/process_card_art.py [CARDS_SRC [ENDINGS_SRC]]
-  (defaults /tmp/claude-501/gptart2 and /tmp/claude-501/gptart2-endings)
+  (defaults /tmp/claude-501/pencil/cards and /tmp/claude-501/pencil/endings)
 Writes assets/cards-gpt/<id>.webp and assets/endings-gpt/<key>.webp (1200x500, quality 72,
 about 90 KB each). Each strip is centred on the image's focal point (FOCUS, the focal height as
 a fraction of the raw image), and the focal point's position inside the strip is written to
@@ -17,20 +17,20 @@ from PIL import Image, ImageChops
 
 root = Path(__file__).resolve().parent.parent
 srcs = [Path(a) for a in sys.argv[1:3]] or []
-srcs += [Path(p) for p in ("/tmp/claude-501/gptart2", "/tmp/claude-501/gptart2-endings")[len(srcs):]]
+srcs += [Path(p) for p in ("/tmp/claude-501/pencil/cards", "/tmp/claude-501/pencil/endings")[len(srcs):]]
 outs = [root / "assets" / "cards-gpt", root / "assets" / "endings-gpt"]
 
 # Focal height (0 = top, 1 = bottom of the raw image): the most recognizable face, or the
 # heart of the scene when no face matters most.
 FOCUS = {
     # cards
-    "posture": 0.30, "openweights": 0.22, "neuralink": 0.28, "export": 0.37, "whistle": 0.42,
+    "posture": 0.40, "openweights": 0.22, "neuralink": 0.28, "export": 0.37, "whistle": 0.42,
     "iaea": 0.45, "internal": 0.42, "publish": 0.42, "sleeper": 0.40, "nearmiss": 0.28,
     "hotline": 0.36, "automate": 0.45, "jobs": 0.50, "neurohack": 0.40, "taiwan": 0.45,
     "sabotage": 0.24, "deal": 0.30, "gap": 0.40, "covert": 0.45, "collapse": 0.40,
-    "fund": 0.47, "cern": 0.45, "agents": 0.45, "threshold": 0.30,
+    "fund": 0.47, "cern": 0.45, "agents": 0.45, "threshold": 0.45,
     # endings
-    "flourish": 0.42, "pause": 0.33, "muddle": 0.55, "benevolent": 0.50,
+    "flourish": 0.45, "pause": 0.33, "muddle": 0.55, "benevolent": 0.50,
     "lockin": 0.66, "war": 0.45, "bio": 0.32, "misalign": 0.50,
 }
 

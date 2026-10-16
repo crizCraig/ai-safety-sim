@@ -1,4 +1,4 @@
-"""Generate painted card illustrations with OpenAI's image model.
+"""Generate pencil-sketch card and ending illustrations with OpenAI's image model.
 
 Reads OPENAI_API_KEY from .env (gitignored) inside this process only; the key is
 never printed. Errors report just the exception type and status code, since API
@@ -6,6 +6,8 @@ error messages can echo part of a key. Raw PNGs go to OUT (default
 /tmp/claude-501/gptart2). If a prompt is refused, it retries once with the people
 described by role instead of by name.
 Usage: python3 scripts/gen_card_art.py [card_or_ending_id ... | endings]
+With CARD_ART_REDRAW_FROM=<dir> (holding cards/<id>.png and endings/<key>.png), each image is
+redrawn from that earlier version in the current style, keeping its composition.
 Several reference photos per call need openai>=1.99.
 """
 import base64
@@ -31,27 +33,36 @@ SIZE = os.environ.get("CARD_ART_SIZE", "1536x1024")
 # gpt-image-2.5-flare rejects input_fidelity (invalid_input_fidelity_model); set it for models that take it.
 FIDELITY = os.environ.get("CARD_ART_FIDELITY", "")
 
+PENCIL = ("a hand-drawn graphite pencil illustration on off-white paper: visible hand-drawn linework and"
+          " cross-hatching, light shading, lots of bare paper showing, mostly monochrome with at most a faint"
+          " wash of muted color, not photographic")
 STYLE = (
-    "I want a hardy boys type aesthetic for an AGI pdoom simulator I'm creating.\n\n"
-    "No text in the image. No explicit Hardy Boys stuff. Do not put Hardy Boys in the image. "
-    "Just that style, but more realistic even."
+    f"I want {PENCIL}, for an AGI pdoom simulator I'm creating. It should quietly support the text"
+    " on the card rather than dominate it.\n\n"
+    "No text in the image: no lettering, words, numbers or logo text."
 )
-HOPE = (" Lean hopeful: even in a tense moment, show capable people meeting the challenge, with warm light"
+# Redraw an existing image (input image 1) in the pencil style, keeping its composition.
+REDRAW = (
+    f"Redraw image 1 as {PENCIL}. Keep the same composition, framing, people, poses, expressions and"
+    " likenesses, and the same hopeful mood. No text in the image: drop any lettering, words, numbers"
+    " or logo text (simple logo shapes without letters may stay)."
+)
+HOPE = (" Lean hopeful: even in a tense moment, show capable people meeting the challenge, with soft light"
         " and a sense that things can still go well. Honest about the stakes, but not doom: no panic,"
         " chaos, destruction or warning signs.")
 LAYOUT = (" Keep the key figures and subjects in the middle horizontal band of a wide landscape frame."
-          " Make it a warm, vivid painted illustration, not a photograph.")
+          " Keep it a light pencil drawing with plenty of paper showing, not a photograph or a painting.")
 ROBOTS = (" If any robot appears, it must be a modern, present-day robot, like a Tesla Optimus or Figure humanoid"
           " or an industrial robot arm, not a retro or science-fiction robot, with no lettering on it.")
 
 # Reference photos passed to the images edit endpoint so likenesses come out right.
 # Downloaded locally, never committed.
-# Dario Amodei:
-#   dario.jpg: https://commons.wikimedia.org/wiki/File:Dario_Amodei_in_2023_(cropped).jpg
-#     (UK Prime Minister's Office, CC BY 2.0)
-#   dario_face.jpg: face crop of
-#     https://commons.wikimedia.org/wiki/File:Dario_Amodei_at_TechCrunch_Disrupt_2023_02.jpg
-#     (TechCrunch, CC BY 2.0)
+# Dario Amodei (recent photos: he is much thinner than in the 2023 ones, which are no longer used):
+#   d25_face.jpg (face) and d25_bust.jpg (head and shoulders), crops of
+#     https://commons.wikimedia.org/wiki/File:Sanae_Takaichi_and_Dario_Amodei_in_2025_(1).jpg
+#   d25b_face.jpg (three-quarter profile), crop of
+#     https://commons.wikimedia.org/wiki/File:Sanae_Takaichi_and_Dario_Amodei_in_2025_(2).jpg
+#   Both taken 2025-10-29 by Japan's Cabinet Secretariat (kantei.go.jp), CC BY 4.0.
 # JD Vance: vance.jpg:
 #   https://commons.wikimedia.org/wiki/File:March_2026_Official_Vice_Presidential_Portrait_of_JD_Vance_(head-and-shoulders_cropped).jpg
 #   (official US government portrait, public domain)
@@ -59,8 +70,9 @@ ROBOTS = (" If any robot appears, it must be a modern, present-day robot, like a
 # later cards show JD Vance.
 REFS_DIR = Path(os.environ.get("CARD_ART_REFS", "/tmp/claude-501/refs"))
 REFS = {
-    "Dario Amodei": ([REFS_DIR / "dario_face.jpg", REFS_DIR / "dario.jpg"],
-                     "curly dark brown hair, round dark-rimmed glasses, round friendly face, clean-shaven"),
+    "Dario Amodei": ([REFS_DIR / "d25_face.jpg", REFS_DIR / "d25_bust.jpg", REFS_DIR / "d25b_face.jpg"],
+                     "slim build and a lean, narrow face with defined cheekbones, short curly dark brown hair,"
+                     " thin dark-rimmed glasses, clean-shaven"),
     "JD Vance": ([REFS_DIR / "vance.jpg"],
                  "short dark side-parted hair, full dark beard, blue eyes"),
     # xi.jpg: https://commons.wikimedia.org/wiki/File:Xi_Jinping_(2023-04-06).jpg (CC BY 4.0)
@@ -174,7 +186,7 @@ CARDS = {
 # Endings: one per OUTCOMES key in model.js; kicker "Ending: <title>", situation = outcome text.
 # Endings come after 2028, so any US president is JD Vance. Real people appear only in the good
 # endings; catastrophes use roles and places, so no real person is shown causing one.
-TRIUMPH = (" Make it triumphant and warm: golden light, joy and relief, a sense that humanity pulled it off.")
+TRIUMPH = (" Make it triumphant and warm: bright, open light, joy and relief, a sense that humanity pulled it off.")
 SOMBER = (" Be honest about what happened, but not gory, graphic or hopeless: show the human side through"
           " people and a single telling image, a quiet sense of what was lost, with some warmth and dignity."
           " No real, recognizable people.")
@@ -220,20 +232,27 @@ ALL = {**CARDS, **{k: (*v[:4], None) for k, v in ENDINGS.items()}}
 OUT_END = Path(os.environ.get("CARD_ART_OUT_END", "/tmp/claude-501/gptart2-endings"))
 
 
+REDRAW_FROM = os.environ.get("CARD_ART_REDRAW_FROM")
+
+
 def prompt(card_id, by_role=False):
     kicker, title, text, people, roles = ALL[card_id]
     who = roles if (by_role and roles) else people
     tone = ENDINGS[card_id][4] if card_id in ENDINGS else HOPE
-    p = f"{STYLE}\n\nCreate an image for:\n{kicker}\n\n{title}\n\n{text}\n\n{who}{LAYOUT}{tone}"
-    if card_id == "posture" or "robot" in who:
-        p += ROBOTS
-    files, k = [], 0
+    src = REDRAW_FROM and Path(REDRAW_FROM) / ("endings" if card_id in ENDINGS else "cards") / f"{card_id}.png"
+    if src and src.is_file():
+        p, files, k = REDRAW, [src], 1
+    else:
+        p = f"{STYLE}\n\nCreate an image for:\n{kicker}\n\n{title}\n\n{text}\n\n{who}{LAYOUT}{tone}"
+        if card_id == "posture" or "robot" in who:
+            p += ROBOTS
+        files, k = [], 0
     for name in ([] if by_role else [n for n in REFS if n in who]):
         paths, looks = REFS[name]
         nums = ", ".join(str(k + i + 1) for i in range(len(paths)))
         p += (f" Reference photo{'s' if len(paths) > 1 else ''} {nums} show{'' if len(paths) > 1 else 's'} {name}"
               f" ({looks}); make {name}'s face match closely and clearly recognizable,"
-              f" rendered in the same painted style as everyone else.")
+              f" drawn in the same pencil style as everyone else.")
         files += paths
         k += len(paths)
     return p, files
