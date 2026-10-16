@@ -131,6 +131,9 @@
   .slider .ends { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .pair label { font-size: 10px; color: var(--muted); }
+  .amarks { position: relative; height: 13px; margin: 0 7px; }
+  .amarks span { position: absolute; font-size: 9.5px; color: var(--accent); white-space: nowrap; padding: 0 3px; border-left: 1px solid var(--accent); line-height: 12px; }
+  .amarks span.l { transform: translateX(-100%); border-left: 0; border-right: 1px solid var(--accent); }
   .world-reveal ul { margin: 6px 0 0; padding-left: 18px; }
   .secbtn { display: block; width: 100%; margin: 10px 0 6px; pointer-events: auto; }
   .world-reveal.secrets { font-size: 12px !important; margin-bottom: 8px; }
@@ -328,11 +331,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261016130057"></script>
-<script src="events.js?v=20261016130057"></script>
-<script src="landmask.js?v=20261016130057"></script>
-<script src="presets.js?v=20261016130057"></script>
-<script src="trees.js?v=20261016130057"></script>
+<script src="model.js?v=20261016131735"></script>
+<script src="events.js?v=20261016131735"></script>
+<script src="landmask.js?v=20261016131735"></script>
+<script src="presets.js?v=20261016131735"></script>
+<script src="trees.js?v=20261016131735"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -370,6 +373,7 @@
     <div class="divider"></div>
     <h3>Unknowns about the world</h3>
     <div class="sub">Each future draws these from a bell curve: the center you set, ± the spread.</div>
+    <div class="presets" id="unkPresets"></div>
     <div id="assumptions"></div>
   </div>
 </div>
@@ -488,7 +492,7 @@
     <h2>Game of AGI</h2>
     <h3 class="no-copy">Origins and sources</h3>
     <p>This version extends the original <a href="https://gist.github.com/crizCraig/f4c583f0ca535ce5565f3aa66353cf99" target="_blank" rel="noopener">Game of AGI</a>, a Monte Carlo of AGI risk driven by safe-by-default odds, safety spending, oversight, the number of labs that originate AGI, whistleblowers, and takeoff vs. replication time.</p>
-    <p>The main sources: <a href="https://ai-2040.com/" target="_blank" rel="noopener">AI 2040: Plan A</a> for timelines and the plans' odds of getting alignment right; a separate factored Monte Carlo estimate for open-weights pandemic risk; and <a href="https://www.nationalsecurity.ai/" target="_blank" rel="noopener"><i>Superintelligence Strategy</i></a> (Hendrycks, Schmidt and Wang) for why state bioweapons are treated as deterred; and experts on Chinese AI policy (Concordia AI, Matt Sheehan at Carnegie, SemiAnalysis) for how much alignment work China does itself and how readily it would slow down; and Craig Quiter's <a href="https://nationalsecurityresponse.ai/" target="_blank" rel="noopener">National Security Response</a> for how automation can leave most people without economic leverage or a say even when humans keep control of AI (Locked-In Power and the public wealth fund).</p>
+    <p>The main sources: <a href="https://ai-2040.com/" target="_blank" rel="noopener">AI 2040: Plan A</a> for timelines and the plans' odds of getting alignment right; a separate factored Monte Carlo estimate for open-weights pandemic risk; and <a href="https://www.nationalsecurity.ai/" target="_blank" rel="noopener"><i>Superintelligence Strategy</i></a> (Hendrycks, Schmidt and Wang) for why state bioweapons are treated as deterred; and experts on Chinese AI policy (Concordia AI, Matt Sheehan at Carnegie, SemiAnalysis) for how much alignment work China does itself and how readily it would slow down; and Craig Quiter's <a href="https://nationalsecurityresponse.ai/" target="_blank" rel="noopener">National Security Response</a> for how automation can leave most people without economic leverage or a say even when humans keep control of AI (Locked-In Power and the public wealth fund); and Gladstone AI's <a href="https://aiendgame.com/p/what-rsi-looks-like" target="_blank" rel="noopener">report on recursive self-improvement</a> (covered by <a href="https://time.com/article/2026/10/14/recursive-self-improvement-AI-report/" target="_blank" rel="noopener">TIME</a>) for the RSI 2027 scenario, where lab insiders expect AI to start substantially speeding up AI research during 2027.</p>
     <p class="no-copy">The code is open source on <a href="https://github.com/crizCraig/ai-safety-sim" target="_blank" rel="noopener">GitHub</a> (MIT license).</p>
     <p class="no-copy">This game was built in conversation with Claude Code. Each session's full history is browsable as a memtree:</p>
     <ol class="treelist no-copy" id="treeList"></ol>
@@ -637,7 +641,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261016130057';
+const ASSET_VERSION = '20261016131735';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1525,7 +1529,7 @@ function renderLevers() {
 /* =====================================================================
  * Futures Lab
  * ===================================================================== */
-const { AI2040_PLANS, PRESET_INFO, PLAN_INFO, PRESETS } = window.SimPresets;
+const { AI2040_PLANS, PRESET_INFO, PLAN_INFO, PRESETS, UNKNOWN_PRESETS, TIME_RSI, GLADSTONE_RSI } = window.SimPresets;
 const labL = M.defaultLevers();
 function buildLabUI() {
   const btn = (n) => `<button data-p="${n}"${PLAN_INFO[n] ? ' class="plan"' : ''}>${n}</button>`;
@@ -1553,12 +1557,16 @@ const fmtA = (k, v, isSd = false) => {
   const f = M.ASSUMPTION_INFO[k].fmt;
   if (f === 'log') return isSd ? '×' + Math.round(Math.pow(10, v)) : pct(Math.pow(10, v), 2);
   if (f === 'logx') return isSd ? '×' + Math.pow(10, v).toFixed(1) : Math.pow(10, v).toFixed(2) + '×';
+  if (f === 'num') return isSd ? String(+v.toFixed(1)) : String(Math.round(v));
   return f === 'pct' ? Math.round(v * 100) + '%' : v.toFixed(2) + '×';
 };
+// Labelled reference points under a center slider, e.g. AI 2040 and RSI 2027 on Current capability.
+const marksHTML = (info) => !info.marks ? '' : `<div class="amarks">${info.marks.map(([v, t], i) =>
+  `<span class="${i === 0 ? 'l' : 'r'}" style="left:${((v - info.min) / (info.max - info.min) * 100).toFixed(1)}%">${t}</span>`).join('')}</div>`;
 function buildAssumptionUI() {
   $('assumptions').innerHTML = Object.entries(M.ASSUMPTION_INFO).map(([k, info]) =>
     `<div class="slider"><div class="row"><span>${info.label}</span><span id="av-${k}"></span></div>
-      <div class="pair"><label>center<input type="range" id="am-${k}" min="${info.min}" max="${info.max}" step="0.01" aria-label="${info.label} center"></label>
+      <div class="pair"><label>center<input type="range" id="am-${k}" min="${info.min}" max="${info.max}" step="${info.fmt === 'num' ? 1 : 0.01}" aria-label="${info.label} center">${marksHTML(info)}</label>
       <label>± spread<input type="range" id="as-${k}" min="0" max="${(info.max - info.min) / 3}" step="0.01" aria-label="${info.label} spread"></label></div>
       <div class="note">${info.help}</div></div>`
   ).join('');
@@ -1569,9 +1577,29 @@ function buildAssumptionUI() {
       clearTimeout(timer); timer = setTimeout(runLab, 120);
     });
   }
+  $('unkPresets').innerHTML = Object.keys(UNKNOWN_PRESETS).map((n) => `<button data-u="${n}">${n}</button>`).join('') +
+    '<div class="plannote" id="unkNote" hidden></div>';
+  $('unkPresets').onclick = (e) => {
+    const n = e.target.closest('[data-u]')?.dataset.u; if (!n) return;
+    const D = M.defaultAssumptions();
+    for (const k in D) labA[k] = { ...D[k], ...(UNKNOWN_PRESETS[n].set[k] || {}) };
+    syncAssumptions(true); runLab();
+  };
   syncAssumptions(true);
 }
+// Which unknowns scenario the current unknowns match exactly, if any.
+function unknownPreset() {
+  const D = M.defaultAssumptions();
+  return Object.keys(UNKNOWN_PRESETS).find((n) => Object.keys(D).every((k) => {
+    const want = { ...D[k], ...(UNKNOWN_PRESETS[n].set[k] || {}) };
+    return Math.abs(labA[k].mean - want.mean) < 1e-9 && Math.abs(labA[k].sd - want.sd) < 1e-9;
+  })) || null;
+}
 function syncAssumptions(setInputs) {
+  const u = unknownPreset();
+  $('unkPresets').querySelectorAll('[data-u]').forEach((b) => b.classList.toggle('on', b.dataset.u === u));
+  const note = $('unkNote');
+  note.hidden = !u; if (u) note.innerHTML = UNKNOWN_PRESETS[u].html || UNKNOWN_PRESETS[u].text;
   for (const k in M.ASSUMPTION_INFO) {
     if (setInputs) { $('am-' + k).value = labA[k].mean; $('as-' + k).value = labA[k].sd; }
     $('av-' + k).textContent = M.ASSUMPTION_INFO[k].fmt.startsWith('log')
@@ -1683,7 +1711,7 @@ function scenarioText() {
     `| ${i.label} | ${leverText(k, labL[k])}${i.pct ? '' : ' / 100'} | ${i.low} → ${i.high} |`).join('\n');
   const unknowns = Object.entries(M.ASSUMPTION_INFO).map(([k, i]) =>
     `| ${i.label} | ${fmtA(k, labA[k].mean)} | ${fmtA(k, labA[k].sd, true)} | ${i.help} |`).join('\n');
-  const s0 = M.initialState();
+  const s0 = M.initialState(Object.assign(M.meanWorld(), { capNow: labA.capNow.mean }));
   const start = Object.entries(M.STAT_INFO).map(([k, i]) => `${i.label} ${s0[k]}`).join(', ');
   const outcomes = Object.entries(M.OUTCOMES).sort((a, b) => r.counts[b[0]] - r.counts[a[0]])
     .map(([k, o]) => `| ${o.title} | ${p1(r.counts[k] / r.n)} | ${o.text} |`).join('\n');

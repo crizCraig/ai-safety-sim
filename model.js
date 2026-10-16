@@ -37,6 +37,12 @@
     // 10^mean, spread ×10^sd. Calibrated to AI 2040's p(alignment) estimates.
     ease: { label: 'Ease of alignment', mean: 0.10, sd: 0.4, min: -0.6, max: 0.7, fmt: 'logx',
       help: 'How hard the problem really is: how much real alignment the superintelligence handoff needs. Policy cannot change it. Easy enough (above 3.3×), fixing safety problems as they come up leads to long-term alignment and loss of control cannot happen; at 0.5×, progress comes at half the speed. Compare "Tests overstate alignment", which is about measuring progress, not the problem itself.' },
+    // Where the frontier stands at the start of 2027. AI 2040's starting point is 44; Gladstone
+    // AI's lab insiders expect recursive self-improvement (AI substantially speeding up AI R&D,
+    // which begins at 50 here) within 3-12 months of Oct 2026, i.e. during 2027.
+    capNow: { label: 'Current capability', mean: 44, sd: 0, min: 30, max: 62, fmt: 'num',
+      marks: [[44, 'AI 2040'], [50, 'RSI 2027']],
+      help: 'How capable the best AI is at the start of 2027 (US bloc; China starts 7 points behind). AI starts speeding up its own research at 50, and 70 is an Automated Coder. AI 2040 starts at 44; lab insiders quoted by Gladstone AI expect recursive self-improvement during 2027, which is about 50.' },
     speed: { label: 'AI progress speed', mean: 1, sd: 0.3, min: 0.3, max: 2.5, fmt: 'x',
       help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2031 and superintelligence to about 2033.' },
     benevolent: { label: 'Kind even if uncontrolled', mean: 0.1, sd: 0.08, min: 0, max: 1, fmt: 'pct',
@@ -85,6 +91,8 @@
     // Bio: the decade risk is unclamped in log space (the tails are the point), capped below 1.
     const bioDecade = Math.min(0.99, Math.pow(10, A.bioDecade.mean + A.bioDecade.sd * gauss(rng)));
     Object.assign(w, chinaWorld(A, draw('cnAlign'), draw('cnCaution')), evalWorld(A, draw('evalGap')));
+    // Drawn last, and only when it has a spread, so the default draws stay identical.
+    w.capNow = A.capNow.sd > 0 ? draw('capNow') : A.capNow.mean;
     if (skipBio) return w;
     return Object.assign(w, bioWorld(bioDecade, A.bioDecade));
   }
@@ -98,7 +106,7 @@
   function meanWorld() {
     const A = defaultAssumptions();
     const dd = diffDistOf(A), d = Math.pow(10, dd.mean);
-    return Object.assign({ difficulty: d, speed: A.speed.mean, whistle: clippedMean(A.whistle), whistleNodes: clippedNodes(A.whistle, 0, 1).nodes,
+    return Object.assign({ difficulty: d, speed: A.speed.mean, capNow: A.capNow.mean, whistle: clippedMean(A.whistle), whistleNodes: clippedNodes(A.whistle, 0, 1).nodes,
       pBenevolent: clippedMean(A.benevolent), benevolent: false }, difficultyWorld(d, dd),
       chinaWorld(A, clippedMean(A.cnAlign), clippedMean(A.cnCaution)),
       evalWorld(A, clippedMean(A.evalGap)),
@@ -258,10 +266,12 @@
   }
 
   function initialState(world) {
+    world = world || meanWorld();
+    const cap0 = world.capNow ?? 44;
     return {
-      world: world || meanWorld(),
+      world,
       year: START_YEAR,
-      capUS: 44, capCN: 37, align: 16, openCap: 32, bio: 14,
+      capUS: cap0, capCN: cap0 - 7, align: 16, openCap: 32, bio: 14,
       coord: 22, bci: 4, conc: 45, trust: 55,
       internal: 30,       // how far AI used inside labs is ahead of what outsiders can see
       cnMult: 1,          // modified by export controls

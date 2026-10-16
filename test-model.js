@@ -313,5 +313,17 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Model reference fills G_ref from the code', html.includes('{{GREF}}') && /replace\('\{\{GREF\}\}', M\.bioRefExposure\(\)/.test(html));
 }
 
+// --- RSI 2027 (lab insiders): Automated Coder in 2028 and ASI in 2029 (reached during the
+// year; the Lab labels milestones with the following year), and the default stays at 44 ---
+{
+  const PR = require('./presets.js') && globalThis.SimPresets;
+  const A = M.defaultAssumptions();
+  for (const k in PR.UNKNOWN_PRESETS['RSI 2027 (lab insiders)'].set) A[k] = { ...PR.UNKNOWN_PRESETS['RSI 2027 (lab insiders)'].set[k] };
+  const r = M.summarize(PR.PRESETS['Status quo'], A, 4000, 7);
+  check('RSI 2027: Automated Coder labelled 2029 (reached 2028)', r.acMedian === 2029, r.acMedian);
+  check('RSI 2027: superintelligence labelled 2030 (reached 2029)', r.asiMedian === 2030, r.asiMedian);
+  check('Current capability defaults to AI 2040\'s 44 / 37', M.initialState().capUS === 44 && M.initialState().capCN === 37);
+}
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll checks passed');
 process.exit(failed ? 1 : 0);

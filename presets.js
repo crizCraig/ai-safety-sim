@@ -50,5 +50,16 @@
     'All compute on safety': P({ safety: 1 }),
   };
 
-  root.SimPresets = { AI2040_PLANS, PRESET_INFO, PLAN_INFO, PRESETS };
+  // Scenarios for the unknowns (not the levers), so they combine with any plan. Each lists
+  // only the unknowns it changes; the rest stay at their defaults.
+  const TIME_RSI = 'https://time.com/article/2026/10/14/recursive-self-improvement-AI-report/';
+  const GLADSTONE_RSI = 'https://aiendgame.com/p/what-rsi-looks-like';
+  const UNKNOWN_PRESETS = {
+    'AI 2040 (default)': { set: {},
+      text: 'The default unknowns, with timelines calibrated to AI 2040: an Automated Coder around 2030 and superintelligence around 2031 on today\'s path.' },
+    'RSI 2027 (lab insiders)': { set: { capNow: { mean: 50, sd: 0 }, speed: { mean: 1.3, sd: 0.3 } },
+      html: `Gladstone AI's <a href="${GLADSTONE_RSI}" target="_blank" rel="noopener">report on recursive self-improvement</a> (covered by <a href="${TIME_RSI}" target="_blank" rel="noopener">TIME</a>, Oct 2026) says most of the frontier-lab researchers it spoke to "believe RSI will start within the next 3 to 12 months, and possibly sooner, assuming there's no U.S. government intervention or slowdown." Here that means starting 2027 at capability 50, where AI begins speeding up its own research, with progress 1.3× AI 2040's pace. On today's path, AI then speeds up AI research substantially during 2027, and each milestone comes about a year earlier than under AI 2040: an Automated Coder around 2029 instead of 2030 (built during 2028), and superintelligence around 2030 instead of 2031. Careful plans have less time to work: Plan A's catastrophe share roughly doubles.` },
+  };
+
+  root.SimPresets = { AI2040_PLANS, PRESET_INFO, PLAN_INFO, PRESETS, UNKNOWN_PRESETS, TIME_RSI, GLADSTONE_RSI };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
