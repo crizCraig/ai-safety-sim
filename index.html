@@ -90,6 +90,7 @@
     border-radius: 16px 16px 0 0; overflow: hidden; background: #03060d; cursor: zoom-in; height: 150px; transition: height .35s ease; }
   .cardart img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
   .cardart.expanded { height: auto; aspect-ratio: 12 / 5; cursor: zoom-out; }
+  .cardart.endart { width: calc(100% + 56px); margin: -26px -28px 16px; border-radius: 18px 18px 0 0; height: 190px; }
   #card.hidden { opacity: 0; transform: translate(-50%, 30px); pointer-events: none; }
   #card .tag { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
   #card h2 { margin: 4px 0 6px; font-size: 22px; }
@@ -314,6 +315,7 @@
     body.deciding #card { top: calc(50% + 40px); max-height: calc(100vh - 128px); }
     #card { bottom: 12px; padding: 16px; }
     .cardart { width: calc(100% + 32px); margin: -16px -16px 10px; height: 64px; }
+    .cardart.endart { width: calc(100% + 36px); margin: -20px -18px 12px; height: 110px; }
     #card h2 { font-size: 18px; }
     .modal .box { padding: 20px 18px; }
     .doc p, .doc li { font-size: 13.5px; }
@@ -470,6 +472,7 @@
 <!-- Ending -->
 <div class="modal hidden" id="ending">
   <div class="box">
+    <button class="cardart endart" id="endArt" hidden aria-expanded="false" title="Show the whole picture"><img id="endImg" alt=""></button>
     <div class="kicker" id="endKicker"></div>
     <h1 id="endTitle"></h1>
     <p id="endText"></p>
@@ -1225,17 +1228,32 @@ function rewind(i) {
   renderAll();
 }
 
+// Where each painted image's focal point (key face or subject) sits, as a % of its height,
+// so the thin header slice shows it. Written by scripts/process_card_art.py.
+const ART_FOCUS = {"posture":48,"openweights":35,"neuralink":45,"export":50,"whistle":50,"iaea":50,"internal":50,"publish":50,"sleeper":50,"nearmiss":45,"hotline":50,"automate":50,"jobs":50,"neurohack":33,"taiwan":50,"sabotage":38,"deal":48,"gap":50,"covert":50,"collapse":50,"fund":50,"cern":50,"agents":50,"threshold":48,"flourish":50,"pause":50,"muddle":50,"benevolent":50,"lockin":50,"war":50,"bio":50,"misalign":50};
+const focusPos = (id) => `50% ${ART_FOCUS[id] ?? 50}%`;
 // Each card has an illustration at assets/cards/<id>.svg; the slot hides if it fails to load.
 function showCardArt(c) {
   const art = $('cardArt'), img = $('cardImg');
   art.hidden = false; art.classList.remove('expanded'); art.setAttribute('aria-expanded', 'false');
   // Painted art first; fall back to the vector drawing, then hide the slot.
-  img.onerror = () => { if (img.src.includes('cards-gpt')) img.src = `assets/cards/${c.id}.svg?v=${ASSET_VERSION}`; else art.hidden = true; };
+  img.onerror = () => {
+    if (img.src.includes('cards-gpt')) { img.style.objectPosition = ''; img.src = `assets/cards/${c.id}.svg?v=${ASSET_VERSION}`; } else art.hidden = true;
+  };
+  img.style.objectPosition = focusPos(c.id);
   img.src = `assets/cards-gpt/${c.id}.webp?v=${ASSET_VERSION}`;
 }
-$('cardArt').onclick = () => {
-  const open = $('cardArt').classList.toggle('expanded');
-  $('cardArt').setAttribute('aria-expanded', String(open));
+// Each ending has a painted image at assets/endings-gpt/<key>.webp; the slot hides if it fails to load.
+function showEndArt(key) {
+  const art = $('endArt'), img = $('endImg');
+  art.hidden = false; art.classList.remove('expanded'); art.setAttribute('aria-expanded', 'false');
+  img.onerror = () => { art.hidden = true; };
+  img.style.objectPosition = focusPos(key);
+  img.src = `assets/endings-gpt/${key}.webp?v=${ASSET_VERSION}`;
+}
+for (const id of ['cardArt', 'endArt']) $(id).onclick = () => {
+  const open = $(id).classList.toggle('expanded');
+  $(id).setAttribute('aria-expanded', String(open));
 };
 function showCard(c) {
   game.history.push({ s: structuredClone(game.s), L: { ...game.L }, used: new Set(game.used), card: c });
@@ -1406,6 +1424,7 @@ function showEnding() {
   const s = game.s, o = M.OUTCOMES[s.outcome];
   const good = ['flourish', 'pause'].includes(s.outcome);
   $('endKicker').textContent = `${s.year} · ${good ? 'You made it' : s.outcome === 'muddle' ? 'Unresolved' : s.outcome === 'benevolent' ? 'Out of our hands' : 'Catastrophe'}`;
+  showEndArt(s.outcome);
   $('endTitle').textContent = o.title;
   $('endTitle').style.color = o.color;
   $('endText').textContent = o.text;
