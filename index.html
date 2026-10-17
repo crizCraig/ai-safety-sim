@@ -39,7 +39,7 @@
   /* ---------- top bar ---------- */
   #top { position: fixed; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 18px; padding: 12px 18px; pointer-events: none; z-index: 5; }
   #top > * { pointer-events: auto; }
-  .brand { font-weight: 700; letter-spacing: 0.18em; font-size: 15px; }
+  .brand { color: inherit; text-decoration: none; cursor: pointer; font-weight: 700; letter-spacing: 0.18em; font-size: 15px; }
   .brand small { display: block; font-weight: 400; letter-spacing: 0.04em; color: var(--muted); font-size: 11px; }
   .tabs { display: flex; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 3px; backdrop-filter: blur(8px); }
   .tabs button { background: none; border: 0; padding: 6px 12px; border-radius: 7px; font-size: 13px; color: var(--muted); }
@@ -372,17 +372,17 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261017143457"></script>
-<script src="events.js?v=20261017143457"></script>
-<script src="landmask.js?v=20261017143457"></script>
-<script src="presets.js?v=20261017143457"></script>
-<script src="trees.js?v=20261017143457"></script>
+<script src="model.js?v=20261017152007"></script>
+<script src="events.js?v=20261017152007"></script>
+<script src="landmask.js?v=20261017152007"></script>
+<script src="presets.js?v=20261017152007"></script>
+<script src="trees.js?v=20261017152007"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
 
 <div id="top">
-  <div class="brand">GAME OF AGI<small>an AI safety simulator</small></div>
+  <a class="brand" id="brand" href="./" title="Go to the campaign">GAME OF AGI<small>an AI safety simulator</small></a>
   <div class="tabs">
     <button data-mode="campaign" class="on">Campaign</button>
     <button data-mode="lab">Futures Lab</button>
@@ -685,7 +685,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261017143457';
+const ASSET_VERSION = '20261017152007';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -2014,6 +2014,12 @@ $('copyPage').onclick = () => {
  * Mode switching & wiring
  * ===================================================================== */
 let mode = 'campaign';
+// The logo goes to the campaign (a normal link if opened in a new tab).
+$('brand').onclick = (e) => {
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+  e.preventDefault();
+  document.querySelector('.tabs button[data-mode="campaign"]').click();
+};
 function setMode(m) {
   mode = m;
   try { localStorage.setItem('goagi-mode', m); } catch (e) {}
