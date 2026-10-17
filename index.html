@@ -336,11 +336,10 @@
     .cardart { width: calc(100% + 32px); margin: -16px -16px 10px; height: 64px; }
     /* No room for a strip while choosing: the picture becomes a faded backdrop behind the
        card's text and choices (z-index -1 keeps it above the card's own background, since
-       the card's backdrop-filter makes it a stacking context). After the choice the result
-       shows it whole at the top of the card (.expanded). */
-    #card:not(.resolved) > .cardart { position: absolute; inset: auto 0 0 0; width: auto; height: 64%; margin: 0; border: 0;
+       the card's backdrop-filter makes it a stacking context), and stays there for the result. */
+    #card > .cardart { position: absolute; inset: auto 0 0 0; width: auto; height: 64%; margin: 0; border: 0;
       border-radius: 0 0 16px 16px; pointer-events: none; z-index: -1; }
-    #card:not(.resolved) > .cardart img { opacity: .2; filter: brightness(.8) sepia(.2);
+    #card > .cardart img { opacity: .2; filter: brightness(.8) sepia(.2);
       -webkit-mask-image: linear-gradient(to bottom, transparent, #000 40%);
       mask-image: linear-gradient(to bottom, transparent, #000 40%); }
     /* Darker choice buttons over the picture keep their small grey text at the plain card's contrast. */
@@ -1515,18 +1514,17 @@ function rollYear() {
     if (res.event) { vis.outcome = res.event; vis.outT = 0; preloadImg(endArtUrl(res.event)); }
     game.phase = res.event ? 'ended' : 'result';
     renderTimeline(); renderHistory();
-    // Stage 2: the card fades to the outcome (the whole picture, the headline, what changed,
+    // Stage 2: the card fades to the outcome (the headline, what changed,
     // Continue, the settled bars and the note) and takes its new height in one movement.
     morphCard(() => {
       $('card').classList.add('resolved');
       roll.classList.remove('rolling'); roll.style.minHeight = '';
-      // The result view always shows the whole picture, open at the top of the card.
-      expandArt('cardArt');
+      // The picture keeps its choosing size and tone in the result (tap still opens it whole).
       $('verdict').innerHTML = `${verdict}<div class="youchose">You chose: ${game.lastChoice}</div>${yearChanges(game.before, s)}
         <button class="btn next" id="nextBtn">${res.event ? 'See the ending →' : `Continue to ${s.year} →`}</button>`;
       $('nextBtn').onclick = advance;
       $('nextBtn').focus({ preventScroll: true });
-    }, cardParts(), true);
+    }, cardParts().filter((el) => el !== $('cardArt')), true);
   }
 }
 
