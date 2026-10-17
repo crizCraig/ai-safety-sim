@@ -344,7 +344,14 @@
       mask-image: linear-gradient(to bottom, transparent, #000 40%); }
     /* Darker choice buttons over the picture keep their small grey text at the plain card's contrast. */
     #card:not(.resolved) .choice { background: rgba(8,13,26,.62); }
-    .cardart.endart { width: calc(100% + 36px); margin: -20px -18px 12px; height: 110px; }
+    /* Ending on phones: like the cards, the picture is a faint backdrop behind the top of the
+       panel (it scrolls with the panel; isolation keeps z-index -1 above the box's background). */
+    #ending .box { position: relative; isolation: isolate; }
+    .cardart.endart { position: absolute; inset: 0 0 auto 0; width: auto; height: 300px; margin: 0; border: 0;
+      border-radius: 18px 18px 0 0; pointer-events: none; z-index: -1; }
+    .cardart.endart img { opacity: .2; filter: brightness(.8) sepia(.2);
+      -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent);
+      mask-image: linear-gradient(to bottom, #000 45%, transparent); }
     #card h2 { font-size: 18px; }
     .modal .box { padding: 20px 18px; }
     .doc p, .doc li { font-size: 13.5px; }
@@ -362,11 +369,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261017122355"></script>
-<script src="events.js?v=20261017122355"></script>
-<script src="landmask.js?v=20261017122355"></script>
-<script src="presets.js?v=20261017122355"></script>
-<script src="trees.js?v=20261017122355"></script>
+<script src="model.js?v=20261017130846"></script>
+<script src="events.js?v=20261017130846"></script>
+<script src="landmask.js?v=20261017130846"></script>
+<script src="presets.js?v=20261017130846"></script>
+<script src="trees.js?v=20261017130846"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -675,7 +682,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261017122355';
+const ASSET_VERSION = '20261017130846';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1281,7 +1288,6 @@ const endArtUrl = (key) => `assets/endings-gpt/${key}.webp?v=${ASSET_VERSION}`;
 function showCardArt(c) { setArt($('cardArt'), $('cardImg'), cardArtUrl(c.id), c.id, `assets/cards/${c.id}.svg?v=${ASSET_VERSION}`); }
 // Each ending has a painted image at assets/endings-gpt/<key>.webp; the slot hides if it fails to load.
 function showEndArt(key) { setArt($('endArt'), $('endImg'), endArtUrl(key), key, null); }
-function expandArt(id) { $(id).classList.add('expanded'); $(id).setAttribute('aria-expanded', 'true'); }
 for (const id of ['cardArt', 'endArt']) $(id).onclick = () => {
   const open = $(id).classList.toggle('expanded');
   $(id).setAttribute('aria-expanded', String(open));
@@ -1557,7 +1563,7 @@ function showEnding() {
   const good = ['flourish', 'pause'].includes(s.outcome);
   $('endKicker').textContent = `${s.year} · ${good ? 'You made it' : s.outcome === 'muddle' ? 'Unresolved' : s.outcome === 'benevolent' ? 'Out of our hands' : 'Catastrophe'}`;
   // The ending is the last result: like a year's result, it opens with the whole picture.
-  showEndArt(s.outcome); expandArt('endArt');
+  showEndArt(s.outcome);
   $('endTitle').textContent = o.title;
   $('endTitle').style.color = o.color;
   $('endText').textContent = o.text;
