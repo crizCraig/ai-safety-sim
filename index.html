@@ -29,8 +29,10 @@
   /* While choosing, the card takes center stage and the world recedes. */
   body.deciding canvas#gl { filter: blur(8px) brightness(.5) saturate(.8); }
   body.deciding .glabel { opacity: 0 !important; }
-  body.deciding #card { top: 50%; bottom: auto; transform: translate(-50%, -50%); width: min(820px, calc(100vw - 640px)); }
-  body.deciding #card.hidden { transform: translate(-50%, -46%); }
+  /* The card stays centred through the choice, the roll and the result, so a change in its
+     height moves its top and bottom together (and morphCard makes that one smooth movement). */
+  body.mode-campaign #card { top: 50%; bottom: auto; transform: translate(-50%, -50%); width: min(820px, calc(100vw - 640px)); }
+  body.mode-campaign #card.hidden { transform: translate(-50%, -46%); }
   @media (prefers-reduced-motion: reduce) { canvas#gl, #card { transition: none; } }
   button { font-family: inherit; color: inherit; cursor: pointer; }
 
@@ -87,7 +89,7 @@
   #card { max-height: calc(100vh - 100px); overflow-y: auto; position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(720px, calc(100vw - 640px)); min-width: 460px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px 16px; backdrop-filter: blur(12px); z-index: 4; transition: opacity .35s, transform .35s; }
   /* Card illustration: a wide slice across the top of the card; tap or click to see it whole. */
   .cardart { display: block; width: calc(100% + 40px); margin: -18px -20px 12px; padding: 0; border: 0; border-bottom: 1px solid var(--line);
-    border-radius: 16px 16px 0 0; overflow: hidden; background: transparent; cursor: zoom-in; height: 150px; transition: height .35s ease; }
+    border-radius: 16px 16px 0 0; overflow: hidden; background: transparent; cursor: zoom-in; height: 150px; }
   .cardart img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
   .cardart.expanded { height: auto; aspect-ratio: 12 / 5; cursor: zoom-out; }
   /* Pencil sketches on light paper: dim and tone them slightly and fade the bottom edge into the
@@ -121,6 +123,13 @@
   .roll .zone { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,77,106,0.5); }
   .roll .needle { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #fff; box-shadow: 0 0 8px #fff; }
   .roll .verdict { font-size: 15px; font-weight: 600; margin-top: 10px; min-height: 20px; }
+  /* While the needles roll, the bars take the place of the choices (min-height set from them). */
+  .roll.rolling { justify-content: center; margin-top: 12px; }
+  .roll.rolling .note { display: none; }
+  .roll.on.rolling .verdict { margin-bottom: 6px; }
+  .roll.rolling .lane { margin: 5px 0; }
+  /* While the card changes height, clip instead of flashing a scrollbar. */
+  #card.morphing { overflow: hidden; }
   /* After a choice the situation text hides and the outcome leads the card, above the dice. */
   #card.resolved #cardText, #card.resolved #cardDyn { display: none; }
   .roll.on { display: flex; flex-direction: column; }
@@ -278,7 +287,7 @@
   @media (max-width: 1100px) {
     .panel { width: 240px; }
     #card { width: calc(100vw - 32px); min-width: 0; bottom: 12px; }
-    body.deciding #card { width: calc(100vw - 32px); max-height: calc(100vh - 140px); }
+    body.mode-campaign #card { width: calc(100vw - 32px); max-height: calc(100vh - 140px); }
     #axisHelp { max-width: calc(100vw - 32px); }
     .choices { grid-template-columns: 1fr; }
     body.mode-campaign #left, body.mode-campaign #right { display: none; }
@@ -322,7 +331,7 @@
     body.compact-open.mode-campaign #left, body.compact-open.mode-campaign #right { display: block; position: static; width: auto; max-height: none; overflow: visible; flex-shrink: 0; margin: 0 16px 16px; }
     body.compact-open.mode-campaign #left { margin-top: 104px; }
     body.compact-open #card { display: none !important; }
-    body.deciding #card { top: calc(50% + 40px); max-height: calc(100vh - 128px); }
+    body.mode-campaign #card { top: calc(50% + 40px); max-height: calc(100vh - 128px); }
     #card { bottom: 12px; padding: 16px; }
     .cardart { width: calc(100% + 32px); margin: -16px -16px 10px; height: 64px; }
     /* No room for a strip while choosing: the picture becomes a faded backdrop behind the
@@ -1300,17 +1309,79 @@ function preloadCardArt() {
   const next = () => { const id = ids.shift(); if (id) idle(() => preloadImg(cardArtUrl(id)).then(next), { timeout: 3000 }); };
   setTimeout(next, 1500);
 }
+// Change what the card shows without jumps: fade the parts that change out, change them,
+// then take the card from its old height to its new one in one eased movement while the new
+// content fades in. The card is centred, so its top and bottom move together. When the
+// picture stays in the card's flow (desktop) it is not faded; its height animates with the
+// card's instead, so it opens or closes in place. Starting another change finishes this one
+// first. With reduced motion the content only fades and the size changes at once.
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const MORPH_OUT = 140, MORPH_MS = 480, MORPH_EASE = 'cubic-bezier(.4, 0, .2, 1)';
+const morph = { anims: [], pending: null, timer: 0, seq: 0 };
+function finishMorph() {
+  clearTimeout(morph.timer);
+  const run = morph.pending; morph.pending = null;
+  if (run) run();
+  morph.seq++;
+  morph.anims.forEach((a) => a.cancel()); morph.anims = [];
+  $('card').classList.remove('morphing');
+}
+function morphCard(change, fadeEls, artInFlowAfter) {
+  finishMorph();
+  const card = $('card'), art = $('cardArt');
+  if (card.classList.contains('hidden') || !card.offsetHeight) { change(); return; }
+  const reduce = reduceMotion();
+  const inFlow = !art.hidden && getComputedStyle(art).position !== 'absolute';
+  const growArt = !reduce && inFlow && artInFlowAfter;
+  fadeEls = fadeEls.filter((el) => !(growArt && el === art));
+  const outs = fadeEls.map((el) => el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MORPH_OUT, easing: 'ease-in', fill: 'forwards' }));
+  morph.anims.push(...outs);
+  morph.pending = () => {
+    const h0 = card.getBoundingClientRect().height, a0 = art.getBoundingClientRect().height;
+    change();
+    card.scrollTop = 0;
+    const h1 = card.getBoundingClientRect().height, a1 = art.hidden ? 0 : art.getBoundingClientRect().height;
+    outs.forEach((a) => a.cancel());
+    morph.anims = fadeEls.map((el) => el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: reduce ? 0 : 110, easing: 'ease-out', fill: 'backwards' }));
+    if (reduce) return;
+    const resize = [];
+    if (Math.abs(h1 - h0) > 1) resize.push([card, h0, h1]);
+    if (growArt && a1 && Math.abs(a1 - a0) > 1) resize.push([art, a0, a1]);
+    if (!resize.length) return;
+    // Hold the old size through the frame that paints the new content (often a slow one),
+    // then start the resize, so a slow paint can't swallow the start of the movement.
+    card.classList.add('morphing');
+    const hold = resize.map(([el, from]) => el.animate([{ height: from + 'px' }, { height: from + 'px' }], { duration: 1000 }));
+    morph.anims.push(...hold);
+    const seq = morph.seq;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (seq !== morph.seq) return;
+      hold.forEach((a) => a.cancel());
+      const moves = resize.map(([el, from, to]) => el.animate([{ height: from + 'px' }, { height: to + 'px' }], { duration: MORPH_MS, easing: MORPH_EASE }));
+      moves[0].onfinish = () => { if (seq === morph.seq) card.classList.remove('morphing'); };
+      morph.anims.push(...moves);
+    }));
+  };
+  morph.timer = setTimeout(() => { const run = morph.pending; morph.pending = null; if (run) run(); }, MORPH_OUT);
+}
+const cardParts = () => [...$('card').children];
+const phoneLayout = () => matchMedia('(max-width: 640px)').matches;
 function showCard(c) {
   game.history.push({ s: structuredClone(game.s), L: { ...game.L }, used: new Set(game.used), card: c });
   game.card = c; game.phase = 'choose';
   renderTimeline(); renderHistory();
   document.body.classList.add('deciding');
+  preloadCardArt();
+  // From a result (or another card) the card fades to the new one and resizes smoothly.
+  morphCard(() => fillCard(c), cardParts(), !phoneLayout());
+}
+function fillCard(c) {
   $('cardTag').textContent = `${game.s.year} · ${c.tag}`;
   $('cardTitle').textContent = c.title;
-  showCardArt(c); preloadCardArt();
+  showCardArt(c);
   $('cardText').textContent = c.text;
   $('cardDyn').textContent = c.dynamic ? c.dynamic(game.s, game.L) : '';
-  $('roll').classList.remove('on');
+  $('roll').classList.remove('on', 'rolling'); $('roll').style.minHeight = '';
   $('card').classList.remove('resolved');
   const wrap = $('choices'); wrap.innerHTML = ''; wrap.style.display = '';
   c.choices.forEach((ch) => {
@@ -1379,11 +1450,7 @@ function choose(ch) {
 function rollYear() {
   const s = game.s, L = game.L, year = s.year;
   const r = M.risks(s, L);
-  $('choices').style.display = 'none';
-  const roll = $('roll'); roll.classList.add('on');
-  $('card').classList.add('resolved');
-  // The result view always shows the whole picture, open at the top of the card.
-  expandArt('cardArt');
+  const roll = $('roll');
   // The same 16 dice step() will draw this year (same seeded stream), so each needle sits
   // exactly where its die landed. Bars show the real risk from this game's hidden world.
   const rngPeek = yearRng(2), dice = Array.from({ length: 16 }, () => rngPeek());
@@ -1400,14 +1467,15 @@ function rollYear() {
     lanes.push(['Superintelligence handoff fails', 1 - q, 1 - M.transitionOdds(s, false, L), 'handoff', 1 - dice[13]]);
   }
   const hitLane = lanes.findIndex(([, p, , , u]) => u < p);
-  roll.innerHTML = lanes.map(([n, p, est], i) => {
+  const rollHTML = lanes.map(([n, p, est], i) => {
     const differs = Math.abs(p - est) > 0.0005 && pct(p) !== pct(est);
     return `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${p * 100}%"></div><div class="needle" id="nd${i}"></div></div>${differs ? `<span class="est"><span class="estl">expected </span><span class="ests">exp. </span>${pct(est)}</span>` : '<span class="est"></span>'}</div>`;
   }).join('') +
     `<div class="note">Each red bar is the real chance of that catastrophe this year, drawn to scale. The white needle is where the die landed: inside the red means it happened. "Expected" is your best guess without the secret facts: the average over every world you might be in. The real chance can differ because those facts, like how hard alignment really is, stay hidden${secretsOn ? '' : ' (Show secret facts reveals them)'}.</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
-  const t0 = performance.now();
+  const reduce = reduceMotion();
+  let t0 = 0;
   const wiggle = () => {
-    const el = performance.now() - t0;
+    const el = reduce ? 1300 : performance.now() - t0;
     for (let i = 0; i < lanes.length; i++) {
       const n = $('nd' + i); if (!n) return;
       const settle = Math.min(1, el / 1300);
@@ -1419,8 +1487,19 @@ function rollYear() {
     }
     if (el < 1300) requestAnimationFrame(wiggle);
   };
-  wiggle();
-  setTimeout(() => {
+  // Stage 1: the bars fade in where the choices were, in about the same space, and the
+  // needles roll. The card keeps its size and place.
+  const choicesH = $('choices').offsetHeight;
+  morphCard(() => {
+    $('choices').style.display = 'none';
+    roll.innerHTML = rollHTML;
+    roll.classList.add('on', 'rolling');
+    roll.style.minHeight = choicesH + 'px';
+    t0 = performance.now(); wiggle();
+    // Stage 2, a beat after the needles settle: the outcome.
+    setTimeout(showOutcome, reduce ? 700 : 1600);
+  }, [$('choices'), roll], true);
+  function showOutcome() {
     syncTarget(s, L);
     renderAll();
     const qReal = M.transitionOdds(s, true, L), qEst = M.transitionOdds(s, false, L);
@@ -1436,11 +1515,19 @@ function rollYear() {
     if (res.event) { vis.outcome = res.event; vis.outT = 0; preloadImg(endArtUrl(res.event)); }
     game.phase = res.event ? 'ended' : 'result';
     renderTimeline(); renderHistory();
-    $('verdict').innerHTML = `${verdict}<div class="youchose">You chose: ${game.lastChoice}</div>${yearChanges(game.before, s)}
-      <button class="btn next" id="nextBtn">${res.event ? 'See the ending →' : `Continue to ${s.year} →`}</button>`;
-    $('nextBtn').onclick = advance;
-    $('nextBtn').focus({ preventScroll: true });
-  }, 1450);
+    // Stage 2: the card fades to the outcome (the whole picture, the headline, what changed,
+    // Continue, the settled bars and the note) and takes its new height in one movement.
+    morphCard(() => {
+      $('card').classList.add('resolved');
+      roll.classList.remove('rolling'); roll.style.minHeight = '';
+      // The result view always shows the whole picture, open at the top of the card.
+      expandArt('cardArt');
+      $('verdict').innerHTML = `${verdict}<div class="youchose">You chose: ${game.lastChoice}</div>${yearChanges(game.before, s)}
+        <button class="btn next" id="nextBtn">${res.event ? 'See the ending →' : `Continue to ${s.year} →`}</button>`;
+      $('nextBtn').onclick = advance;
+      $('nextBtn').focus({ preventScroll: true });
+    }, cardParts(), true);
+  }
 }
 
 // Leave the result screen: next year's card, or the ending.
