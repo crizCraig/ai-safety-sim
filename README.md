@@ -7,7 +7,7 @@ superintelligence: racing China or coordinating, releasing open weights,
 funding biodefense, betting on neural interfaces ("alignment via merging"),
 and how much compute goes to safety.
 
-**Play it:** https://agi.memtree.dev
+**Play it:** https://thegameofagi.com
 
 **Run it locally:** open `index.html` in a browser, or serve the folder
 (`python3 -m http.server`) and visit http://localhost:8000.

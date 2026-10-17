@@ -2,7 +2,7 @@
 
 A static site (no build step): `index.html` (Three.js scene, UI), `model.js` (world model),
 `events.js` (campaign cards), `landmask.js` (globe coastlines), `trees.js` (memtree links).
-Live at https://agi.memtree.dev via GitHub Pages from `main`.
+Live at https://thegameofagi.com (agi.memtree.dev redirects there) via GitHub Pages from `main`.
 
 This repo is a public showcase of memtree: the conversations that build it are published as
 memtrees, and the page links them under "How it was built".

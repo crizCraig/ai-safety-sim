@@ -1842,7 +1842,7 @@ if (TREES.length) {
 let modelSource = null;
 fetch('model.js?v=' + ASSET_VERSION).then((r) => (r.ok ? r.text() : null)).then((t) => { modelSource = t; }).catch(() => {});
 
-const SITE = 'https://agi.memtree.dev', REPO = 'https://github.com/crizCraig/ai-safety-sim';
+const SITE = 'https://thegameofagi.com', REPO = 'https://github.com/crizCraig/ai-safety-sim';
 // The model reference as Markdown with LaTeX math, for Copy for LLMs.
 function docMarkdown(box) {
   const inline = (el) => {
