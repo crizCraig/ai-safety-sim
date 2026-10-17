@@ -97,6 +97,10 @@
   .cardart:hover img, .cardart.expanded img { filter: brightness(.95) sepia(.1); opacity: .8; }
   .cardart.expanded img { -webkit-mask-image: none; mask-image: none; }
   .cardart.endart { width: calc(100% + 56px); margin: -26px -28px 16px; border-radius: 18px 18px 0 0; height: 190px; }
+  .cardart.endart.expanded { height: auto; } /* beats the ending's fixed strip heights, here and on phones */
+  .cardart[hidden] { display: none; }
+  /* Until a new picture has loaded the img stays invisible, so a new card never shows the last one. */
+  .cardart img.pending { opacity: 0 !important; transition: none; }
   #card.hidden { opacity: 0; transform: translate(-50%, 30px); pointer-events: none; }
   #card .tag { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
   #card h2 { margin: 4px 0 6px; font-size: 22px; }
@@ -321,6 +325,17 @@
     body.deciding #card { top: calc(50% + 40px); max-height: calc(100vh - 128px); }
     #card { bottom: 12px; padding: 16px; }
     .cardart { width: calc(100% + 32px); margin: -16px -16px 10px; height: 64px; }
+    /* No room for a strip while choosing: the picture becomes a faded backdrop behind the
+       card's text and choices (z-index -1 keeps it above the card's own background, since
+       the card's backdrop-filter makes it a stacking context). After the choice the result
+       shows it whole at the top of the card (.expanded). */
+    #card:not(.resolved) > .cardart { position: absolute; inset: auto 0 0 0; width: auto; height: 64%; margin: 0; border: 0;
+      border-radius: 0 0 16px 16px; pointer-events: none; z-index: -1; }
+    #card:not(.resolved) > .cardart img { opacity: .2; filter: brightness(.8) sepia(.2);
+      -webkit-mask-image: linear-gradient(to bottom, transparent, #000 40%);
+      mask-image: linear-gradient(to bottom, transparent, #000 40%); }
+    /* Darker choice buttons over the picture keep their small grey text at the plain card's contrast. */
+    #card:not(.resolved) .choice { background: rgba(8,13,26,.62); }
     .cardart.endart { width: calc(100% + 36px); margin: -20px -18px 12px; height: 110px; }
     #card h2 { font-size: 18px; }
     .modal .box { padding: 20px 18px; }
@@ -1238,29 +1253,53 @@ function rewind(i) {
 // so the thin header slice shows it. Written by scripts/process_card_art.py.
 const ART_FOCUS = {"posture":50,"openweights":35,"neuralink":45,"export":50,"whistle":50,"iaea":50,"internal":50,"publish":50,"sleeper":50,"nearmiss":45,"hotline":50,"automate":50,"jobs":50,"neurohack":50,"taiwan":50,"sabotage":38,"deal":48,"gap":50,"covert":50,"collapse":50,"fund":50,"cern":50,"agents":50,"threshold":50,"flourish":50,"pause":50,"muddle":50,"benevolent":50,"lockin":50,"war":50,"bio":50,"misalign":50};
 const focusPos = (id) => `50% ${ART_FOCUS[id] ?? 50}%`;
-// Each card has an illustration at assets/cards/<id>.svg; the slot hides if it fails to load.
-function showCardArt(c) {
-  const art = $('cardArt'), img = $('cardImg');
+// Put a picture in a card-art slot without ever showing the previous one: the img stays
+// hidden (.pending) from the moment its src changes until the new file has loaded, then
+// fades in. A painted image falls back to `fallback` (the card's vector drawing), then the
+// slot hides.
+function setArt(art, img, src, focusId, fallback) {
   art.hidden = false; art.classList.remove('expanded'); art.setAttribute('aria-expanded', 'false');
-  // Painted art first; fall back to the vector drawing, then hide the slot.
+  img.classList.add('pending');
+  img.onload = () => img.classList.remove('pending');
   img.onerror = () => {
-    if (img.src.includes('cards-gpt')) { img.style.objectPosition = ''; img.src = `assets/cards/${c.id}.svg?v=${ASSET_VERSION}`; } else art.hidden = true;
+    if (fallback && img.src !== new URL(fallback, location.href).href) { img.style.objectPosition = ''; img.src = fallback; } else art.hidden = true;
   };
-  img.style.objectPosition = focusPos(c.id);
-  img.src = `assets/cards-gpt/${c.id}.webp?v=${ASSET_VERSION}`;
+  img.style.objectPosition = focusPos(focusId);
+  img.src = src;
 }
+const cardArtUrl = (id) => `assets/cards-gpt/${id}.webp?v=${ASSET_VERSION}`;
+const endArtUrl = (key) => `assets/endings-gpt/${key}.webp?v=${ASSET_VERSION}`;
+// Each card has a painted image at assets/cards-gpt/<id>.webp and a drawing at assets/cards/<id>.svg.
+function showCardArt(c) { setArt($('cardArt'), $('cardImg'), cardArtUrl(c.id), c.id, `assets/cards/${c.id}.svg?v=${ASSET_VERSION}`); }
 // Each ending has a painted image at assets/endings-gpt/<key>.webp; the slot hides if it fails to load.
-function showEndArt(key) {
-  const art = $('endArt'), img = $('endImg');
-  art.hidden = false; art.classList.remove('expanded'); art.setAttribute('aria-expanded', 'false');
-  img.onerror = () => { art.hidden = true; };
-  img.style.objectPosition = focusPos(key);
-  img.src = `assets/endings-gpt/${key}.webp?v=${ASSET_VERSION}`;
-}
+function showEndArt(key) { setArt($('endArt'), $('endImg'), endArtUrl(key), key, null); }
+function expandArt(id) { $(id).classList.add('expanded'); $(id).setAttribute('aria-expanded', 'true'); }
 for (const id of ['cardArt', 'endArt']) $(id).onclick = () => {
   const open = $(id).classList.toggle('expanded');
   $(id).setAttribute('aria-expanded', String(open));
 };
+// Warm the cache so the next card's picture is ready when Continue is pressed: once a game
+// starts, fetch the card images one at a time while the browser is idle (about 3.5 MB in
+// all), unless the visitor asked to save data or is on a 2G connection. The .pending gate in
+// setArt keeps the old picture off a new card even when a file isn't cached yet.
+const preloaded = new Map();
+function preloadImg(url) {
+  if (!preloaded.has(url)) {
+    const im = new Image();
+    preloaded.set(url, new Promise((done) => { im.onload = im.onerror = done; im.src = url; }));
+  }
+  return preloaded.get(url);
+}
+let preloadStarted = false;
+function preloadCardArt() {
+  const conn = navigator.connection;
+  if (preloadStarted || (conn && (conn.saveData || /2g$/.test(conn.effectiveType || '')))) return;
+  preloadStarted = true;
+  const idle = window.requestIdleCallback || ((f) => setTimeout(f, 200));
+  const ids = E.CARDS.map((c) => c.id);
+  const next = () => { const id = ids.shift(); if (id) idle(() => preloadImg(cardArtUrl(id)).then(next), { timeout: 3000 }); };
+  setTimeout(next, 1500);
+}
 function showCard(c) {
   game.history.push({ s: structuredClone(game.s), L: { ...game.L }, used: new Set(game.used), card: c });
   game.card = c; game.phase = 'choose';
@@ -1268,7 +1307,7 @@ function showCard(c) {
   document.body.classList.add('deciding');
   $('cardTag').textContent = `${game.s.year} · ${c.tag}`;
   $('cardTitle').textContent = c.title;
-  showCardArt(c);
+  showCardArt(c); preloadCardArt();
   $('cardText').textContent = c.text;
   $('cardDyn').textContent = c.dynamic ? c.dynamic(game.s, game.L) : '';
   $('roll').classList.remove('on');
@@ -1343,6 +1382,8 @@ function rollYear() {
   $('choices').style.display = 'none';
   const roll = $('roll'); roll.classList.add('on');
   $('card').classList.add('resolved');
+  // The result view always shows the whole picture, open at the top of the card.
+  expandArt('cardArt');
   // The same 16 dice step() will draw this year (same seeded stream), so each needle sits
   // exactly where its die landed. Bars show the real risk from this game's hidden world.
   const rngPeek = yearRng(2), dice = Array.from({ length: 16 }, () => rngPeek());
@@ -1392,7 +1433,7 @@ function rollYear() {
     const verdict = res.event
       ? `<span style="color:${M.OUTCOMES[res.event].color}">${M.OUTCOMES[res.event].title}</span>${how}`
       : `<span style="color:var(--good)">${year} passes without catastrophe.</span>${s.dealCollapsed === year ? '<div class="youchose" style="color:var(--bad)">The US–China deal collapsed this year. The race is back on.</div>' : ''}`;
-    if (res.event) { vis.outcome = res.event; vis.outT = 0; }
+    if (res.event) { vis.outcome = res.event; vis.outT = 0; preloadImg(endArtUrl(res.event)); }
     game.phase = res.event ? 'ended' : 'result';
     renderTimeline(); renderHistory();
     $('verdict').innerHTML = `${verdict}<div class="youchose">You chose: ${game.lastChoice}</div>${yearChanges(game.before, s)}
@@ -1430,7 +1471,8 @@ function showEnding() {
   const s = game.s, o = M.OUTCOMES[s.outcome];
   const good = ['flourish', 'pause'].includes(s.outcome);
   $('endKicker').textContent = `${s.year} · ${good ? 'You made it' : s.outcome === 'muddle' ? 'Unresolved' : s.outcome === 'benevolent' ? 'Out of our hands' : 'Catastrophe'}`;
-  showEndArt(s.outcome);
+  // The ending is the last result: like a year's result, it opens with the whole picture.
+  showEndArt(s.outcome); expandArt('endArt');
   $('endTitle').textContent = o.title;
   $('endTitle').style.color = o.color;
   $('endText').textContent = o.text;
