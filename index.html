@@ -1315,7 +1315,7 @@ function preloadCardArt() {
 // picture stays in the card's flow (desktop) it is not faded; its height animates with the
 // card's instead, so it opens or closes in place. Starting another change finishes this one
 // first. With reduced motion the content only fades and the size changes at once.
-const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const prefersReducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const MORPH_OUT = 140, MORPH_MS = 480, MORPH_EASE = 'cubic-bezier(.4, 0, .2, 1)';
 const morph = { anims: [], pending: null, timer: 0, seq: 0 };
 function finishMorph() {
@@ -1330,7 +1330,7 @@ function morphCard(change, fadeEls, artInFlowAfter) {
   finishMorph();
   const card = $('card'), art = $('cardArt');
   if (card.classList.contains('hidden') || !card.offsetHeight) { change(); return; }
-  const reduce = reduceMotion();
+  const reduce = prefersReducedMotion();
   const inFlow = !art.hidden && getComputedStyle(art).position !== 'absolute';
   const growArt = !reduce && inFlow && artInFlowAfter;
   fadeEls = fadeEls.filter((el) => !(growArt && el === art));
@@ -1472,7 +1472,7 @@ function rollYear() {
     return `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${p * 100}%"></div><div class="needle" id="nd${i}"></div></div>${differs ? `<span class="est"><span class="estl">expected </span><span class="ests">exp. </span>${pct(est)}</span>` : '<span class="est"></span>'}</div>`;
   }).join('') +
     `<div class="note">Each red bar is the real chance of that catastrophe this year, drawn to scale. The white needle is where the die landed: inside the red means it happened. "Expected" is your best guess without the secret facts: the average over every world you might be in. The real chance can differ because those facts, like how hard alignment really is, stay hidden${secretsOn ? '' : ' (Show secret facts reveals them)'}.</div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
-  const reduce = reduceMotion();
+  const reduce = prefersReducedMotion();
   let t0 = 0;
   const wiggle = () => {
     const el = reduce ? 1300 : performance.now() - t0;
