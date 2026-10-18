@@ -164,6 +164,10 @@
   /* The outcome headline is the main news of the result. */
   #card.resolved .vtext > span:first-child { display: block; font-size: 22px; line-height: 1.25; letter-spacing: -.01em; margin-bottom: 2px; }
   @media (max-width: 640px) { #card.resolved .vtext > span:first-child { font-size: 20px; } }
+  /* The outcome block is centred: headline, what you chose, and what changed. */
+  #card.resolved .vtext { text-align: center; }
+  #card.resolved .vtext .youchose { font-size: 14.5px; margin-top: 6px; }
+  #card.resolved .vtext .changes { justify-content: center; }
   #card.resolved .roll .next { width: auto; flex: 0 1 42%; max-width: 42%; align-self: center; margin: 0; padding: 14px 16px 14px 20px; }
   /* Continue: label on the left, a round arrow on the right that nudges forward on hover. */
   #card.resolved .roll .next { display: flex; align-items: center; justify-content: space-between; gap: 14px; text-align: left; border-radius: 14px;
@@ -415,11 +419,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261018133821"></script>
-<script src="events.js?v=20261018133821"></script>
-<script src="landmask.js?v=20261018133821"></script>
-<script src="presets.js?v=20261018133821"></script>
-<script src="trees.js?v=20261018133821"></script>
+<script src="model.js?v=20261018134146"></script>
+<script src="events.js?v=20261018134146"></script>
+<script src="landmask.js?v=20261018134146"></script>
+<script src="presets.js?v=20261018134146"></script>
+<script src="trees.js?v=20261018134146"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -728,7 +732,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261018133821';
+const ASSET_VERSION = '20261018134146';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
