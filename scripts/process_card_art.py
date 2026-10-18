@@ -57,7 +57,9 @@ for src, out in zip(srcs, outs):
     for png in sorted(src.glob("*.png")):
         im, t0, frac = trim_bands(Image.open(png).convert("RGB"))
         w, h = im.size
-        fy = min(max((FOCUS.get(png.stem, 0.5) - t0) / frac, 0), 1)  # focal height after trimming
+        # A president variant (<id>-newsom, <id>-aoc) is cropped like <id> and shares its ART_FOCUS.
+        base = png.stem.split("-")[0]
+        fy = min(max((FOCUS.get(base, 0.5) - t0) / frac, 0), 1)  # focal height after trimming
         cw, ch = w, round(w * 5 / 12)
         if ch > h:  # trimmed image is wider than 12:5: crop the sides instead
             cw, ch = round(h * 12 / 5), h
@@ -65,8 +67,10 @@ for src, out in zip(srcs, outs):
         top = min(max(round(fy * h - ch / 2), 0), h - ch)
         strip = im.crop((left, top, left + cw, top + ch)).resize((1200, 500), Image.LANCZOS)
         strip.save(out / f"{png.stem}.webp", "WEBP", quality=72, method=6)
-        positions[png.stem] = round((fy * h - top) / ch * 100)
-        print(png.stem, (out / f"{png.stem}.webp").stat().st_size // 1024, "KB", f"focus {positions[png.stem]}%")
+        pos = round((fy * h - top) / ch * 100)
+        if base == png.stem:
+            positions[base] = pos
+        print(png.stem, (out / f"{png.stem}.webp").stat().st_size // 1024, "KB", f"focus {pos}%")
 
 # Keep ids that were processed earlier but not in this run.
 html = root / "index.html"

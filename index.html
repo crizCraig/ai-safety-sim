@@ -1247,6 +1247,15 @@ const QUIET = {
 };
 
 let game = null;
+// After 2028 the US president is JD Vance, Gavin Newsom or Alexandria Ocasio-Cortez, picked at
+// random for each campaign and kept through rewinds; the pictures that show the president
+// (PRESIDENT_ART) have a variant for each. ?president=vance|newsom|aoc forces one (for testing).
+const PRESIDENTS = ['vance', 'newsom', 'aoc'];
+const PRESIDENT_ART = new Set(['sabotage', 'deal', 'threshold', 'pause']);
+// Read once at load: the campaign clears the address bar's query.
+const FORCED_PRESIDENT = (() => { try { return new URLSearchParams(location.search).get('president'); } catch (e) { return null; } })();
+const pickPresident = () => (PRESIDENTS.includes(FORCED_PRESIDENT) ? FORCED_PRESIDENT
+  : PRESIDENTS[Math.floor(Math.random() * PRESIDENTS.length)]);
 // Each game has a seed, and each year's dice come from (seed, year). Rewinding
 // to change a decision keeps the same luck, so you see what the choice changed.
 const yearRng = (salt) => M.mulberry32((game.seed + game.s.year * 7919 + salt) | 0);
@@ -1254,7 +1263,7 @@ const yearRng = (salt) => M.mulberry32((game.seed + game.s.year * 7919 + salt) |
 function newGame() {
   const seed = (Math.random() * 2 ** 31) | 0;
   game = { seed, s: M.initialState(M.sampleWorld(M.defaultAssumptions(), M.mulberry32(seed))), L: M.defaultLevers(),
-    used: new Set(), decisions: [], history: [], phase: 'choose', card: null };
+    used: new Set(), decisions: [], history: [], phase: 'choose', card: null, president: pickPresident() };
   vis.outcome = null; vis.outT = 0;
   syncTarget(game.s, game.L);
   Object.assign(vis, target);
@@ -1301,8 +1310,10 @@ function setArt(art, img, src, focusId, fallback) {
   img.style.objectPosition = focusPos(focusId);
   img.src = src;
 }
-const cardArtUrl = (id) => `assets/cards-gpt/${id}.webp?v=${ASSET_VERSION}`;
-const endArtUrl = (key) => `assets/endings-gpt/${key}.webp?v=${ASSET_VERSION}`;
+// The file for a picture: <id>-<president> for the ones that show a president other than Vance.
+const artFile = (id) => (PRESIDENT_ART.has(id) && game?.president && game.president !== 'vance' ? `${id}-${game.president}` : id);
+const cardArtUrl = (id) => `assets/cards-gpt/${artFile(id)}.webp?v=${ASSET_VERSION}`;
+const endArtUrl = (key) => `assets/endings-gpt/${artFile(key)}.webp?v=${ASSET_VERSION}`;
 // Each card has a painted image at assets/cards-gpt/<id>.webp and a drawing at assets/cards/<id>.svg.
 function showCardArt(c) { setArt($('cardArt'), $('cardImg'), cardArtUrl(c.id), c.id, `assets/cards/${c.id}.svg?v=${ASSET_VERSION}`); }
 // Each ending has a painted image at assets/endings-gpt/<key>.webp; the slot hides if it fails to load.
