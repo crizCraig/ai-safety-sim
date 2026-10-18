@@ -166,7 +166,7 @@
   @media (max-width: 640px) { #card.resolved .vtext > span:first-child { font-size: 20px; } }
   /* The outcome block is centred: headline, what you chose, and what changed. */
   #card.resolved .vtext { text-align: center; }
-  #card.resolved .vtext .youchose { font-size: 14.5px; margin-top: 6px; }
+  #card.resolved .vtext .youchose { font-size: 14.5px; margin-top: 6px; color: var(--text); opacity: .88; }
   #card.resolved .vtext .changes { justify-content: center; }
   #card.resolved .roll .next { width: auto; flex: 0 1 42%; max-width: 42%; align-self: center; margin: 0; padding: 14px 16px 14px 20px; }
   /* Continue: label on the left, a round arrow on the right that nudges forward on hover. */
@@ -419,11 +419,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261018134146"></script>
-<script src="events.js?v=20261018134146"></script>
-<script src="landmask.js?v=20261018134146"></script>
-<script src="presets.js?v=20261018134146"></script>
-<script src="trees.js?v=20261018134146"></script>
+<script src="model.js?v=20261018134912"></script>
+<script src="events.js?v=20261018134912"></script>
+<script src="landmask.js?v=20261018134912"></script>
+<script src="presets.js?v=20261018134912"></script>
+<script src="trees.js?v=20261018134912"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -732,7 +732,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261018134146';
+const ASSET_VERSION = '20261018134912';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
