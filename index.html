@@ -230,9 +230,9 @@
   .orow .odesc { grid-column: 1 / 4; font-size: 11.5px; line-height: 1.45; color: #c3cee0; margin-top: 2px; }
   .orow { display: grid; grid-template-columns: 12px 1fr 52px; gap: 8px; align-items: center; font-size: 12.5px; margin-bottom: 8px; }
   .orow .dot { width: 10px; height: 10px; border-radius: 50%; }
-  /* Catastrophes: a thin ring around the dot, like their end markers in the 3D view. */
-  .orow.cat .dot, .catring { box-shadow: 0 0 0 1.5px var(--panel-solid), 0 0 0 2.5px rgba(255,77,106,.6); }
-  .catring { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); margin: 0 2px 0 1px; vertical-align: 0; }
+  /* Catastrophes are marked with an X, like their end markers in the 3D view. */
+  .xmk { display: inline-grid; place-items: center; width: 10px; height: 10px; flex: none; vertical-align: -1px; }
+  .xmk svg { width: 10px; height: 10px; display: block; }
   .orow .bar { grid-column: 2 / 4; height: 6px; margin-top: -4px; }
   .orow .v { font-family: var(--mono); text-align: right; }
   .note { font-size: 11px; color: var(--muted); line-height: 1.45; }
@@ -240,7 +240,7 @@
 
   #catBig { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 3; pointer-events: none; text-align: center; text-shadow: 0 0 18px #03060d, 0 0 6px #03060d; }
   #catBig .cb-num { font-family: var(--mono); font-size: 52px; font-weight: 600; line-height: 1; transition: color .3s; }
-  #catBig .cb-lbl { font-size: 10.5px; color: var(--muted); opacity: 0.75; margin-top: 3px; letter-spacing: 0.14em; text-transform: uppercase; }
+  #catBig .cb-lbl { font-family: var(--mono); font-size: 13px; color: var(--text); opacity: 0.92; margin-bottom: 4px; letter-spacing: 0.06em; }
   .lever-note { margin: 2px 0 14px; font-size: 11px; line-height: 1.45; color: var(--muted); }
   #fanTip { position: fixed; z-index: 6; pointer-events: none; min-width: 200px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
   #fanTip .tip-year { font-family: var(--mono); font-size: 15px; font-weight: 600; margin-bottom: 4px; }
@@ -373,7 +373,7 @@
     body.mode-lab #right { order: 1; margin-top: calc(var(--graph-bottom, 50vh) + 12px); }
     #catBig { top: calc(var(--graph-top, 53px) + 8px); z-index: 5; pointer-events: auto; cursor: pointer; }
     #catBig .cb-num { font-size: 34px; }
-    #catBig .cb-lbl { font-size: 9.5px; }
+    #catBig .cb-lbl { font-size: 11.5px; margin-bottom: 2px; }
     body.mode-lab canvas#gl { z-index: 4; border-bottom: 1px solid var(--line); }
     body.mode-lab #left, body.mode-lab #right { position: relative; z-index: 1; top: auto; left: auto; right: auto; bottom: auto; }
     body.mode-lab #left { order: 2; }
@@ -425,11 +425,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261018152020"></script>
-<script src="events.js?v=20261018152020"></script>
-<script src="landmask.js?v=20261018152020"></script>
-<script src="presets.js?v=20261018152020"></script>
-<script src="trees.js?v=20261018152020"></script>
+<script src="model.js?v=20261018152456"></script>
+<script src="events.js?v=20261018152456"></script>
+<script src="landmask.js?v=20261018152456"></script>
+<script src="presets.js?v=20261018152456"></script>
+<script src="trees.js?v=20261018152456"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -495,7 +495,7 @@
     <button class="btn copybtn" id="copyPage">Copy for LLMs</button>
     <div class="note">Copies these settings, the formulas, the model's code and the results as one prompt. Paste it into Claude or another AI and ask it to poke holes in the assumptions.</div>
     <div class="divider"></div>
-    <p class="note">Each line in the 3D view is one simulated future, 2027 → its outcome. Height is frontier capability and depth is alignment. Each line ends at the state its future reached; a ringed dot marks a catastrophe (pandemic, loss of control, war or locked-in power) at the year it struck. Hover or tap a line to read its values.</p>
+    <p class="note">Each line in the 3D view is one simulated future, 2027 → its outcome. Height is frontier capability and depth is alignment. Each line ends at the state its future reached; an X marks a catastrophe (pandemic, loss of control, war or locked-in power) at the year it struck. Hover or tap a line to read its values.</p>
   </div>
 </div>
 
@@ -533,7 +533,7 @@
     <div class="btnrow"><button class="btn" data-close="copyFallback">Done</button></div>
   </div>
 </div>
-<div id="catBig" class="lab-only" aria-live="polite"><div class="cb-num" id="catNum"></div><div class="cb-lbl">catastrophe</div></div>
+<div id="catBig" class="lab-only" aria-live="polite"><div class="cb-lbl">p(doom)</div><div class="cb-num" id="catNum"></div></div>
 <div id="fanTip" class="lab-only" role="status" hidden></div>
 
 <!-- Intro -->
@@ -738,7 +738,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261018152020';
+const ASSET_VERSION = '20261018152456';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1005,10 +1005,12 @@ const fanY = (c) => c / 100 * 7;
 // Higher alignment recedes into the scene, away from the default camera.
 const fanZ = (a) => 6 - THREE.MathUtils.clamp(a, 0, 100) / 100 * 12;
 let fanAnim = 0;
-const RING_TEX = (() => {
+// Catastrophes end in an X, in the 3D view and in the outcome list.
+const XSVG = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+const X_TEX = (() => {
   const c = document.createElement('canvas'); c.width = c.height = 64;
-  const x = c.getContext('2d'); x.strokeStyle = '#fff'; x.lineWidth = 5;
-  x.beginPath(); x.arc(32, 32, 26, 0, Math.PI * 2); x.stroke();
+  const x = c.getContext('2d'); x.strokeStyle = '#fff'; x.lineWidth = 9; x.lineCap = 'round';
+  x.beginPath(); x.moveTo(12, 12); x.lineTo(52, 52); x.moveTo(52, 12); x.lineTo(12, 52); x.stroke();
   return new THREE.CanvasTexture(c);
 })();
 function buildFan(paths) {
@@ -1031,16 +1033,12 @@ function buildFan(paths) {
     line.userData.marks = p.points.map((q, i) => ({ q, v: pts[i] }));
     g.setDrawRange(0, 0);
     fanLines.add(line);
-    // Every line ends at the state it actually reached. Catastrophes get a
-    // larger dot with a ring, so they stand out without bending the axes.
+    // Every line ends at the state it actually reached: a dot, or an X for a catastrophe.
     const catastrophe = M.CATASTROPHES.includes(p.outcome);
-    const end = new THREE.Mesh(new THREE.SphereGeometry(catastrophe ? 0.14 : 0.08, 10, 8), new THREE.MeshBasicMaterial({ color: col }));
-    if (catastrophe) {
-      const ring = new THREE.Sprite(new THREE.SpriteMaterial({ map: RING_TEX, color: col, transparent: true, depthWrite: false }));
-      ring.scale.setScalar(0.42);
-      ring.material.opacity = 0.85;
-      end.add(ring);
-    }
+    const end = catastrophe
+      ? new THREE.Sprite(new THREE.SpriteMaterial({ map: X_TEX, color: col, transparent: true, depthWrite: false }))
+      : new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), new THREE.MeshBasicMaterial({ color: col }));
+    if (catastrophe) end.scale.setScalar(0.34);
     end.position.copy(pts[pts.length - 1]); end.visible = false;
     line.add(end); line.userData.end = end;
   }
@@ -1894,7 +1892,7 @@ function runLab() {
   const cat = M.CATASTROPHES.reduce((a, k) => a + mc.counts[k], 0) / mc.n;
   $('catNum').textContent = pct(cat, cat < 0.1 ? 1 : 0);
   $('catNum').style.color = cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)';
-  $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, cat < 0.1 ? 1 : 0)}</b> of futures (outcomes with a <span class="catring"></span> ring) · outcome reached after ${mc.meanYears.toFixed(1)} years on average (${avgDate(mc.meanYears)}) · click an outcome to isolate it`;
+  $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, cat < 0.1 ? 1 : 0)}</b> of futures (outcomes marked <span class="xmk" style="color:var(--muted)">${XSVG}</span>) · outcome reached after ${mc.meanYears.toFixed(1)} years on average (${avgDate(mc.meanYears)}) · click an outcome to isolate it`;
   buildFan(mc.paths);
   applyFocus();
 }
@@ -1903,7 +1901,7 @@ function renderOutcomeRows(mc) {
   const order = Object.keys(M.OUTCOMES).sort((a, b) => mc.counts[b] - mc.counts[a]);
   $('outcomes').innerHTML = order.map((k) => {
     const p = mc.counts[k] / mc.n, o = M.OUTCOMES[k], open = labFocus === k, cat = M.CATASTROPHES.includes(k);
-    return `<button class="orow${open ? ' open' : ''}${cat ? ' cat' : ''}" data-outcome="${k}" aria-expanded="${open}"><span class="dot" style="background:${o.color}"></span><span>${o.title}</span><span class="v">${pct(p)}</span><span class="bar"><i style="width:${p * 100}%;background:${o.color}"></i></span>${open ? `<span class="odesc">${o.text}</span>` : ''}</button>`;
+    return `<button class="orow${open ? ' open' : ''}${cat ? ' cat' : ''}" data-outcome="${k}" aria-expanded="${open}">${cat ? `<span class="xmk" style="color:${o.color}" aria-label="catastrophe">${XSVG}</span>` : `<span class="dot" style="background:${o.color}"></span>`}<span>${o.title}</span><span class="v">${pct(p)}</span><span class="bar"><i style="width:${p * 100}%;background:${o.color}"></i></span>${open ? `<span class="odesc">${o.text}</span>` : ''}</button>`;
   }).join('');
 }
 
@@ -2262,9 +2260,9 @@ const TOURS = {
   lab: [
     ['#presets', 'Try a plan', 'Each button sets the policies below to a plan, including the plans from the AI 2040 forecast. Click one to see how 2,000 simulated futures turn out.'],
     ['#sliders', 'Or set your own policy', 'Drag any slider. The results update right away.'],
-    ['#catBig', 'The headline number', 'The share of simulated futures that end in catastrophe.'],
+    ['#catBig', 'The headline number', 'p(doom): the share of simulated futures that end in catastrophe.'],
     ['#outcomes', 'How the futures end', 'Click an outcome to see only those futures in the 3D view, and to read what it means.'],
-    ['#gl', 'Each path is one future', 'Watch them draw: each path runs from 2027 to where that future ends. Height is how powerful AI gets and depth is how far alignment has come; a ringed dot marks a catastrophe. Drag to rotate, zoom with scroll or a pinch, and hover a path for details.'],
+    ['#gl', 'Each path is one future', 'Watch them draw: each path runs from 2027 to where that future ends. Height is how powerful AI gets and depth is how far alignment has come; an X marks a catastrophe. Drag to rotate, zoom with scroll or a pinch, and hover a path for details.'],
     ['.tabs', 'Play it yourself', 'Switch to the Campaign to make the decisions one year at a time.'],
   ],
 };
