@@ -7,6 +7,9 @@ about 90 KB each). Each strip is centred on the image's focal point (FOCUS, the 
 a fraction of the raw image), and the focal point's position inside the strip is written to
 the ART_FOCUS line in index.html, so the thin header slice (object-position) shows it too.
 Blank letterbox bands that the model sometimes adds are trimmed first.
+The images that show the US president (SPLIT_IDS) are used only as split Vance | Democrat
+versions (<id>-vance-newsom, <id>-vance-aoc, in /tmp/claude-501/split/raw/{cards,endings}), so
+their single-president files are skipped.
 """
 import json
 import re
@@ -27,10 +30,10 @@ FOCUS = {
     "posture": 0.40, "openweights": 0.22, "neuralink": 0.28, "export": 0.37, "whistle": 0.42,
     "iaea": 0.45, "internal": 0.42, "publish": 0.42, "sleeper": 0.40, "nearmiss": 0.28,
     "hotline": 0.36, "automate": 0.45, "jobs": 0.50, "neurohack": 0.40, "taiwan": 0.45,
-    "sabotage": 0.24, "deal": 0.30, "gap": 0.40, "covert": 0.45, "collapse": 0.40,
-    "fund": 0.47, "cern": 0.45, "agents": 0.45, "threshold": 0.45,
+    "sabotage": 0.27, "deal": 0.30, "gap": 0.40, "covert": 0.45, "collapse": 0.40,
+    "fund": 0.47, "cern": 0.45, "agents": 0.45, "threshold": 0.46,
     # endings
-    "flourish": 0.45, "pause": 0.33, "muddle": 0.55, "benevolent": 0.50,
+    "flourish": 0.45, "pause": 0.40, "muddle": 0.55, "benevolent": 0.50,
     "lockin": 0.66, "war": 0.45, "bio": 0.32, "misalign": 0.50,
 }
 
@@ -51,13 +54,16 @@ def trim_bands(im):
     return im.crop((0, top, w, bot)), top / h, (bot - top) / h
 
 
+SPLIT_IDS = {"sabotage", "deal", "threshold", "pause"}
 positions = {}
 for src, out in zip(srcs, outs):
     out.mkdir(parents=True, exist_ok=True)
     for png in sorted(src.glob("*.png")):
+        if png.stem.split("-")[0] in SPLIT_IDS and "-vance-" not in png.stem:
+            continue
         im, t0, frac = trim_bands(Image.open(png).convert("RGB"))
         w, h = im.size
-        # A president variant (<id>-newsom, <id>-aoc) is cropped like <id> and shares its ART_FOCUS.
+        # A split president image (<id>-vance-newsom, <id>-vance-aoc) is cropped by <id>'s FOCUS and sets its ART_FOCUS.
         base = png.stem.split("-")[0]
         fy = min(max((FOCUS.get(base, 0.5) - t0) / frac, 0), 1)  # focal height after trimming
         cw, ch = w, round(w * 5 / 12)
@@ -68,7 +74,7 @@ for src, out in zip(srcs, outs):
         strip = im.crop((left, top, left + cw, top + ch)).resize((1200, 500), Image.LANCZOS)
         strip.save(out / f"{png.stem}.webp", "WEBP", quality=72, method=6)
         pos = round((fy * h - top) / ch * 100)
-        if base == png.stem:
+        if base == png.stem or base not in positions:
             positions[base] = pos
         print(png.stem, (out / f"{png.stem}.webp").stat().st_size // 1024, "KB", f"focus {pos}%")
 

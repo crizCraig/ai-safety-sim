@@ -8,8 +8,10 @@ described by role instead of by name.
 Usage: python3 scripts/gen_card_art.py [card_or_ending_id ... | endings]
 With CARD_ART_REDRAW_FROM=<dir> (holding cards/<id>.png and endings/<key>.png), each image is
 redrawn from that earlier version in the current style, keeping its composition.
-With CARD_ART_PRESIDENT=newsom|aoc, makes <id>-<key>.png variants of the images that show the
-post-2028 president (sabotage, deal, threshold, pause) with only the president swapped.
+With CARD_ART_SPLIT=newsom|aoc, redraws the images that show the post-2028 president (sabotage,
+deal, threshold, pause) as <id>-vance-<key>.png: split down the middle, JD Vance on the left and
+the Democrat on the right in the same moment. (CARD_ART_PRESIDENT=newsom|aoc made the older
+single-president variants, no longer used in the game.)
 Several reference photos per call need openai>=1.99.
 """
 import base64
@@ -280,6 +282,55 @@ def swap_prompt(card_id, key):
     return p, [base / f"{card_id}.png", *paths]
 
 
+# Split images: with CARD_ART_SPLIT=newsom or aoc, each image that shows the post-2028 US
+# president is redrawn as <id>-vance-<key>.png, one continuous scene split down the middle: JD
+# Vance (Republican) as president on the left, the Democrat on the right, in the same moment.
+# The current pencil image (CARD_ART_REDRAW_FROM, or /tmp/claude-501/pencil) is the style and
+# setting reference.
+SPLIT_SCENE = {
+    "sabotage": ("listening thoughtfully with a serious, closed-lipped expression, seated at a briefing table in"
+                 " a warmly lit Pentagon briefing room while US generals and civilian advisers lay out satellite"
+                 " photos of a Chinese data center, a chip under a magnifier and a laptop of code",
+                 []),
+    "deal": ("shaking hands with Xi Jinping over a signing table in a grand Geneva hall, with US and Chinese"
+             " flags, applauding delegations and inspectors with sensor equipment beside crates of AI chips",
+             ["Xi Jinping"]),
+    "threshold": ("seated behind the desk in the Oval Office at dawn, receiving a report from Dario Amodei, who"
+                  " stands beside the desk holding an open folder, a vast data center glowing through the"
+                  " window and a map of China on the wall",
+                  ["Dario Amodei"]),
+    "pause": ("standing side by side with Xi Jinping at the United Nations in New York, both smiling, with"
+              " international inspectors in blue jackets and scientists from many nations around them and a"
+              " calm data center at sunrise through the window",
+              ["Xi Jinping"]),
+}
+SPLIT = ("Draw a new image as {pencil}. Use image 1 only as the reference for the drawing style, the setting"
+         " and the mood. The image is one continuous scene split down the exact middle into two equal halves,"
+         " separated by a soft, faint hand-drawn vertical pencil line, with the room and background flowing"
+         " across both halves. The two halves show the same moment with two different US presidents. Left"
+         " half: JD Vance as the US president, {scene}. Right half: {name} as the US president, {scene}."
+         " Mirror the action so each half is a complete version of the moment. Both presidents are equally"
+         " prominent, drawn at the same size, both faces fully visible at the same height near the vertical"
+         " middle of the frame, each president's face near the inner side of their half, toward the centre"
+         " line, but not cut by it. Respectful, neutral, dignified likenesses of everyone. No text anywhere:"
+         " no lettering, words, numbers, labels, captions, names or party logos.")
+
+
+def split_prompt(card_id, key):
+    name = PRESIDENTS[key]
+    base = Path(REDRAW_FROM or "/tmp/claude-501/pencil") / ("endings" if card_id in ENDINGS else "cards")
+    scene, others = SPLIT_SCENE[card_id]
+    p, files = SPLIT.format(pencil=PENCIL, scene=scene, name=name), [base / f"{card_id}.png"]
+    for who in ["JD Vance", name, *others]:
+        paths, looks = REFS[who]
+        nums = ", ".join(str(len(files) + i + 1) for i in range(len(paths)))
+        p += (f" Reference photo{'s' if len(paths) > 1 else ''} {nums} show{'' if len(paths) > 1 else 's'} {who}"
+              f" ({looks}); make {who}'s face match closely and clearly recognizable"
+              + (" in both halves" if who in others else "") + ".")
+        files += paths
+    return p, files
+
+
 def prompt(card_id, by_role=False):
     kicker, title, text, people, roles = ALL[card_id]
     who = roles if (by_role and roles) else people
@@ -303,14 +354,15 @@ def prompt(card_id, by_role=False):
     return p, files
 
 
-def generate(card_id, client, president=None):
-    stem = f"{card_id}-{president}" if president else card_id
+def generate(card_id, client, president=None, split=None):
+    stem = f"{card_id}-vance-{split}" if split else f"{card_id}-{president}" if president else card_id
     path = (OUT_END if card_id in ENDINGS else OUT) / f"{stem}.png"
     path.parent.mkdir(parents=True, exist_ok=True)
     notes = []
-    for by_role in ((False,) if president else (False, True)):
+    for by_role in ((False,) if president or split else (False, True)):
         try:
-            text, refs = swap_prompt(card_id, president) if president else prompt(card_id, by_role)
+            text, refs = (split_prompt(card_id, split) if split else swap_prompt(card_id, president) if president
+                          else prompt(card_id, by_role))
             if refs:
                 # Several reference images need openai>=1.99 (older SDKs send only one).
                 # The extra fields go through extra_body so older type stubs don't reject them.
@@ -340,10 +392,13 @@ if __name__ == "__main__":
     president = os.environ.get("CARD_ART_PRESIDENT")  # newsom or aoc: president variants
     if president and president not in PRESIDENTS:
         sys.exit(f"CARD_ART_PRESIDENT must be one of {', '.join(PRESIDENTS)}")
-    ids = sys.argv[1:] or (list(PRESIDENT_SPOT) if president else list(CARDS))  # "endings": the eight endings
+    split = os.environ.get("CARD_ART_SPLIT")  # newsom or aoc: Vance | Democrat split images
+    if split and split not in PRESIDENTS:
+        sys.exit(f"CARD_ART_SPLIT must be one of {', '.join(PRESIDENTS)}")
+    ids = sys.argv[1:] or (list(PRESIDENT_SPOT) if president or split else list(CARDS))  # "endings": the eight endings
     if ids == ["endings"]:
         ids = list(ENDINGS)
     client = OpenAI(timeout=600)  # reads OPENAI_API_KEY from the environment loaded above
     with cf.ThreadPoolExecutor(max_workers=6) as ex:
-        for cid, status, size in ex.map(lambda i: generate(i, client, president), ids):
+        for cid, status, size in ex.map(lambda i: generate(i, client, president, split), ids):
             print(cid, status, size, flush=True)
