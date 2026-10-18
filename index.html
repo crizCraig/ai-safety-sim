@@ -161,11 +161,24 @@
   #card.resolved .roll.on .verdict { flex: 1 1 auto; display: flex; gap: 20px; align-items: center; }
   /* Outcome on the left, Continue filling the right half. */
   #card.resolved .vtext { flex: 1 1 0; min-width: 0; }
-  #card.resolved .roll .next { width: auto; flex: 0 1 50%; max-width: 50%; align-self: stretch; margin: 0; padding: 14px 26px; }
+  /* The outcome headline is the main news of the result. */
+  #card.resolved .vtext > span:first-child { display: block; font-size: 22px; line-height: 1.25; letter-spacing: -.01em; margin-bottom: 2px; }
+  @media (max-width: 640px) { #card.resolved .vtext > span:first-child { font-size: 20px; } }
+  #card.resolved .roll .next { width: auto; flex: 0 1 42%; max-width: 42%; align-self: center; margin: 0; padding: 14px 16px 14px 20px; }
+  /* Continue: label on the left, a round arrow on the right that nudges forward on hover. */
+  #card.resolved .roll .next { display: flex; align-items: center; justify-content: space-between; gap: 14px; text-align: left; border-radius: 14px;
+    background: linear-gradient(90deg, rgba(127,227,255,.05), rgba(127,227,255,.13)); border-color: rgba(127,227,255,.4); }
+  .roll .next .nxl { display: grid; gap: 2px; font-size: 16px; }
+  .roll .next .nxl small { font: 500 10.5px/1.2 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); opacity: .85; }
+  .roll .next .nxa { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-size: 18px;
+    background: rgba(127,227,255,.16); border: 1px solid rgba(127,227,255,.45); transition: transform .2s ease, background .2s ease; }
+  .roll .next:hover .nxa, .roll .next:focus-visible .nxa { transform: translateX(3px); background: rgba(127,227,255,.26); }
   @media (max-width: 640px) {
     #card.resolved .roll.on .verdict { flex-direction: column; align-items: stretch; gap: 0; }
     #card.resolved .vtext { flex: none; min-width: 0; }
-    #card.resolved .roll .next { max-width: none; min-width: 0; flex: 1 1 auto; min-height: 52px; margin-top: 14px; font-size: 16px; }
+    /* Normal-height Continue pinned to the bottom of the space the choices had; the card keeps its size. */
+    #card.resolved .roll .next { max-width: none; min-width: 0; flex: none; align-self: stretch; margin-top: auto; padding: 12px 14px 12px 18px; }
+    #card.resolved .vtext { margin-bottom: 14px; }
   }
   .roll .next:hover { background: rgba(127,227,255,.12); }
   /* The button gets focus when the result appears: show it with a brighter border, not a second ring. */
@@ -1570,7 +1583,7 @@ function rollYear() {
       // The outcome sits on the left and Continue on the right on desktop; on phones Continue
       // grows to fill the space, so the card keeps the size it had while choosing.
       $('verdict').innerHTML = `<div class="vtext">${verdict}<div class="youchose">You chose: ${game.lastChoice}</div>${yearChanges(game.before, s)}</div>
-        <button class="btn next" id="nextBtn">${res.event ? 'See the ending →' : `Continue to ${s.year} →`}</button>`;
+        <button class="btn next" id="nextBtn"><span class="nxl"><small>${res.event ? 'The story ends' : 'Next year'}</small>${res.event ? 'See the ending' : `Continue to ${s.year}`}</span><span class="nxa" aria-hidden="true">→</span></button>`;
       const short = h0 - card.getBoundingClientRect().height;
       if (short > 1) roll.style.minHeight = (roll.getBoundingClientRect().height + short) + 'px';
       $('nextBtn').onclick = advance;
@@ -1623,6 +1636,9 @@ function showEnding() {
   $('endWorld').innerHTML = `<b>What you couldn't know until now</b>${secretList(s, game.L)}${SECRETS_NOTE}`;
   $('endMC').innerHTML = `<p class="mcline">If the whole decade had run under your <i>final</i> policy settings, 1,500 simulated futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
+  // Always open at the top (the outcome and its picture), whatever was scrolled before.
+  const toTop = () => { [$('ending'), ...$('ending').querySelectorAll('*')].forEach((el) => { if (el.scrollTop) el.scrollTop = 0; }); window.scrollTo(0, 0); };
+  toTop(); requestAnimationFrame(toTop);
 }
 
 function mcBar(mc) {
