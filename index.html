@@ -166,9 +166,14 @@
   @media (max-width: 640px) { #card.resolved .vtext > span:first-child { font-size: 20px; } }
   /* The outcome block is centred: headline, what you chose, and what changed. */
   #card.resolved .vtext { text-align: center; }
-  #card.resolved .vtext .youchose { font-size: 14.5px; margin-top: 6px; color: var(--text); opacity: .88; }
-  #card.resolved .vtext .changes { justify-content: center; }
-  #card.resolved .roll .next { width: auto; flex: 0 1 42%; max-width: 42%; align-self: center; margin: 0; padding: 14px 16px 14px 20px; }
+  /* The headline is centred; what you chose and what changed read left to right under it. */
+  #card.resolved .vtext .youchose { font-size: 14.5px; margin-top: 6px; color: var(--text); opacity: .88; text-align: left; }
+  #card.resolved .vtext .changes { justify-content: flex-start; }
+  /* Continue with "Change my choice" under it. */
+  #card.resolved .nxcol { flex: 0 1 42%; max-width: 42%; display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
+  #card .roll .rechoose { align-self: center; font: 400 12.5px/1.2 var(--sans); color: var(--muted); background: none; border: 0; padding: 2px 8px; margin: 0; cursor: pointer; }
+  #card .roll .rechoose:hover, #card .roll .rechoose:focus-visible { color: var(--text); }
+  #card.resolved .roll .next { width: 100%; margin: 0; padding: 14px 16px 14px 20px; }
   /* Continue: label on the left, a round arrow on the right that nudges forward on hover. */
   #card.resolved .roll .next { display: flex; align-items: center; justify-content: space-between; gap: 14px; text-align: left; border-radius: 14px;
     background: linear-gradient(90deg, rgba(127,227,255,.05), rgba(127,227,255,.13)); border-color: rgba(127,227,255,.4); }
@@ -181,7 +186,8 @@
     #card.resolved .roll.on .verdict { flex-direction: column; align-items: stretch; gap: 0; }
     #card.resolved .vtext { flex: none; min-width: 0; }
     /* Normal-height Continue pinned to the bottom of the space the choices had; the card keeps its size. */
-    #card.resolved .roll .next { max-width: none; min-width: 0; flex: none; align-self: stretch; margin-top: auto; padding: 12px 14px 12px 18px; }
+    #card.resolved .nxcol { max-width: none; flex: none; margin-top: auto; gap: 4px; }
+    #card.resolved .roll .next { padding: 12px 14px 12px 18px; }
     #card.resolved .vtext { margin-bottom: 14px; }
   }
   .roll .next:hover { background: rgba(127,227,255,.12); }
@@ -419,11 +425,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261018134912"></script>
-<script src="events.js?v=20261018134912"></script>
-<script src="landmask.js?v=20261018134912"></script>
-<script src="presets.js?v=20261018134912"></script>
-<script src="trees.js?v=20261018134912"></script>
+<script src="model.js?v=20261018135254"></script>
+<script src="events.js?v=20261018135254"></script>
+<script src="landmask.js?v=20261018135254"></script>
+<script src="presets.js?v=20261018135254"></script>
+<script src="trees.js?v=20261018135254"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -732,7 +738,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261018134912';
+const ASSET_VERSION = '20261018135254';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1593,7 +1599,8 @@ function rollYear() {
       // The outcome sits on the left and Continue on the right on desktop; on phones Continue
       // grows to fill the space, so the card keeps the size it had while choosing.
       $('verdict').innerHTML = `<div class="vtext">${verdict}<div class="youchose">You chose: ${game.lastChoice}</div>${yearChanges(game.before, s)}</div>
-        <button class="btn next" id="nextBtn"><span class="nxl"><small>${res.event ? 'The story ends' : 'Next year'}</small>${res.event ? 'See the ending' : `Continue to ${s.year}`}</span><span class="nxa" aria-hidden="true">→</span></button>`;
+        <div class="nxcol"><button class="btn next" id="nextBtn"><span class="nxl"><small>${res.event ? 'The story ends' : 'Next year'}</small>${res.event ? 'See the ending' : `Continue to ${s.year}`}</span><span class="nxa" aria-hidden="true">→</span></button>
+        <button class="linkbtn rechoose" data-rewind="${game.decisions.length - 1}">↺ Change my choice</button></div>`;
       const short = h0 - card.getBoundingClientRect().height;
       if (short > 1) roll.style.minHeight = (roll.getBoundingClientRect().height + short) + 'px';
       $('nextBtn').onclick = advance;
