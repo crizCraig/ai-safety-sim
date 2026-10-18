@@ -159,12 +159,13 @@
     background: rgba(127,227,255,.07); border-color: rgba(127,227,255,.75); box-shadow: none; }
   /* Result layout: the outcome fills the space the choices had, so the card doesn't resize. */
   #card.resolved .roll.on .verdict { flex: 1 1 auto; display: flex; gap: 20px; align-items: center; }
-  #card.resolved .vtext { flex: 1 1 auto; min-width: 0; }
-  #card.resolved .roll .next { width: auto; flex: none; margin: 0; padding: 14px 26px; }
+  /* Outcome on the left, Continue filling the right half. */
+  #card.resolved .vtext { flex: 1 1 0; min-width: 0; }
+  #card.resolved .roll .next { width: auto; flex: 0 1 50%; max-width: 50%; align-self: stretch; margin: 0; padding: 14px 26px; }
   @media (max-width: 640px) {
     #card.resolved .roll.on .verdict { flex-direction: column; align-items: stretch; gap: 0; }
-    #card.resolved .vtext { flex: none; }
-    #card.resolved .roll .next { flex: 1 1 auto; min-height: 52px; margin-top: 14px; font-size: 16px; }
+    #card.resolved .vtext { flex: none; min-width: 0; }
+    #card.resolved .roll .next { max-width: none; min-width: 0; flex: 1 1 auto; min-height: 52px; margin-top: 14px; font-size: 16px; }
   }
   .roll .next:hover { background: rgba(127,227,255,.12); }
   /* The button gets focus when the result appears: show it with a brighter border, not a second ring. */
@@ -397,11 +398,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261018125306"></script>
-<script src="events.js?v=20261018125306"></script>
-<script src="landmask.js?v=20261018125306"></script>
-<script src="presets.js?v=20261018125306"></script>
-<script src="trees.js?v=20261018125306"></script>
+<script src="model.js?v=20261018130232"></script>
+<script src="events.js?v=20261018130232"></script>
+<script src="landmask.js?v=20261018130232"></script>
+<script src="presets.js?v=20261018130232"></script>
+<script src="trees.js?v=20261018130232"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -710,7 +711,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261018125306';
+const ASSET_VERSION = '20261018130232';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
