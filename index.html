@@ -425,11 +425,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261018150803"></script>
-<script src="events.js?v=20261018150803"></script>
-<script src="landmask.js?v=20261018150803"></script>
-<script src="presets.js?v=20261018150803"></script>
-<script src="trees.js?v=20261018150803"></script>
+<script src="model.js?v=20261018152020"></script>
+<script src="events.js?v=20261018152020"></script>
+<script src="landmask.js?v=20261018152020"></script>
+<script src="presets.js?v=20261018152020"></script>
+<script src="trees.js?v=20261018152020"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -738,7 +738,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261018150803';
+const ASSET_VERSION = '20261018152020';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1580,8 +1580,8 @@ function rollYear() {
     const failed = ['misalign', 'benevolent'].includes(res.event);
     const how = res.stage === 'handoff'
       ? `<div class="youchose">${failed
-        ? 'You got through this year\'s risks, but then AI became superintelligent, smarter than people at everything. Its alignment wasn\'t good enough to keep it on humanity\'s side, so control was lost for good (last bar).'
-        : 'You got through this year\'s risks, and then AI became superintelligent, smarter than people at everything, with alignment good enough to keep it on humanity\'s side (last bar).'} The real chance this would go well was ${chance(qReal)}. Without the secret facts, your best guess was ${chance(qEst)}, the average over every world you might have been in${qEst > qReal ? ', including easier ones' : ', including harder ones'}.</div>`
+        ? 'You got through this year\'s risks, but then AI became superintelligent, smarter than people at everything. Its alignment wasn\'t good enough to keep it on humanity\'s side, so control was lost for good.'
+        : 'You got through this year\'s risks, and then AI became superintelligent, smarter than people at everything, with alignment good enough to keep it on humanity\'s side.'} The real chance this would go well was ${chance(qReal)}. Without the secret facts, your best guess was ${chance(qEst)}, the average over every world you might have been in${qEst > qReal ? ', including easier ones' : ', including harder ones'}.</div>`
       : res.stage === 'end' ? '<div class="youchose">2040 arrives.</div>' : '';
     const verdict = res.event
       ? `<span style="color:${M.OUTCOMES[res.event].color}">${M.OUTCOMES[res.event].title}</span>${how}`
