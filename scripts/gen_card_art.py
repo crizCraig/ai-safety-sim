@@ -8,6 +8,8 @@ described by role instead of by name.
 Usage: python3 scripts/gen_card_art.py [card_or_ending_id ... | endings]
 With CARD_ART_REDRAW_FROM=<dir> (holding cards/<id>.png and endings/<key>.png), each image is
 redrawn from that earlier version in the current style, keeping its composition.
+With CARD_ART_PRESIDENT=newsom|aoc, makes <id>-<key>.png variants of the images that show the
+post-2028 president (sabotage, deal, threshold, pause) with only the president swapped.
 Several reference photos per call need openai>=1.99.
 """
 import base64
@@ -66,8 +68,16 @@ ROBOTS = (" If any robot appears, it must be a modern, present-day robot, like a
 # JD Vance: vance.jpg:
 #   https://commons.wikimedia.org/wiki/File:March_2026_Official_Vice_Presidential_Portrait_of_JD_Vance_(head-and-shoulders_cropped).jpg
 #   (official US government portrait, public domain)
+# Gavin Newsom: newsom.jpg, downscaled from
+#   https://commons.wikimedia.org/wiki/File:Governor_of_California_Gavin_Newsom,_2026_Official_Portrait_2_(cropped).jpg
+#   (official portrait, 2026-03-25, Office of the Governor of California; public domain)
+# Alexandria Ocasio-Cortez: aoc.jpg, downscaled from
+#   https://commons.wikimedia.org/wiki/File:Alexandria_Ocasio-Cortez_Official_Portrait_(cropped).jpg
+#   (official House portrait, 2018; public domain), and aoc25.jpg, a face crop of
+#   https://commons.wikimedia.org/wiki/File:Alexandria_Ocasio-Cortez_(54401274952).jpg
+#   (2025-03-20, Gage Skidmore, CC BY-SA 2.0)
 # The US president is Trump only on cards that can appear only in 2027-2028 (posture);
-# later cards show JD Vance.
+# later cards show JD Vance, with Newsom and AOC variants of the same images (see PRESIDENTS).
 REFS_DIR = Path(os.environ.get("CARD_ART_REFS", "/tmp/claude-501/refs"))
 REFS = {
     "Dario Amodei": ([REFS_DIR / "d25_face.jpg", REFS_DIR / "d25_bust.jpg", REFS_DIR / "d25b_face.jpg"],
@@ -75,6 +85,10 @@ REFS = {
                      " thin dark-rimmed glasses, clean-shaven"),
     "JD Vance": ([REFS_DIR / "vance.jpg"],
                  "short dark side-parted hair, full dark beard, blue eyes"),
+    "Gavin Newsom": ([REFS_DIR / "newsom.jpg"],
+                     "tall and lean, slicked-back grey hair, clean-shaven, broad smile"),
+    "Alexandria Ocasio-Cortez": ([REFS_DIR / "aoc.jpg", REFS_DIR / "aoc25.jpg"],
+                                 "long straight dark brown hair, dark eyebrows, brown eyes, warm smile"),
     # xi.jpg: https://commons.wikimedia.org/wiki/File:Xi_Jinping_(2023-04-06).jpg (CC BY 4.0)
     "Xi Jinping": ([REFS_DIR / "xi.jpg"], "swept-back black hair, broad face"),
     # hassabis.jpg: https://commons.wikimedia.org/wiki/File:Demis_Hassabis,_2024_Nobel_Prize_Laureate_in_Chemistry.jpg
@@ -234,6 +248,37 @@ OUT_END = Path(os.environ.get("CARD_ART_OUT_END", "/tmp/claude-501/gptart2-endin
 
 REDRAW_FROM = os.environ.get("CARD_ART_REDRAW_FROM")
 
+# President variants: with CARD_ART_PRESIDENT=newsom or aoc, the images that show the post-2028
+# US president (JD Vance) are edited from the current pencil image (CARD_ART_REDRAW_FROM, or
+# /tmp/claude-501/pencil) into <id>-<key>.png, swapping only the president.
+PRESIDENTS = {"newsom": "Gavin Newsom", "aoc": "Alexandria Ocasio-Cortez"}
+# Where JD Vance is in each image, so the edit replaces the right person.
+PRESIDENT_SPOT = {
+    "sabotage": "the bearded man in a dark suit seated at the centre of the briefing table, chin resting on his hand",
+    "deal": "the bearded man in a dark suit on the left, shaking hands with Xi Jinping",
+    "threshold": "the bearded man in a dark suit seated behind the desk on the left, hands clasped",
+    "pause": "the bearded man in a dark suit on the left, standing beside Xi Jinping",
+}
+# The president's expression, matching the scene (the default suits the warm ones).
+PRESIDENT_MOOD = {"sabotage": "a serious, thoughtful listening expression, lips closed, not smiling"}
+SWAP = ("Edit image 1, {pencil}. Replace only {spot} (JD Vance, the US president) with {name}, the US"
+        " president, in the same place, pose, scale and framing, wearing a dark suit, with {mood}. Keep everything else exactly as it is: every other person (their faces,"
+        " poses and clothes), the room, the objects, the composition, the lighting and the pencil style."
+        " Draw {name} in the same pencil style as everyone else, a respectful, neutral likeness."
+        " No text in the image.")
+
+
+def swap_prompt(card_id, key):
+    name = PRESIDENTS[key]
+    base = Path(REDRAW_FROM or "/tmp/claude-501/pencil") / ("endings" if card_id in ENDINGS else "cards")
+    paths, looks = REFS[name]
+    nums = ", ".join(str(i + 2) for i in range(len(paths)))
+    mood = PRESIDENT_MOOD.get(card_id, "a calm, dignified, friendly expression")
+    p = (SWAP.format(pencil=PENCIL, spot=PRESIDENT_SPOT[card_id], name=name, mood=mood)
+         + f" Reference photo{'s' if len(paths) > 1 else ''} {nums} show{'' if len(paths) > 1 else 's'} {name}"
+           f" ({looks}); make {name}'s face match closely and clearly recognizable.")
+    return p, [base / f"{card_id}.png", *paths]
+
 
 def prompt(card_id, by_role=False):
     kicker, title, text, people, roles = ALL[card_id]
@@ -258,13 +303,14 @@ def prompt(card_id, by_role=False):
     return p, files
 
 
-def generate(card_id, client):
-    path = (OUT_END if card_id in ENDINGS else OUT) / f"{card_id}.png"
+def generate(card_id, client, president=None):
+    stem = f"{card_id}-{president}" if president else card_id
+    path = (OUT_END if card_id in ENDINGS else OUT) / f"{stem}.png"
     path.parent.mkdir(parents=True, exist_ok=True)
     notes = []
-    for by_role in (False, True):
+    for by_role in ((False,) if president else (False, True)):
         try:
-            text, refs = prompt(card_id, by_role)
+            text, refs = swap_prompt(card_id, president) if president else prompt(card_id, by_role)
             if refs:
                 # Several reference images need openai>=1.99 (older SDKs send only one).
                 # The extra fields go through extra_body so older type stubs don't reject them.
@@ -281,20 +327,23 @@ def generate(card_id, client):
                 r = client.images.generate(model=MODEL, prompt=text, size=SIZE, quality="high", n=1)
             path.write_bytes(base64.b64decode(r.data[0].b64_json))
             notes.append("ok" + (" (roles)" if by_role else ""))
-            return card_id, "; ".join(notes), path.stat().st_size
+            return stem, "; ".join(notes), path.stat().st_size
         except Exception as e:  # never print the message: it can contain part of a key
             # The error's param and code are field names, safe to print.
             err = (getattr(e, "body", None) or {}) if isinstance(getattr(e, "body", None), dict) else {}
             notes.append(f"{type(e).__name__} status={getattr(e, 'status_code', '?')}"
                          f" param={err.get('param')} code={err.get('code')}")
-    return card_id, "; ".join(notes), 0
+    return stem, "; ".join(notes), 0
 
 
 if __name__ == "__main__":
-    ids = sys.argv[1:] or list(CARDS)  # pass "endings" for the eight ending images
+    president = os.environ.get("CARD_ART_PRESIDENT")  # newsom or aoc: president variants
+    if president and president not in PRESIDENTS:
+        sys.exit(f"CARD_ART_PRESIDENT must be one of {', '.join(PRESIDENTS)}")
+    ids = sys.argv[1:] or (list(PRESIDENT_SPOT) if president else list(CARDS))  # "endings": the eight endings
     if ids == ["endings"]:
         ids = list(ENDINGS)
     client = OpenAI(timeout=600)  # reads OPENAI_API_KEY from the environment loaded above
     with cf.ThreadPoolExecutor(max_workers=6) as ex:
-        for cid, status, size in ex.map(lambda i: generate(i, client), ids):
+        for cid, status, size in ex.map(lambda i: generate(i, client, president), ids):
             print(cid, status, size, flush=True)
