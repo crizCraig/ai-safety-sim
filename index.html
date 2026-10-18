@@ -425,11 +425,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261018135254"></script>
-<script src="events.js?v=20261018135254"></script>
-<script src="landmask.js?v=20261018135254"></script>
-<script src="presets.js?v=20261018135254"></script>
-<script src="trees.js?v=20261018135254"></script>
+<script src="model.js?v=20261018150803"></script>
+<script src="events.js?v=20261018150803"></script>
+<script src="landmask.js?v=20261018150803"></script>
+<script src="presets.js?v=20261018150803"></script>
+<script src="trees.js?v=20261018150803"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -738,7 +738,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261018135254';
+const ASSET_VERSION = '20261018150803';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1649,7 +1649,7 @@ function showEnding() {
   const d = worldDifficulty(w, game.seed), mine = worldCatastrophe(w, game.L, 400, game.seed + 1);
   const harder = Math.round(d.rank * 100);
   $('endDiff').innerHTML = `<b>How hard your world was: <span class="diff-tier" style="color:${d.tier[1]}">${d.tier[0]}</span></b>
-    <p style="margin:6px 0 0">Even a strong plan (AI 2040's Plan A) would end in catastrophe <b>${pct(d.here, 0)}</b> of the time in this world, against ${pct(d.typical, 0)} in a typical one. It was harder than ${harder}% of worlds${harder >= 50 ? '' : ` and easier than ${100 - harder}%`}. Your final policy, run from 2027 in this same world, would end in catastrophe <b>${pct(mine, 0)}</b> of the time.</p>`;
+    <p style="margin:6px 0 0">${d.here > d.typical ? 'Even a strong plan' : 'A strong plan'} (AI 2040's Plan A) would end in catastrophe <b>${pct(d.here, 0)}</b> of the time in this world, against ${pct(d.typical, 0)} in a typical one. It was harder than ${harder}% of worlds${harder >= 50 ? '' : ` and easier than ${100 - harder}%`}. Your final policy, run from 2027 in this same world, would end in catastrophe <b>${pct(mine, 0)}</b> of the time.</p>`;
   $('endWorld').innerHTML = `<b>What you couldn't know until now</b>${secretList(s, game.L)}${SECRETS_NOTE}`;
   $('endMC').innerHTML = `<p class="mcline">If the whole decade had run under your <i>final</i> policy settings, 1,500 simulated futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
