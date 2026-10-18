@@ -425,11 +425,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261018164658"></script>
-<script src="events.js?v=20261018164658"></script>
-<script src="landmask.js?v=20261018164658"></script>
-<script src="presets.js?v=20261018164658"></script>
-<script src="trees.js?v=20261018164658"></script>
+<script src="model.js?v=20261018164954"></script>
+<script src="events.js?v=20261018164954"></script>
+<script src="landmask.js?v=20261018164954"></script>
+<script src="presets.js?v=20261018164954"></script>
+<script src="trees.js?v=20261018164954"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -533,7 +533,7 @@
     <div class="btnrow"><button class="btn" data-close="copyFallback">Done</button></div>
   </div>
 </div>
-<div id="catBig" class="lab-only" aria-live="polite"><div class="cb-lbl">p(doom)</div><div class="cb-num" id="catNum"></div></div>
+<div id="catBig" class="lab-only" aria-live="polite"><div class="cb-lbl">catastrophe</div><div class="cb-num" id="catNum"></div></div>
 <div id="fanTip" class="lab-only" role="status" hidden></div>
 
 <!-- Intro -->
@@ -738,7 +738,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261018164658';
+const ASSET_VERSION = '20261018164954';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -2261,7 +2261,7 @@ const TOURS = {
   lab: [
     ['#presets', 'Try a plan', 'Each button sets the policies below to a plan, including the plans from the AI 2040 forecast. Click one to see how 2,000 simulated futures turn out.'],
     ['#sliders', 'Or set your own policy', 'Drag any slider. The results update right away.'],
-    ['#catBig', 'The headline number', 'p(doom): the share of simulated futures that end in catastrophe.'],
+    ['#catBig', 'The headline number', 'The share of simulated futures that end in catastrophe.'],
     ['#outcomes', 'How the futures end', 'Click an outcome to see only those futures in the 3D view, and to read what it means.'],
     ['#gl', 'Each path is one future', 'Watch them draw: each path runs from 2027 to where that future ends. Height is how powerful AI gets and depth is how far alignment has come; an X marks a catastrophe. Drag to rotate, zoom with scroll or a pinch, and hover a path for details.'],
     ['.tabs', 'Play it yourself', 'Switch to the Campaign to make the decisions one year at a time.'],
