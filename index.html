@@ -384,6 +384,9 @@
     #card > .cardart img { opacity: .2; filter: brightness(.8) sepia(.2);
       -webkit-mask-image: linear-gradient(to bottom, transparent, #000 40%);
       mask-image: linear-gradient(to bottom, transparent, #000 40%); }
+    /* A split picture (Vance | Democrat) would lose one president to the backdrop's centre
+       crop, so it is shown whole, as a strip in the backdrop's visible part. */
+    #card > .cardart img.split { object-fit: contain; object-position: 50% 55% !important; }
     /* Darker choice buttons over the picture keep their small grey text at the plain card's contrast. */
     #card:not(.resolved) .choice { background: rgba(8,13,26,.62); }
     /* Ending on phones: like the cards, the picture is a faint backdrop behind the top of the
@@ -394,6 +397,7 @@
     .cardart.endart img { opacity: .2; filter: brightness(.8) sepia(.2);
       -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent);
       mask-image: linear-gradient(to bottom, #000 45%, transparent); }
+    .cardart.endart img.split { object-fit: contain; object-position: 50% 0 !important; }
     #card h2 { font-size: 18px; }
     .modal .box { padding: 20px 18px; }
     .doc p, .doc li { font-size: 13.5px; }
@@ -411,11 +415,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261018130232"></script>
-<script src="events.js?v=20261018130232"></script>
-<script src="landmask.js?v=20261018130232"></script>
-<script src="presets.js?v=20261018130232"></script>
-<script src="trees.js?v=20261018130232"></script>
+<script src="model.js?v=20261018130930"></script>
+<script src="events.js?v=20261018130930"></script>
+<script src="landmask.js?v=20261018130930"></script>
+<script src="presets.js?v=20261018130930"></script>
+<script src="trees.js?v=20261018130930"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -724,7 +728,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261018130232';
+const ASSET_VERSION = '20261018130930';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1270,10 +1274,11 @@ const QUIET = {
 };
 
 let game = null;
-// After 2028 the US president is JD Vance, Gavin Newsom or Alexandria Ocasio-Cortez, picked at
-// random for each campaign and kept through rewinds; the pictures that show the president
-// (PRESIDENT_ART) have a variant for each. ?president=vance|newsom|aoc forces one (for testing).
-const PRESIDENTS = ['vance', 'newsom', 'aoc'];
+// The pictures that show the post-2028 US president (PRESIDENT_ART) are split down the middle:
+// Republican JD Vance on the left, a Democrat on the right in the same moment. The Democrat is
+// Gavin Newsom or Alexandria Ocasio-Cortez, picked at random for each campaign and kept through
+// rewinds. ?president=newsom|aoc forces one (for testing).
+const PRESIDENTS = ['newsom', 'aoc'];
 const PRESIDENT_ART = new Set(['sabotage', 'deal', 'threshold', 'pause']);
 // Read once at load: the campaign clears the address bar's query.
 const FORCED_PRESIDENT = (() => { try { return new URLSearchParams(location.search).get('president'); } catch (e) { return null; } })();
@@ -1317,7 +1322,7 @@ function rewind(i) {
 
 // Where each painted image's focal point (key face or subject) sits, as a % of its height,
 // so the thin header slice shows it. Written by scripts/process_card_art.py.
-const ART_FOCUS = {"posture":50,"openweights":35,"neuralink":45,"export":50,"whistle":50,"iaea":50,"internal":50,"publish":50,"sleeper":50,"nearmiss":45,"hotline":50,"automate":50,"jobs":50,"neurohack":50,"taiwan":50,"sabotage":38,"deal":48,"gap":50,"covert":50,"collapse":50,"fund":50,"cern":50,"agents":50,"threshold":50,"flourish":50,"pause":50,"muddle":50,"benevolent":50,"lockin":50,"war":50,"bio":50,"misalign":50};
+const ART_FOCUS = {"posture":50,"openweights":35,"neuralink":45,"export":50,"whistle":50,"iaea":50,"internal":50,"publish":50,"sleeper":50,"nearmiss":45,"hotline":50,"automate":50,"jobs":50,"neurohack":50,"taiwan":50,"sabotage":43,"deal":48,"gap":50,"covert":50,"collapse":50,"fund":50,"cern":50,"agents":50,"threshold":50,"flourish":50,"pause":50,"muddle":50,"benevolent":50,"lockin":50,"war":50,"bio":50,"misalign":50};
 const focusPos = (id) => `50% ${ART_FOCUS[id] ?? 50}%`;
 // Put a picture in a card-art slot without ever showing the previous one: the img stays
 // hidden (.pending) from the moment its src changes until the new file has loaded, then
@@ -1328,13 +1333,14 @@ function setArt(art, img, src, focusId, fallback) {
   img.classList.add('pending');
   img.onload = () => img.classList.remove('pending');
   img.onerror = () => {
-    if (fallback && img.src !== new URL(fallback, location.href).href) { img.style.objectPosition = ''; img.src = fallback; } else art.hidden = true;
+    if (fallback && img.src !== new URL(fallback, location.href).href) { img.style.objectPosition = ''; img.classList.remove('split'); img.src = fallback; } else art.hidden = true;
   };
   img.style.objectPosition = focusPos(focusId);
+  img.classList.toggle('split', PRESIDENT_ART.has(focusId));
   img.src = src;
 }
-// The file for a picture: <id>-<president> for the ones that show a president other than Vance.
-const artFile = (id) => (PRESIDENT_ART.has(id) && game?.president && game.president !== 'vance' ? `${id}-${game.president}` : id);
+// The file for a picture: <id>-vance-<democrat> for the split ones that show the president.
+const artFile = (id) => (PRESIDENT_ART.has(id) ? `${id}-vance-${game?.president || PRESIDENTS[0]}` : id);
 const cardArtUrl = (id) => `assets/cards-gpt/${artFile(id)}.webp?v=${ASSET_VERSION}`;
 const endArtUrl = (key) => `assets/endings-gpt/${artFile(key)}.webp?v=${ASSET_VERSION}`;
 // Each card has a painted image at assets/cards-gpt/<id>.webp and a drawing at assets/cards/<id>.svg.
