@@ -28,7 +28,7 @@ people without economic leverage or a say even when humans keep control of AI.
 
 ## Two modes
 
-- **Futures Lab**. Set ten policy levers and eight uncertain
+- **Futures Lab**. Set ten policy levers and nine uncertain
   assumptions (mean ± spread, as in the original), run 2,000 Monte Carlo futures,
   and see every trajectory as a 3D fan, colored by how it ends. Hover a line to
   read its values; click an outcome to read it and isolate its futures.

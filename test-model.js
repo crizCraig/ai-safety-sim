@@ -325,5 +325,29 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Current capability defaults to AI 2040\'s 44 / 37', M.initialState().capUS === 44 && M.initialState().capCN === 37);
 }
 
+// --- Codex cycle 14 fixes ---
+{
+  const PR = globalThis.SimPresets;
+  // C14-2: share links keep every preset's levers, and half-point campaign values, exactly.
+  const back = (v) => +String(M.leverPct(v)) / 100;
+  const bad = [];
+  for (const [n, L] of Object.entries(PR.PRESETS)) for (const k in M.LEVER_INFO) if (Math.abs(back(L[k]) - L[k]) > 1e-9) bad.push(`${n}.${k}`);
+  for (let v = 0; v <= 1.0001; v += 0.005) if (Math.abs(back(v) - v) > 1e-9) bad.push(v.toFixed(3));
+  check('Share links round-trip every preset lever and half-point value', !bad.length, bad.slice(0, 4).join(', ') || 'ok');
+  const D = PR.PRESETS['Plan D: Race to ASI'];
+  const a = M.summarize(D, M.defaultAssumptions(), 2000, 42), b = M.summarize(Object.fromEntries(Object.entries(D).map(([k, v]) => [k, back(v)])), M.defaultAssumptions(), 2000, 42);
+  check('Plan D gives identical results after a share round-trip', JSON.stringify(a.counts) === JSON.stringify(b.counts));
+  // C14-3: tied reference scores count as about the same, not as harder.
+  const xs = [...Array(44).fill(0.05), ...Array(26).fill(0.075), ...Array(130).fill(0.2)];
+  const r = M.rankAmong(xs, 0.075, 0.0125);
+  check('Ending difficulty: ties counted separately (22% / 13% / 65%)', Math.round(r.below * 100) === 22 && Math.round(r.same * 100) === 13 && Math.round(r.above * 100) === 65, JSON.stringify(r));
+  // C14-1: the searched promises name their assumption, and the page flags differing unknowns.
+  const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+  check('Safest mix / Under 2% promises say they assume the defaults', /under 2% under the default \(AI 2040\) assumptions/.test(PR.PRESET_INFO['Under 2% risk']) && /Under the default \(AI 2040\) assumptions, about 1%/.test(PR.PRESET_INFO['Safest mix']) && html.includes('Your hidden assumptions differ from the defaults'));
+  // C14-4: the reference and README document Current capability.
+  const readme = require('fs').readFileSync(__dirname + '/README.md', 'utf8');
+  check('Reference documents Current capability and README counts nine assumptions', html.includes('Current capability: the US bloc') && Object.keys(M.ASSUMPTION_INFO).length === 9 && readme.includes('nine uncertain'));
+}
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll checks passed');
 process.exit(failed ? 1 : 0);

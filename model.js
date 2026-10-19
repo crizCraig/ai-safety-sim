@@ -694,6 +694,16 @@
     };
   }
 
+  // Share of reference scores below, about equal to (within tol) and above x.
+  function rankAmong(xs, x, tol = 0) {
+    let below = 0, same = 0;
+    for (const v of xs) { if (Math.abs(v - x) <= tol) same++; else if (v < x) below++; }
+    const n = xs.length || 1;
+    return { below: below / n, same: same / n, above: (xs.length - below - same) / n };
+  }
+  // A lever value as a percentage for links: one decimal, no trailing zero (0.025 -> 2.5).
+  const leverPct = (v) => +(v * 100).toFixed(1);
+
   function mulberry32(a) {
     return function () {
       a |= 0; a = (a + 0x6D2B79F5) | 0;
@@ -708,6 +718,6 @@
     AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
-    risks, transitionOdds, lockinOdds, lockinBelief, CATASTROPHES, step, monteCarlo, summarize, mulberry32,
+    risks, transitionOdds, lockinOdds, lockinBelief, CATASTROPHES, step, monteCarlo, summarize, mulberry32, rankAmong, leverPct,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

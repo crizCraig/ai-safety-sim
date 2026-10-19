@@ -427,11 +427,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261018171842"></script>
-<script src="events.js?v=20261018171842"></script>
-<script src="landmask.js?v=20261018171842"></script>
-<script src="presets.js?v=20261018171842"></script>
-<script src="trees.js?v=20261018171842"></script>
+<script src="model.js?v=20261019120458"></script>
+<script src="events.js?v=20261019120458"></script>
+<script src="landmask.js?v=20261019120458"></script>
+<script src="presets.js?v=20261019120458"></script>
+<script src="trees.js?v=20261019120458"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -612,7 +612,7 @@
     <div class="tablewrap"><table>
       <thead><tr><th>Symbol</th><th>Meaning</th><th>2027</th></tr></thead>
       <tbody>
-        <tr><td><span class="mi">C_{\text{US}},\ C_{\text{CN}}</span></td><td>Frontier capability of the US bloc and China. <span class="mi">C = \max(C_{\text{US}}, C_{\text{CN}})</span>. Anchors: 70 Automated Coder, 78 top human expert, 90 dominates top experts, 100 superintelligence. <span class="src a2040">AI 2040</span></td><td>44, 37</td></tr>
+        <tr><td><span class="mi">C_{\text{US}},\ C_{\text{CN}}</span></td><td>Frontier capability of the US bloc and China. <span class="mi">C = \max(C_{\text{US}}, C_{\text{CN}})</span>. Anchors: 70 Automated Coder, 78 top human expert, 90 dominates top experts, 100 superintelligence. <span class="src a2040">AI 2040</span></td><td>44, 37 by default (set by Current capability, below)</td></tr>
         <tr><td><span class="mi">A</span></td><td>Alignment and control maturity</td><td>16</td></tr>
         <tr><td><span class="mi">O</span></td><td>Capability of the best open-weights model</td><td>32</td></tr>
         <tr><td><span class="mi">B</span></td><td>Biodefense: synthesis screening, surveillance, stockpiles</td><td>14</td></tr>
@@ -644,6 +644,7 @@
       <thead><tr><th>Symbol</th><th>Meaning</th><th>Distribution</th></tr></thead>
       <tbody>
         <tr><td><span class="mi">1/\delta</span></td><td>Ease of alignment: how hard the problem really is, which policy cannot change. The equations use its inverse, difficulty <span class="mi">\delta</span>. Above 3.3× ease (<span class="mi">\delta \le 0.3</span>, about 15% of worlds) fixing safety problems as they come up leads to long-term alignment without a general solution, and loss of control cannot happen</td><td><span class="mi">\log_{10}(1/\delta) \sim \mathcal{N}(0.10,\ 0.4)</span>, median 1.26× <span class="src a2040">AI 2040</span> (calibrated)</td></tr>
+        <tr><td><span class="mi">C_0</span></td><td>Current capability: the US bloc's capability at the start of 2027; China starts 7 points behind (<span class="mi">C_{\text{CN}} = C_0 - 7</span>). 44 matches AI 2040; the RSI 2027 scenario starts at 50</td><td><span class="mi">\mathcal{N}(44,\ 0)</span>, clipped to [30, 62]; fixed at its center unless given a spread</td></tr>
         <tr><td><span class="mi">\varphi</span></td><td>AI progress speed</td><td><span class="mi">\mathcal{N}(1,\ 0.3)</span>, clipped to [0.3, 2.5] <span class="src a2040">AI 2040</span></td></tr>
         <tr><td><span class="mi">W</span></td><td>If humans lose control of AI, whether it still cares for humanity (1) or not (0). If 1, AI rather than humanity steers the future, but kindly</td><td><span class="mi">W \sim \text{Bernoulli}(w),\ w \sim \mathcal{N}(0.10,\ 0.08)</span> <span class="src own">Assumption</span></td></tr>
         <tr><td><span class="mi">a_{\text{CN}}</span></td><td>China's own alignment work, relative to the US bloc's. Work on keeping AI loyal to the Party line does not count</td><td><span class="mi">\mathcal{N}(0.35,\ 0.17)</span>, clipped to [0, 1] <span class="src china">China experts</span></td></tr>
@@ -740,7 +741,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261018171842';
+const ASSET_VERSION = '20261019120458';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1647,9 +1648,8 @@ function showEnding() {
   const mc = M.monteCarlo(game.L, 1500, 0, Date.now() % 100000);
   const w = s.world;
   const d = worldDifficulty(w, game.seed), mine = worldCatastrophe(w, game.L, 400, game.seed + 1);
-  const harder = Math.round(d.rank * 100);
   $('endDiff').innerHTML = `<b>How hard your world was: <span class="diff-tier" style="color:${d.tier[1]}">${d.tier[0]}</span></b>
-    <p style="margin:6px 0 0">${d.here > d.typical ? 'Even a strong plan' : 'A strong plan'} (AI 2040's Plan A) would end in catastrophe <b>${pct(d.here, 0)}</b> of the time in this world, against ${pct(d.typical, 0)} in a typical one. It was harder than ${harder}% of worlds${harder >= 50 ? '' : ` and easier than ${100 - harder}%`}. Your final policy, run from 2027 in this same world, would end in catastrophe <b>${pct(mine, 0)}</b> of the time.</p>`;
+    <p style="margin:6px 0 0">${d.here > d.typical ? 'Even a strong plan' : 'A strong plan'} (AI 2040's Plan A) would end in catastrophe <b>${pct(d.here, 0)}</b> of the time in this world, against ${pct(d.typical, 0)} in a typical one. ${diffSentence(d)} Your final policy, run from 2027 in this same world, would end in catastrophe <b>${pct(mine, 0)}</b> of the time.</p>`;
   $('endWorld').innerHTML = `<b>What you couldn't know until now</b>${secretList(s, game.L)}${SECRETS_NOTE}`;
   $('endMC').innerHTML = `<p class="mcline">If the whole decade had run under your <i>final</i> policy settings, 1,500 simulated futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
@@ -1828,6 +1828,10 @@ function buildAssumptionUI() {
   syncAssumptions(true);
 }
 // Which unknowns scenario the current unknowns match exactly, if any.
+function defaultUnknowns() {
+  const D = M.defaultAssumptions();
+  return Object.keys(D).every((k) => Math.abs(labA[k].mean - D[k].mean) < 1e-9 && Math.abs(labA[k].sd - D[k].sd) < 1e-9);
+}
 function unknownPreset() {
   const D = M.defaultAssumptions();
   return Object.keys(UNKNOWN_PRESETS).find((n) => Object.keys(D).every((k) => {
@@ -1845,7 +1849,8 @@ function syncAssumptions(setInputs) {
     $('av-' + k).textContent = M.ASSUMPTION_INFO[k].fmt.startsWith('log')
       ? `${fmtA(k, labA[k].mean)} (${fmtA(k, labA[k].sd, true)} spread)`
       : `${fmtA(k, labA[k].mean)} ± ${fmtA(k, labA[k].sd)}`;
-  }
+  }  // Keep a selected preset's note in step (it qualifies its promise when the unknowns differ).
+  const on = $('presets').querySelector('[data-p].on'); if (on) selectPreset(on.dataset.p);
 }
 // Highlight a preset and show its description; null clears both.
 // Years after the start of 2027 as an approximate calendar date, e.g. 4.5 -> "around Jul 2031".
@@ -1861,7 +1866,12 @@ function selectPreset(p) {
     $('planNote').style.visibility = p ? '' : 'hidden';
     if (!p) return;
     $('planNote').hidden = false;
-    if (!info) { $('planNote').textContent = PRESET_INFO[p] || ''; return; }
+    if (!info) {
+      $('planNote').textContent = PRESET_INFO[p] || '';
+      // The searched promises hold under the default unknowns; say so when yours differ.
+      if (/^(Safest mix|Under 2% risk)$/.test(p) && !defaultUnknowns()) $('planNote').insertAdjacentHTML('beforeend', ' <span class="pn-src">Your hidden assumptions differ from the defaults, so the headline above, not this description, is the result for your settings.</span>');
+      return;
+    }
     $('planNote').innerHTML = `${info.text} <span class="pn-src">AI 2040's median estimates: ${info.align ? `p(alignment) ${info.align}, p(great future) ${info.great}` : 'not given'}. These sliders are a fixed-lever approximation; AI 2040's plans change over time.</span> <a href="${AI2040_PLANS}" target="_blank" rel="noopener">Read the comparison ↗</a>`;
 }
 
@@ -1953,7 +1963,7 @@ function scenarioText() {
   const unknowns = Object.entries(M.ASSUMPTION_INFO).map(([k, i]) =>
     `| ${i.label} | ${fmtA(k, labA[k].mean)} | ${fmtA(k, labA[k].sd, true)} | ${i.help} |`).join('\n');
   const s0 = M.initialState(Object.assign(M.meanWorld(), { capNow: labA.capNow.mean }));
-  const start = Object.entries(M.STAT_INFO).map(([k, i]) => `${i.label} ${s0[k]}`).join(', ');
+  const start = Object.entries(M.STAT_INFO).map(([k, i]) => `${i.label} ${s0[k]}`).join(', ') + (labA.capNow.sd > 0 ? ` (frontier capabilities shown at the Current capability center; each future draws its own, ± ${labA.capNow.sd})` : '');
   const outcomes = Object.entries(M.OUTCOMES).sort((a, b) => r.counts[b[0]] - r.counts[a[0]])
     .map(([k, o]) => `| ${o.title} | ${p1(r.counts[k] / r.n)} | ${o.text} |`).join('\n');
   fillModelNumbers();
@@ -2015,17 +2025,17 @@ function copyFallback(text) {
   $('copyFallback').classList.remove('hidden');
   $('copyText').focus(); $('copyText').select();
 }
-// Shareable link: levers as whole percentages in LEVER_INFO order, plus any unknowns changed
+// Shareable link: levers as percentages (up to one decimal) in LEVER_INFO order, plus any unknowns changed
 // from their defaults (key:mean:sd). Opening it loads those settings in the Futures Lab.
 function shareURL() {
   const base = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin + location.pathname : SITE.replace(/\/?$/, '/');
   return base + '?' + shareQuery();
 }
-// Labelled query: every lever as a whole percentage (race=70&safety=5...), plus any unknown
+// Labelled query: every lever as a percentage, to one decimal (race=70&safety=5...), plus any unknown
 // changed from its default as name=mean:sd. Labels keep links valid if the order changes.
 function shareQuery() {
   const D = M.defaultAssumptions();
-  const parts = Object.keys(M.LEVER_INFO).map((k) => `${k}=${Math.round(labL[k] * 100)}`);
+  const parts = Object.keys(M.LEVER_INFO).map((k) => `${k}=${M.leverPct(labL[k])}`);
   for (const k of Object.keys(M.ASSUMPTION_INFO)) if (labA[k].mean !== D[k].mean || labA[k].sd !== D[k].sd)
     parts.push(`${k}=${+(+labA[k].mean).toFixed(3)}:${+(+labA[k].sd).toFixed(3)}`);
   return parts.join('&');
@@ -2069,7 +2079,7 @@ function loadShared() {
     if (sd !== undefined && sd !== '' && Number.isFinite(+sd)) labA[k].sd = fit('as-' + k, +sd);
   }
   syncSliders(); syncAssumptions(true);
-  const match = Object.keys(PRESETS).find((p) => keys.every((k) => Math.round(PRESETS[p][k] * 100) === Math.round(labL[k] * 100)));
+  const match = Object.keys(PRESETS).find((p) => keys.every((k) => Math.abs(PRESETS[p][k] - labL[k]) < 1e-9));
   selectPreset(match || null);
   return true;
 }
@@ -2173,6 +2183,11 @@ function worldCatastrophe(world, L, n, seed) {
   return c / n;
 }
 const DIFF_REF = 'Plan A: Verified slowdown';
+// "It was harder than 22% of worlds, easier than 65% and about as hard as the other 13%."
+function diffSentence(d) {
+  const [b, a] = [Math.round(d.below * 100), Math.round(d.above * 100)], s = 100 - b - a;
+  return `It was harder than ${b}% of worlds, easier than ${a}%${s > 0 ? ` and about as hard as the other ${s}%` : ''}.`;
+}
 let diffBaseline = null;
 function worldDifficulty(world, seed) {
   const L = PRESETS[DIFF_REF];
@@ -2183,9 +2198,12 @@ function worldDifficulty(world, seed) {
     diffBaseline = { xs, median: xs[xs.length >> 1] }; // median: a few brutal worlds pull the mean up
   }
   const here = worldCatastrophe(world, L, 400, seed);
-  const rank = diffBaseline.xs.filter((x) => x < here).length / diffBaseline.xs.length;
+  // Reference worlds run 40 futures each, so their scores come in 2.5-point steps: within half
+  // a step counts as about the same, not as harder or easier.
+  const { below, same, above } = M.rankAmong(diffBaseline.xs, here, 0.0125);
+  const rank = below + same / 2;
   const tier = rank < 0.25 ? ['Easy', 'var(--good)'] : rank < 0.6 ? ['Average', 'var(--accent)'] : rank < 0.85 ? ['Hard', 'var(--warn)'] : ['Brutal', 'var(--bad)'];
-  return { here, rank, tier, typical: diffBaseline.median };
+  return { here, rank, below, same, above, tier, typical: diffBaseline.median };
 }
 // The Campaign opens on a one-line title screen over the globe; Play starts the game.
 function openSplash() { setMode('campaign'); document.body.classList.add('splash'); $('splash').classList.remove('hidden'); $('playBtn').focus({ preventScroll: true }); }
