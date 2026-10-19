@@ -238,11 +238,19 @@
   .note { font-size: 11px; color: var(--muted); line-height: 1.45; }
   #axisHelp { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; font-size: 12px; color: var(--muted); z-index: 4; text-align: center; max-width: calc(100vw - 640px); }
 
-  #catBig { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 3; pointer-events: none; text-align: center; text-shadow: 0 0 18px #03060d, 0 0 6px #03060d; }
+  #catBig { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 3; cursor: pointer; text-align: center; text-shadow: 0 0 18px #03060d, 0 0 6px #03060d; user-select: none; -webkit-tap-highlight-color: transparent; }
+  #catBig:focus-visible { outline: 1px solid var(--accent); outline-offset: 6px; border-radius: 6px; }
   #catBig .cb-num { font-family: var(--mono); font-size: 52px; font-weight: 600; line-height: 1; transition: color .3s; }
-  #catBig .cb-lbl { font-family: var(--mono); font-size: 13px; color: var(--text); opacity: 0.72; margin-bottom: 4px; letter-spacing: 0.06em; }
-  /* At desktop size the big number reads much brighter than on a phone, so it's dimmed further there. */
-  @media (min-width: 641px) { #catBig .cb-num { opacity: 0.72; } #catBig .cb-lbl { opacity: 0.6; } }
+  #catBig .cb-lbl { font-size: 10.5px; color: var(--muted); opacity: 0.75; margin-top: 3px; letter-spacing: 0.14em; text-transform: uppercase; }
+  /* The spread of the headline across possible worlds, opened by clicking the headline. */
+  #catDist { position: fixed; top: 140px; left: 50%; transform: translateX(-50%); width: min(440px, calc(100vw - 640px)); min-width: 300px; z-index: 5; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.45); }
+  #catDist h4 { margin: 0 0 2px; font-size: 13px; font-weight: 600; }
+  #catDist .cd-sub { font-size: 11.5px; color: var(--muted); margin-bottom: 6px; }
+  #catDist .cd-sub b { font-family: var(--mono); color: var(--text); font-weight: 600; white-space: nowrap; }
+  #catDist svg { display: block; width: 100%; height: auto; }
+  #catDist svg text { font-family: var(--mono); font-size: 10px; fill: var(--muted); }
+  #catDist .note { margin: 6px 0 0; }
+  #catDist.cd-inline { position: static; transform: none; width: auto; min-width: 0; margin: 0 0 12px; box-shadow: none; background: rgba(255,255,255,0.03); }
   .lever-note { margin: 2px 0 14px; font-size: 11px; line-height: 1.45; color: var(--muted); }
   #fanTip { position: fixed; z-index: 6; pointer-events: none; min-width: 200px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
   #fanTip .tip-year { font-family: var(--mono); font-size: 15px; font-weight: 600; margin-bottom: 4px; }
@@ -373,9 +381,9 @@
     body.mode-lab { overflow-y: auto; display: flex; flex-direction: column; }
     body.mode-lab .panel { position: static; width: auto; max-height: none; overflow: visible; flex-shrink: 0; margin: 0 16px 16px; }
     body.mode-lab #right { order: 1; margin-top: calc(var(--graph-bottom, 50vh) + 12px); }
-    #catBig { top: calc(var(--graph-top, 53px) + 8px); z-index: 5; pointer-events: auto; cursor: pointer; }
+    #catBig { top: calc(var(--graph-top, 53px) + 8px); z-index: 5; }
     #catBig .cb-num { font-size: 34px; }
-    #catBig .cb-lbl { font-size: 11.5px; margin-bottom: 2px; }
+    #catBig .cb-lbl { font-size: 9.5px; }
     body.mode-lab canvas#gl { z-index: 4; border-bottom: 1px solid var(--line); }
     body.mode-lab #left, body.mode-lab #right { position: relative; z-index: 1; top: auto; left: auto; right: auto; bottom: auto; }
     body.mode-lab #left { order: 2; }
@@ -427,11 +435,11 @@
 } }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/temml@0.10.24/dist/temml.min.js" defer></script>
-<script src="model.js?v=20261019120458"></script>
-<script src="events.js?v=20261019120458"></script>
-<script src="landmask.js?v=20261019120458"></script>
-<script src="presets.js?v=20261019120458"></script>
-<script src="trees.js?v=20261019120458"></script>
+<script src="model.js?v=20261019122304"></script>
+<script src="events.js?v=20261019122304"></script>
+<script src="landmask.js?v=20261019122304"></script>
+<script src="presets.js?v=20261019122304"></script>
+<script src="trees.js?v=20261019122304"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -535,7 +543,8 @@
     <div class="btnrow"><button class="btn" data-close="copyFallback">Done</button></div>
   </div>
 </div>
-<div id="catBig" class="lab-only" aria-live="polite"><div class="cb-lbl">catastrophe</div><div class="cb-num" id="catNum"></div></div>
+<div id="catBig" class="lab-only" role="button" tabindex="0" aria-expanded="false" aria-controls="catDist" aria-label="Catastrophe: show the spread across possible worlds"><div class="cb-num" id="catNum" aria-live="polite"></div><div class="cb-lbl">catastrophe</div></div>
+<div id="catDist" class="lab-only" role="region" aria-label="Catastrophe across possible worlds" hidden></div>
 <div id="fanTip" class="lab-only" role="status" hidden></div>
 
 <!-- Intro -->
@@ -741,7 +750,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261019120458';
+const ASSET_VERSION = '20261019122304';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1896,6 +1905,7 @@ function applyFocus() {
   }
 }
 
+let labCat = 0;
 function runLab() {
   syncURL();
   const mc = M.monteCarlo(labL, 2000, 260, 42, labA);
@@ -1903,8 +1913,9 @@ function runLab() {
   renderOutcomeRows(mc);
   const cat = M.CATASTROPHES.reduce((a, k) => a + mc.counts[k], 0) / mc.n;
   $('catNum').textContent = pct(cat, cat < 0.1 ? 1 : 0);
-  // Muted toward grey so the headline reads clearly without glaring.
-  $('catNum').style.color = `color-mix(in oklab, ${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'} 62%, #8f9bb0)`;
+  $('catNum').style.color = cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)';
+  labCat = cat;
+  if (distOpen) scheduleDist();
   $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, cat < 0.1 ? 1 : 0)}</b> of futures (outcomes marked <span class="xmk" style="color:var(--muted)">${XSVG}</span>) · outcome reached after ${mc.meanYears.toFixed(1)} years on average (${avgDate(mc.meanYears)}) · click an outcome to isolate it`;
   buildFan(mc.paths);
   applyFocus();
@@ -2182,6 +2193,74 @@ function worldCatastrophe(world, L, n, seed) {
   }
   return c / n;
 }
+// ---------- the headline's spread across possible worlds ----------
+// Each world is one draw of the hidden facts (labA); its catastrophe chance under the current
+// levers is estimated from DIST_RUNS futures. Fixed seeds, so the same settings give the same
+// chart. Computed in small slices so the page stays responsive.
+var distOpen = false, distTimer = 0, distJob = 0;
+const DIST_WORLDS = 200, DIST_RUNS = 80;
+function openDist() {
+  distOpen = true;
+  const el = $('catDist'), phone = phoneLayout();
+  el.classList.toggle('cd-inline', phone);
+  if (phone) $('labSub').previousElementSibling.before(el); // above the section's heading, keeping h3 + .sub together else document.body.appendChild(el);
+  el.hidden = false; $('catBig').setAttribute('aria-expanded', 'true');
+  computeDist();
+}
+function closeDist() {
+  distOpen = false; distJob++; clearTimeout(distTimer);
+  $('catDist').hidden = true; $('catBig').setAttribute('aria-expanded', 'false');
+}
+function scheduleDist() { clearTimeout(distTimer); distTimer = setTimeout(computeDist, 250); }
+function computeDist() {
+  const job = ++distJob, L = { ...labL }, A = JSON.parse(JSON.stringify(labA));
+  const rng = M.mulberry32(2024), xs = [], t0 = performance.now();
+  if (!$('catDist').innerHTML) $('catDist').innerHTML = '<div class="cd-sub">Working out the spread…</div>';
+  const slice = () => {
+    if (job !== distJob) return;
+    const end = performance.now() + 12;
+    while (xs.length < DIST_WORLDS && performance.now() < end) xs.push(worldCatastrophe(M.sampleWorld(A, rng), L, DIST_RUNS, 5000 + xs.length));
+    if (xs.length < DIST_WORLDS) { setTimeout(slice, 0); return; }
+    window.__distMs = Math.round(performance.now() - t0);
+    renderDist(xs);
+  };
+  slice();
+}
+function quantile(sorted, q) {
+  const i = (sorted.length - 1) * q, lo = Math.floor(i);
+  return sorted[lo] + (sorted[Math.min(lo + 1, sorted.length - 1)] - sorted[lo]) * (i - lo);
+}
+function renderDist(xs) {
+  const sorted = [...xs].sort((a, b) => a - b), lo = quantile(sorted, 0.05), hi = quantile(sorted, 0.95);
+  const bins = new Array(20).fill(0);
+  for (const x of xs) bins[Math.min(19, Math.floor(x * 20 + 1e-9))]++;
+  const W = 400, H = 150, l = 8, r = 392, top = 34, base = 128, X = (p) => l + (r - l) * p;
+  const maxB = Math.max(...bins), col = (p) => p > 0.4 ? 'var(--bad)' : p > 0.15 ? 'var(--warn)' : 'var(--good)';
+  const lbl = (p) => Math.round(p * 100);
+  let svg = `<rect x="${X(lo)}" y="${top - 6}" width="${Math.max(2, X(hi) - X(lo))}" height="${base - top + 6}" fill="var(--muted)" opacity="0.1"/>`;
+  bins.forEach((n, i) => {
+    if (!n) return;
+    const h = (base - top) * n / maxB;
+    svg += `<rect x="${X(i / 20) + 1}" y="${base - h}" width="${(r - l) / 20 - 2}" height="${h}" rx="1.5" fill="${col((i + 0.5) / 20)}" opacity="0.85"><title>${i * 5}–${i * 5 + 5}%: ${n} of ${xs.length} worlds</title></rect>`;
+  });
+  svg += `<line x1="${l}" x2="${r}" y1="${base + 0.5}" y2="${base + 0.5}" stroke="var(--line)"/>`;
+  for (const t of [0, 0.25, 0.5, 0.75, 1]) svg += `<text x="${X(t)}" y="${base + 14}" text-anchor="${t === 0 ? 'start' : t === 1 ? 'end' : 'middle'}">${t * 100}%</text>`;
+  // The 5th–95th percentile range, as a bracket along the top.
+  const bl = `most worlds: ${lbl(lo)}–${lbl(hi)}%`, bx = Math.min(r - bl.length * 3.1, Math.max(l + bl.length * 3.1, (X(lo) + X(hi)) / 2));
+  svg += `<path d="M${X(lo)} ${top - 2}V${top - 8}H${X(hi)}V${top - 2}" fill="none" stroke="var(--muted)" stroke-width="1"/>`;
+  svg += `<text x="${bx}" y="${top - 12}" text-anchor="middle">${bl}</text>`;
+  // The headline average.
+  const mx = X(labCat), right = mx < 300;
+  svg += `<line x1="${mx}" x2="${mx}" y1="${top}" y2="${base}" stroke="var(--text)" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+  // The label sits clear of the bar the average falls in, with a halo so it reads over others.
+  const mb = Math.min(19, Math.floor(labCat * 20)), tx = right ? Math.max(mx + 5, X((mb + 1) / 20) + 3) : Math.min(mx - 5, X(mb / 20) - 3);
+  svg += `<text x="${tx}" y="${top + 10}" text-anchor="${right ? 'start' : 'end'}" style="fill:var(--text);paint-order:stroke;stroke:var(--panel-solid);stroke-width:3px">average ${pct(labCat, labCat < 0.1 ? 1 : 0)}</text>`;
+  $('catDist').innerHTML = `<h4>Catastrophe across possible worlds</h4>
+    <div class="cd-sub">Headline <b>${pct(labCat, labCat < 0.1 ? 1 : 0)}</b> · most worlds (5th–95th percentile) <b>${lbl(lo)}–${lbl(hi)}%</b></div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Histogram of catastrophe chance across ${xs.length} possible worlds; most worlds between ${lbl(lo)} and ${lbl(hi)} percent">${svg}</svg>
+    <p class="note">Each bar counts possible worlds. A world is one draw of the hidden facts you set under Unknowns about the world (how hard alignment is, how fast AI moves, whether China slows…). The headline is the average over all of them. The world we're actually in could sit anywhere in this spread, which is lopsided, so it's shown as a range, not ±.</p>
+    <p class="note">Each world's chance is itself estimated from ${DIST_RUNS} runs, so a little of the spread is simulation noise.</p>`;
+}
 const DIFF_REF = 'Plan A: Verified slowdown';
 // "It was harder than 22% of worlds, easier than 65% and about as hard as the other 13%."
 function diffSentence(d) {
@@ -2253,7 +2332,7 @@ $('statsToggle').onclick = () => {
 document.querySelectorAll('[data-close]').forEach((b) => b.onclick = () => $(b.dataset.close).classList.add('hidden'));
 document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m && m.id !== 'splash') m.classList.add('hidden'); }));
 addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { $('modelInfo').classList.add('hidden'); if (tour) endTour(); }
+  if (e.key === 'Escape') { $('modelInfo').classList.add('hidden'); if (tour) endTour(); if (distOpen) closeDist(); }
   if (tour) return;
   if (mode === 'campaign' && game && ['result', 'ended'].includes(game.phase) && ['Enter', ' ', 'ArrowRight'].includes(e.key)) {
     e.preventDefault(); advance(); return;
@@ -2281,7 +2360,7 @@ const TOURS = {
   lab: [
     ['#presets', 'Try a plan', 'Each button sets the policies below to a plan, including the plans from the AI 2040 forecast. Click one to see how 2,000 simulated futures turn out.'],
     ['#sliders', 'Or set your own policy', 'Drag any slider. The results update right away.'],
-    ['#catBig', 'The headline number', 'The share of simulated futures that end in catastrophe.'],
+    ['#catBig', 'The headline number', 'The share of simulated futures that end in catastrophe. Tap it to see how that risk spreads across possible worlds.'],
     ['#outcomes', 'How the futures end', 'Click an outcome to see only those futures in the 3D view, and to read what it means.'],
     ['#gl', 'Each path is one future', 'Watch them draw: each path runs from 2027 to where that future ends. Height is how powerful AI gets and depth is how far alignment has come; an X marks a catastrophe. Drag to rotate, zoom with scroll or a pinch, and hover a path for details.'],
     ['.tabs', 'Play it yourself', 'Switch to the Campaign to make the decisions one year at a time.'],
@@ -2359,10 +2438,18 @@ function placeTour() {
 }
 // Keep the ring on its target if the page or a panel scrolls during the tour.
 addEventListener('scroll', () => { if (tour && tour.el) placeTour(); }, true);
-// Tapping the headline number jumps to the outcome breakdown (on phones, just below the graph).
+// Clicking the headline opens its spread across possible worlds: on desktop as a panel under
+// the headline, on phones at the top of the outcome list, which it scrolls to (just below the graph).
 $('catBig').addEventListener('click', () => {
-  const t = $('labSub'), cover = pinnedCover();
+  if (distOpen) { closeDist(); return; }
+  openDist();
+  const t = phoneLayout() ? $('catDist') : $('labSub'), cover = pinnedCover();
   if (cover) scrollBelow(t, cover); else t.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+});
+$('catBig').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('catBig').click(); } });
+document.addEventListener('click', (e) => {
+  // Clicks in the control panels keep it open, so it can follow the settings as they change.
+  if (distOpen && !e.target.closest('#catDist, #catBig, .panel')) closeDist();
 });
 function endTour() {
   if (tour) { try { localStorage.setItem('goagi-tour-' + tour.mode, '1'); } catch (e) {} }
