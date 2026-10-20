@@ -265,11 +265,12 @@
   #catBig .cb-num { font-family: var(--mono); font-size: 52px; font-weight: 600; line-height: 1; transition: color .3s; }
   #catBig .cb-lbl { font-size: 10.5px; color: var(--muted); opacity: 0.75; margin-top: 3px; letter-spacing: 0.14em; text-transform: uppercase; }
   /* The spread of the headline across possible worlds, opened by clicking the headline. */
-  #catDist { position: fixed; top: 140px; left: 50%; transform: translateX(-50%); width: min(440px, calc(100vw - 640px)); min-width: 300px; z-index: 5; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.45); }
+  #catDist { position: fixed; top: 140px; left: 50%; transform: translateX(-50%); width: min(440px, calc(100vw - 32px)); max-height: calc(100vh - 156px); overflow: hidden auto; overscroll-behavior: contain; z-index: 5; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.45); }
   #catDist h4 { margin: 0 0 2px; font-size: 13px; font-weight: 600; }
   #catDist .cd-sub { font-size: 11.5px; color: var(--muted); margin-bottom: 6px; }
   #catDist .cd-sub b { font-family: var(--mono); color: var(--text); font-weight: 600; white-space: nowrap; }
-  #catDist svg { display: block; width: 100%; height: auto; }
+  #catDist svg { display: block; width: 100%; max-width: 100%; height: auto; overflow: hidden; }
+  #catDist .note { overflow-wrap: anywhere; }
   #catDist svg text { font-family: var(--mono); font-size: 10px; fill: var(--muted); }
   #catDist .note { margin: 6px 0 0; }
   #catDist.cd-inline { position: static; transform: none; width: auto; min-width: 0; margin: 0 0 12px; box-shadow: none; background: rgba(255,255,255,0.03); }
@@ -450,11 +451,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261019175254"></script>
-<script src="events.js?v=20261019175254"></script>
-<script src="landmask.js?v=20261019175254"></script>
-<script src="presets.js?v=20261019175254"></script>
-<script src="trees.js?v=20261019175254"></script>
+<script src="model.js?v=20261019194906"></script>
+<script src="events.js?v=20261019194906"></script>
+<script src="landmask.js?v=20261019194906"></script>
+<script src="presets.js?v=20261019194906"></script>
+<script src="trees.js?v=20261019194906"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -765,7 +766,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261019175254';
+const ASSET_VERSION = '20261019194906';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -2272,13 +2273,13 @@ function renderDist(xs, kinds = []) {
   const bins = new Array(20).fill(0);
   for (const x of xs) bins[Math.min(19, Math.floor(x * 20 + 1e-9))]++;
   const W = 400, H = 150, l = 8, r = 392, top = 34, base = 128, X = (p) => l + (r - l) * p;
-  const maxB = Math.max(...bins), col = (p) => p > 0.4 ? 'var(--bad)' : p > 0.15 ? 'var(--warn)' : 'var(--good)';
+  const maxB = Math.max(...bins);
   const lbl = (p) => Math.round(p * 100);
   let svg = `<rect x="${X(lo)}" y="${top - 6}" width="${Math.max(2, X(hi) - X(lo))}" height="${base - top + 6}" fill="var(--muted)" opacity="0.1"/>`;
   bins.forEach((n, i) => {
     if (!n) return;
     const h = (base - top) * n / maxB;
-    svg += `<rect x="${X(i / 20) + 1}" y="${base - h}" width="${(r - l) / 20 - 2}" height="${h}" rx="1.5" fill="${col((i + 0.5) / 20)}" opacity="0.85"><title>${i * 5}–${i * 5 + 5}%: ${n} of ${xs.length} worlds</title></rect>`;
+    svg += `<rect x="${X(i / 20) + 1}" y="${base - h}" width="${(r - l) / 20 - 2}" height="${h}" rx="1.5" fill="var(--muted)" opacity="0.75"><title>${i * 5}–${i * 5 + 5}%: ${n} of ${xs.length} worlds</title></rect>`;
   });
   svg += `<line x1="${l}" x2="${r}" y1="${base + 0.5}" y2="${base + 0.5}" stroke="var(--line)"/>`;
   for (const t of [0, 0.25, 0.5, 0.75, 1]) svg += `<text x="${X(t)}" y="${base + 14}" text-anchor="${t === 0 ? 'start' : t === 1 ? 'end' : 'middle'}">${t * 100}%</text>`;
@@ -2513,6 +2514,8 @@ function endTour() {
 $('tourNext').onclick = () => { if (++tour.i >= tour.steps.length) endTour(); else showTourStep(); };
 $('tourSkip').onclick = endTour;
 addEventListener('resize', () => { if (tour) showTourStep(); });
+// Crossing the phone breakpoint while the spread is open moves it to the right place.
+addEventListener('resize', () => { if (distOpen && $('catDist').classList.contains('cd-inline') !== phoneLayout()) openDist(); });
 // Run each mode's tutorial once, the first time that mode is used.
 function maybeTour(m) {
   let seen = false;
