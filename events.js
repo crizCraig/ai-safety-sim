@@ -219,6 +219,16 @@
       ],
     },
     {
+      id: 'pledge', when: (s) => SimModel.maxCap(s) > 58, tag: 'Who owns AI?',
+      title: 'A Pledge to Share',
+      text: 'A leading AI lab pledges a growing share of its stock to a public-benefit fund that could one day pay people whose jobs AI replaces. Critics point out that the lab controls the fund, and nothing stops it from changing its mind once AI is worth trillions.',
+      choices: [
+        { label: 'Make pledges like this binding', note: 'A law requiring every frontier lab to put a rising share of its stock into an independent public fund. The labs push back.', lev: { fund: +0.3 }, st: { conc: -4, trust: +3, capUS: -1 } },
+        { label: 'Reward voluntary pledges with tax breaks', note: 'Cheap and popular, but the labs still decide.', lev: { fund: +0.08 }, st: { trust: +1 } },
+        { label: 'Leave it to the companies', note: 'A promise is a promise.', lev: {}, st: { trust: -2 } },
+      ],
+    },
+    {
       id: 'cern', when: (s) => SimModel.maxCap(s) > 70 && s.coord > 35, tag: 'Coordination',
       title: 'One International AI Project',
       text: 'Allies propose merging the world\'s top AI efforts into one international project that everyone inspects, and inviting China. Companies would hand over their best researchers and computers.',

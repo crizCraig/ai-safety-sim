@@ -31,7 +31,7 @@ FOCUS = {
     "iaea": 0.45, "internal": 0.42, "publish": 0.42, "sleeper": 0.40, "nearmiss": 0.28,
     "hotline": 0.36, "automate": 0.45, "jobs": 0.50, "neurohack": 0.40, "taiwan": 0.45,
     "sabotage": 0.27, "deal": 0.30, "gap": 0.40, "covert": 0.45, "collapse": 0.40,
-    "fund": 0.47, "cern": 0.45, "agents": 0.45, "threshold": 0.46,
+    "fund": 0.47, "pledge": 0.42, "cern": 0.45, "agents": 0.45, "threshold": 0.46,
     # endings
     "flourish": 0.45, "pause": 0.40, "muddle": 0.55, "benevolent": 0.50,
     "lockin": 0.66, "war": 0.45, "bio": 0.32, "misalign": 0.50,

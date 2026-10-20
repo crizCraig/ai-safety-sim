@@ -170,6 +170,26 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Most collapsed deals get the response card (> 50%)', collapses > 0 && shown / collapses > 0.5, `${shown} of ${collapses}`);
 }
 
+// --- The equity-pledge card: valid keys, and it comes up in ordinary play ---
+{
+  const c = E.CARDS.find((x) => x.id === 'pledge');
+  const okKeys = c && c.choices.length === 3 && c.choices.every((ch) => Object.keys(ch.lev || {}).every((k) => k in M.LEVER_INFO)
+    && Object.keys(ch.st || {}).every((k) => k in M.STAT_INFO || k === 'cnMult'));
+  check('Pledge card exists with valid lever and state keys', !!okKeys);
+  let games = 0, seen = 0;
+  for (let g = 0; g < 2000; g++) {
+    const rng = M.mulberry32(9000 + g), st = M.initialState(M.sampleWorld(A0, rng)), Lg = M.defaultLevers(), used = new Set();
+    let ev = null;
+    while (!ev) {
+      const k = E.pickCard(st, Lg, used, rng);
+      if (k) { used.add(k.id); E.applyChoice(st, Lg, k.choices[Math.floor(rng() * k.choices.length)]); }
+      ev = M.step(st, Lg, rng, true).event;
+    }
+    games++; if (used.has('pledge')) seen++;
+  }
+  check('Pledge card comes up in random-play campaigns as often as other mid-game cards (> 5% of games)', seen / games > 0.05, `${(100 * seen / games).toFixed(1)}% of ${games}`);
+}
+
 // --- Deal decline (AI 2040 Deal Decline): age-based dissolution plus a one-time impairment ---
 {
   // Analytic: each hazard runs 6% / 3.5% / 2% a year by deal age.
@@ -299,7 +319,17 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const ctl = (r) => r.counts.flourish + r.counts.lockin;
   const sq = M.summarize(M.defaultLevers(), A0, 20000, 11);
   const share = sq.counts.lockin / ctl(sq);
-  check('Status quo: Locked-In Power in about half of futures where humans keep control (40-55%)', share > 0.4 && share < 0.55, (100 * share).toFixed(1) + '%');
+  check('Status quo: Locked-In Power in about 70% of futures where humans keep control (65-75%)', share > 0.65 && share < 0.75, (100 * share).toFixed(1) + '%');
+  const sq7 = M.summarize(M.defaultLevers(), A0, 20000, 7), share7 = sq7.counts.lockin / ctl(sq7);
+  check('…and about 70% (±5) at 20,000 futures, seed 7', near(share7, 0.7, 0.05), (100 * share7).toFixed(1) + '%');
+  // Strong countermeasures (full fund, oversight and transparency, sure whistleblowers) still
+  // bring it to a few percent, even though the powerful rarely share unforced.
+  const Lcm = { race: 0.7, safety: 0.25, openness: 0.45, transparency: 1, biodef: 0.2, diplomacy: 0.25, bci: 0.1, oversight: 1, aggression: 0, fund: 1 };
+  const cm = M.summarize(Lcm, { ...A0, ease: { mean: 0.7, sd: 0 }, whistle: { mean: 1, sd: 0 } }, 20000, 7);
+  check('Strong countermeasures keep lock-in at or under 5% of controlled futures', cm.counts.lockin / ctl(cm) <= 0.05, (100 * cm.counts.lockin / ctl(cm)).toFixed(2) + '%');
+  // Sharing scales the pressure: a world where the powerful always share never locks in.
+  const atS = Object.assign(M.initialState(), { capUS: 100, trust: 70, acYear: 2033, year: 2034, conc: 50 });
+  check('Lock-in odds fall with sharing, to zero when the powerful always share', M.lockinOdds(atS, M.defaultLevers(), 0.25, 0) > M.lockinOdds(atS, M.defaultLevers(), 0.25, 0.5) && M.lockinOdds(atS, M.defaultLevers(), 0.25, 1) === 0);
   check('Locked-In Power counts as a catastrophe', Math.abs(sq.catastrophe - (sq.counts.bio + sq.counts.misalign + sq.counts.war + sq.counts.lockin) / sq.n) < 1e-12);
   const fund = M.summarize({ ...M.defaultLevers(), fund: 1 }, A0, 20000, 11);
   check('A full public wealth fund roughly halves it', fund.counts.lockin / ctl(fund) < 0.6 * share, `${(100 * share).toFixed(0)}% -> ${(100 * fund.counts.lockin / ctl(fund)).toFixed(0)}%`);
@@ -311,7 +341,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const pk = (st, o) => M.lockinOdds(st, { ...M.defaultLevers(), ...o });
   check('Diplomacy helps only with public pressure (trust above 50)', pk(at(70), { diplomacy: 1 }) < pk(at(70), { diplomacy: 0 }) && pk(at(40), { diplomacy: 1 }) === pk(at(40), { diplomacy: 0 }));
   // Survival: a successful handoff that locks in power is not survival.
-  const w = Object.assign({}, M.initialState().world, { safe: true, difficulty: 0.1, pBenevolent: 0, hazard: 0, hazardBelief: 0, whistle: 0.25, whistleNodes: [[1, 0.25]] });
+  const w = Object.assign({}, M.initialState().world, { safe: true, difficulty: 0.1, pBenevolent: 0, hazard: 0, hazardBelief: 0, whistle: 0.25, whistleNodes: [[1, 0.25]], share: 0.5, shareNodes: [[1, 0.5]] });
   const sh = Object.assign(M.initialState(w), { capUS: 99.9, capCN: 70, align: 100, conc: 55, trust: 60, coord: 100, acYear: 2029, year: 2034 });
   const Ls = { ...M.defaultLevers(), openness: 0 }, r0 = M.risks(sh, Ls);
   M.step(sh, Ls, () => 0.99, false);
@@ -319,15 +349,30 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('A sure handoff that may lock in power counts lock-in against survival', Math.abs(sh.survival - want) < 1e-9 && lk > 0.1, `survival ${sh.survival.toFixed(3)}, lock ${lk.toFixed(3)}`);
 }
 
-// --- Shown lock-in odds average the capped probability over whistleblowers (Codex C11-1) ---
+// --- Shown lock-in odds average the capped probability over whistleblowers and sharing (Codex C11-1) ---
 {
   const A = M.defaultAssumptions(), L = M.defaultLevers();
   const st = Object.assign(M.initialState(M.sampleWorld(A, M.mulberry32(2))), { capUS: 100, capCN: 60, conc: 65, trust: 60, acYear: 2028, year: 2036 });
   const shown = M.lockinBelief(st, L);
   const rng = M.mulberry32(17); let sum = 0; const n = 200000;
-  for (let i = 0; i < n; i++) sum += M.lockinOdds(st, L, M.sampleWorld(A, rng).whistle);
-  check('Shown lock-in odds = average over whistleblower odds with the cap binding (±0.2 pts)', Math.abs(shown - sum / n) < 0.002 && M.lockinOdds(st, L, M.sampleWorld(A, M.mulberry32(1)).whistleNodes.reduce((a, [w, v]) => a + w * v, 0)) > shown + 0.005,
+  for (let i = 0; i < n; i++) { const w = M.sampleWorld(A, rng); sum += M.lockinOdds(st, L, w.whistle, w.share); }
+  const mean = (nodes) => nodes.reduce((a, [w, v]) => a + w * v, 0);
+  check('Shown lock-in odds = average over whistleblower and sharing odds with the cap binding (±0.2 pts)', Math.abs(shown - sum / n) < 0.002 && M.lockinOdds(st, L, mean(st.world.whistleNodes), mean(st.world.shareNodes)) > shown + 0.005,
     `${(100 * shown).toFixed(2)}% vs ${(100 * sum / n).toFixed(2)}%`);
+  // Belief vs truth: the shown odds ignore this world's hidden draws; the dice use them.
+  const twin = (share, whistle) => Object.assign({}, st, { world: Object.assign({}, st.world, { share, whistle }) });
+  check('Shown lock-in odds do not depend on the hidden draws', M.lockinBelief(twin(0, 0), L) === M.lockinBelief(twin(1, 1), L) && M.lockinOdds(twin(0, 0), L) > M.lockinOdds(twin(0.9, 0), L));
+  // Determinism: the sharing draw is appended last, so a seed gives the same world and the
+  // earlier draws are unchanged from a world drawn without it.
+  const a = M.sampleWorld(A, M.mulberry32(42)), b = M.sampleWorld(A, M.mulberry32(42));
+  check('Worlds are deterministic per seed, sharing included', JSON.stringify(a) === JSON.stringify(b) && a.share >= 0 && a.share <= 1);
+  const c = M.summarize(L, A, 3000, 7), d = M.summarize(L, A, 3000, 7);
+  check('Futures are deterministic per seed', JSON.stringify(c) === JSON.stringify(d));
+  let pos = 0; const counting = M.mulberry32(42), probe = () => { pos++; return counting(); };
+  M.sampleWorld(A, probe); const used = pos;
+  const last = M.mulberry32(42); for (let i = 0; i < used - 2; i++) last();
+  const z = Math.sqrt(-2 * Math.log(1 - last())) * Math.cos(2 * Math.PI * last());
+  check('The sharing draw is the last draw of a world', Math.abs(a.share - Math.max(0, Math.min(1, A.share.mean + A.share.sd * z))) < 1e-12);
 }
 
 // --- China's own AI speeds up alignment in proportion to its own effort ---
@@ -382,7 +427,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Safest mix / Under 2% promises say they assume the defaults', /under 2% under the default \(AI 2040\) assumptions/.test(PR.PRESET_INFO['Under 2% risk']) && /Under the default \(AI 2040\) assumptions, about 1%/.test(PR.PRESET_INFO['Safest mix']) && html.includes('Your hidden assumptions differ from the defaults'));
   // C14-4: the reference and README document Current capability.
   const readme = require('fs').readFileSync(__dirname + '/README.md', 'utf8');
-  check('Reference documents Current capability and README counts nine assumptions', html.includes('Current capability: the US bloc') && Object.keys(M.ASSUMPTION_INFO).length === 9 && readme.includes('nine uncertain'));
+  check('Reference documents Current capability and README counts ten assumptions', html.includes('Current capability: the US bloc') && Object.keys(M.ASSUMPTION_INFO).length === 10 && readme.includes('ten uncertain'));
 }
 
 // --- Codex cycles 16 and 17 ---

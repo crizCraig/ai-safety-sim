@@ -61,6 +61,12 @@
       help: 'How wrong the measurements are: how far the alignment you see sits above the real level, because AIs can tell when they are being tested and behave better. Policy can change it: independent oversight, published research and safety work expose more of the gap, and secret internal AI hides more. This is why your estimate and the real risk can differ. Compare "Ease of alignment", which is how hard the problem itself is.' },
     whistle: { label: 'Whistleblower odds', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
       help: 'Chance that insiders expose or refuse to carry out a power grab by whoever controls AGI.' },
+    // Whether those who hold AI share its gains when nothing forces them. Arguments that they
+    // will not: once most people's work is no longer needed, they lose their leverage (Drago and
+    // Laine, The Intelligence Curse; Kulveit et al., Gradual Disempowerment), as in rentier
+    // states; voluntary pledges exist but nothing enforces them.
+    share: { label: 'The powerful share the gains', mean: 0.30, sd: 0.20, min: 0, max: 1, fmt: 'pct',
+      help: 'If a few control AI and nothing forces them, the chance they share its gains broadly anyway. Low means the powerful keep AI and its gains once most people\'s work is no longer needed. The wealth fund, oversight, transparency and whistleblowers can still force sharing.' },
     // Lognormal, set in log10 units. Calibrated to a separate factored Monte Carlo
     // decomposition: decade median 1.2e-4, 95% interval ~5e-7 to ~3e-2,
     // P(>1%) ≈ 5.5%, P(>10%) ≈ 0.7%. That is median 10^-3.92 with a log10 sd of about 1.2.
@@ -94,6 +100,8 @@
     Object.assign(w, chinaWorld(A, draw('cnAlign'), draw('cnCaution')), evalWorld(A, draw('evalGap')));
     // Drawn last, and only when it has a spread, so the default draws stay identical.
     w.capNow = A.capNow.sd > 0 ? draw('capNow') : A.capNow.mean;
+    // Appended after every earlier draw, so adding it kept their order.
+    Object.assign(w, shareWorld(A, draw('share')));
     if (skipBio) return w;
     return Object.assign(w, bioWorld(bioDecade, A.bioDecade));
   }
@@ -110,7 +118,7 @@
     return Object.assign({ difficulty: d, speed: A.speed.mean, capNow: A.capNow.mean, whistle: clippedMean(A.whistle), whistleNodes: clippedNodes(A.whistle, 0, 1).nodes,
       pBenevolent: clippedMean(A.benevolent), benevolent: false }, difficultyWorld(d, dd),
       chinaWorld(A, clippedMean(A.cnAlign), clippedMean(A.cnCaution)),
-      evalWorld(A, clippedMean(A.evalGap)),
+      evalWorld(A, clippedMean(A.evalGap)), shareWorld(A, clippedMean(A.share)),
       bioWorld(Math.pow(10, A.bioDecade.mean), A.bioDecade));
   }
 
@@ -138,6 +146,10 @@
       CLIP_CACHE.set(key, { nodes, mean: nodes.reduce((a, [w, v]) => a + w * v, 0) });
     }
     return CLIP_CACHE.get(key);
+  }
+  // Whether the powerful share AI's gains unforced, plus belief nodes over it (the dice use the draw).
+  function shareWorld(A, share) {
+    return { share, shareNodes: clippedNodes(A.share, 0, 1).nodes };
   }
   function evalWorld(A, evalGap) {
     const c = clippedNodes(A.evalGap, 0, 0.6);
@@ -456,31 +468,43 @@
   // and most people lose their say: seized outright, or drifted there as automation moves
   // value from labor to whoever owns AI (nationalsecurityresponse.ai). Exponential growth
   // pulls the frontier away from the pack, so a close rival or open weights protect little.
-  // `whistle` defaults to this world's hidden draw; belief callers pass its mean.
-  function lockinOdds(s, L, whistle = s.world.whistle) {
+  // `whistle` and `share` default to this world's hidden draws; belief callers pass node values.
+  // The baseline pressure scales with 1 - share: how unlikely the few are to share the gains
+  // when nothing forces them.
+  function lockinOdds(s, L, whistle = s.world.whistle, share = s.world.share) {
+    return clamp(lockinScale(share) * lockinBase(s, L) * (1 - 0.6 * whistle), 0, 0.95);
+  }
+  // Everything in the lock-in odds except the hidden draws (whistleblowers, sharing).
+  function lockinBase(s, L) {
     const mc = maxCap(s);
     const conc = 0.45 + 0.55 * sig((s.conc - 64) / 6);                   // power already concentrated
     const phys = s.acYear ? clamp((s.year - s.acYear) / 6, 0, 1) : 0;   // robots follow software
     const automation = 0.6 + 0.4 * phys;
     const pressure = (0.8 + 0.4 * L.race) * (1.3 - 0.6 * s.trust / 100); // automate or die; weak public voice
     const plural = Math.max(clamp(1 - Math.abs(s.capUS - s.capCN) / 15, 0, 1), clamp((s.openCap - 80) / 20, 0, 1));
-    const keep = (1 - 0.7 * s.fundStake / 100)                            // public owns part of AI
+    return conc * automation * pressure
+      * (1 - 0.7 * s.fundStake / 100)                                     // public owns part of AI
       * (1 - 0.45 * L.oversight) * (1 - 0.35 * L.transparency)            // accountable AI owners
-      * (1 - 0.6 * whistle)                                               // insiders refuse a power grab
       * (1 - 0.15 * plural)                                               // rivals help only a little
       * (1 - 0.1 * L.openness * clamp(s.openCap / Math.max(1, mc), 0, 1)) // open weights spread access
       * (1 - 0.2 * L.diplomacy * clamp((s.trust - 50) / 30, 0, 1));       // coordination, only with public pressure
-    return clamp(LOCK_K * conc * automation * pressure * keep, 0, 0.95);
   }
-  const LOCK_K = 1.8;
+  // Calibrated so about 70% of status-quo futures where humans keep control lock in.
+  const LOCK_K = 4.0;
+  const lockinScale = (share) => LOCK_K * (1 - share);
   // Endings that count as catastrophes (a kind takeover does not).
   const CATASTROPHES = ['bio', 'misalign', 'war', 'lockin'];
-  // Shown (belief) lock-in odds: the capped probability averaged over the whistleblower
-  // distribution, not evaluated at its mean. The dice use the hidden draw.
+  // Shown (belief) lock-in odds: the capped probability averaged over the joint distribution
+  // of whistleblower odds and sharing (independent draws), not evaluated at their means.
+  // The dice use the hidden draws.
   function lockinBelief(s, L) {
-    const nodes = s.world.whistleNodes || [[1, s.world.whistle]];
+    const wn = s.world.whistleNodes || [[1, s.world.whistle]], sn = s.world.shareNodes || [[1, s.world.share]];
+    const base = lockinBase(s, L);
     let p = 0;
-    for (const [w, v] of nodes) p += w * lockinOdds(s, L, v);
+    for (const [ws, sv] of sn) {
+      const k = lockinScale(sv) * base;
+      for (const [w, v] of wn) p += ws * w * clamp(k * (1 - 0.6 * v), 0, 0.95);
+    }
     return p;
   }
 
@@ -756,6 +780,6 @@
     AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
-    risks, transitionOdds, lockinOdds, lockinBelief, CATASTROPHES, step, monteCarlo, summarize, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
+    risks, transitionOdds, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, summarize, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
