@@ -43,7 +43,7 @@
       text: 'China is close to making its own advanced AI chips. You can tighten the ban on selling it chipmaking equipment, or loosen it in return for inspections.',
       choices: [
         { label: 'Sweeping new bans', note: 'Slow China down, even if it angers Beijing.', lev: { diplomacy: -0.1 }, st: { cnMult: -0.15, coord: -10, capCN: -3 } },
-        { label: 'Enforce today\'s bans and track every chip', note: 'About a third of China\'s AI chips are smuggled in. Untracked chips would make any future deal hard to check.', lev: { oversight: +0.08 }, st: { cnMult: -0.06, coord: -2 } },
+        { label: 'Enforce today\'s bans and track every chip', note: 'Epoch estimates roughly a third of China\'s AI computing power was smuggled in through 2025, possibly as little as a sixth or more than half. Untracked chips would make any future deal hard to check.', lev: { oversight: +0.08 }, st: { cnMult: -0.06, coord: -2 } },
         { label: 'Trade chips for inspections', note: 'China gets chips, but only in data centers that inspectors monitor.', lev: { diplomacy: +0.2 }, st: { cnMult: +0.05, coord: +10 } },
       ],
     },
@@ -254,7 +254,8 @@
   function applyChoice(s, L, choice) {
     // A verified deal in force before the choice caps what the choice can add to capability.
     const capped = SimModel.dealActive(s, L);
-    const cap = { capUS: Math.max(s.capUS, SimModel.TOP_EXPERT), capCN: Math.max(s.capCN, SimModel.TOP_EXPERT) };
+    const ceil = SimModel.dealCeiling(s);
+    const cap = { capUS: Math.max(s.capUS, ceil), capCN: Math.max(s.capCN, ceil) };
     for (const k in choice.lev || {}) L[k] = Math.max(0, Math.min(1, L[k] + choice.lev[k]));
     // levMin / stMin set floors, e.g. "Mandate 12% of compute for safety".
     for (const k in choice.levMin || {}) L[k] = Math.max(L[k], choice.levMin[k]);

@@ -45,14 +45,15 @@
       help: 'How capable the best AI is at the start of 2027 (US bloc; China starts 7 points behind). AI starts speeding up its own research at 50, and 70 is an Automated Coder. AI 2040 starts at 44; lab insiders quoted by Gladstone AI expect recursive self-improvement during 2027, which is about 50.' },
     speed: { label: 'AI progress speed', mean: 1, sd: 0.3, min: 0.3, max: 2.5, fmt: 'x',
       help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2031 and superintelligence to about 2033.' },
-    benevolent: { label: 'Kind even if uncontrolled', mean: 0.1, sd: 0.08, min: 0, max: 1, fmt: 'pct',
+    benevolent: { label: 'Kind even if uncontrolled', mean: 0.1, sd: 0.25, min: 0, max: 1, fmt: 'pct',
       help: 'If humans lose control of AI, the chance it still cares for humanity. The future is then steered by AI, kindly, instead of by people (Benevolent Takeover).' },
-    // China's caution, from a review of experts on Chinese AI policy (Concordia AI, Carnegie's
-    // Matt Sheehan, SemiAnalysis, CSET translations): real and growing safety research, official
-    // "human control" language, but no case of Beijing slowing frontier AI for safety.
-    cnAlign: { label: 'China\'s own alignment work', mean: 0.35, sd: 0.17, min: 0, max: 1, fmt: 'pct',
+    // China's own work and caution are judgments informed by published work (Concordia AI's
+    // safety-paper counts, SemiAnalysis's count of releases with safety results), official
+    // "human control" language and current racing; none of these measures effort, and there is
+    // no case of Beijing slowing frontier AI for safety. Hence the wide spreads.
+    cnAlign: { label: 'China\'s own alignment work', mean: 0.35, sd: 0.25, min: 0, max: 1, fmt: 'pct',
       help: 'How much alignment research China\'s labs do themselves, relative to the US bloc. It fills part of the gap that published US research and coordination do not reach, and China\'s AI speeds this research up as it improves (100% is a serious program, like a US bloc putting 30% of compute on safety). Work on keeping AI loyal to the Party\'s line does not count.' },
-    cnCaution: { label: 'China slows near the brink', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
+    cnCaution: { label: 'China slows near the brink', mean: 0.25, sd: 0.25, min: 0, max: 1, fmt: 'pct',
       help: 'How far China cuts its AI race once there are signs of losing control. It notices later than the US would, slows more if the US slows or a deal is in force, and never slows for fear of concentrated power: an AI that obeys the Party counts as aligned in Beijing.' },
     // Evaluation awareness: current AIs can often tell when they are being tested and behave
     // better then, so measured alignment may overstate the real thing.
@@ -279,7 +280,10 @@
       alive: 1,           // ...of which: the future is still running
       safeEnded: 0,
       fundStake: 3,       // public ownership of AI returns, 0..100 (Alaska-style funds exist today)
-      acYear: null,       // year the Automated Coder milestone was reached       // ...of which: it already ended without catastrophe (kind takeover, handoff)
+      acYear: null,       // year the Automated Coder milestone was reached
+      dealStart: null,    // first year a US–China deal was in force
+      dealImpaired: null, // year the deal was weakened (at most once)
+      dealCollapsed: null, // year the deal dissolved (it never returns)       // ...of which: it already ended without catastrophe (kind takeover, handoff)
       outcome: null,
       log: [],
     };
@@ -313,6 +317,12 @@
   // A verified US–China deal: frontier scaling stops at top-human-expert level.
   // Once a deal has collapsed it stays dead.
   const dealActive = (s, L) => !s.dealCollapsed && s.coord >= 60 && L.diplomacy >= 0.5;
+  // The deal's capability ceiling: top-expert level, a few points higher once it is impaired.
+  const DEAL_IMPAIRED_SLACK = 6;
+  const dealCeiling = (s) => TOP_EXPERT + (s.dealImpaired ? DEAL_IMPAIRED_SLACK : 0);
+  // AI 2040's Deal Decline schedule: dissolution and impairment each run 6% a year at deal age
+  // 0-2, 3.5% at 2-5 and 2% after that. Age counts from the first year the deal is in force.
+  const dealHazard = (age) => age < 2 ? 0.06 : age < 5 ? 0.035 : 0.02;
 
   // China's effective race intensity responds to the US posture and to trust.
   // A US pause (race down, or all compute on safety) eases it only partly.
@@ -492,7 +502,9 @@
     // Every year draws the same fixed set of dice, each with one job, whether or
     // not it is used. Rewinding a campaign and choosing differently then keeps
     // every die of that year (and the next years' draws) the same.
-    const d = Array.from({ length: 16 }, () => rng());
+    // d[16] (deal impairment) was added last, so the earlier indices kept their jobs; adding
+    // it shifted every later draw in the stream.
+    const d = Array.from({ length: 17 }, () => rng());
     const noise = (i) => (d[i] - 0.5) * 2;
 
     // Hazards are rolled one after another, so they combine as independent risks.
@@ -520,15 +532,21 @@
     let gCN = (BASE * w.speed * uplift(s.capCN) + noise(4)) * cCN
       + 0.25 * L.transparency * Math.max(0, s.capUS - s.capCN) * (1 - 0.35 * L.aggression);
     if (d[5] < 0.15) { gUS += (3 + d[6] * 5) * jUS; gCN += (2 + d[7] * 4) * jCN; }
-    // AI 2040 puts the deal's cumulative collapse risk near 48% over ten years
-    // (leadership change, a side caught cheating, ...), about 6% a year.
-    // The deal holds capability through the year it collapses, so the race restarts the
-    // next year (and the campaign gets a turn to respond).
+    // AI 2040's Deal Decline: about 48% of deals decline within ten years, split about equally
+    // between dissolution (leadership change, a side caught cheating, ...) and impairment.
+    // Dissolution cuts coordination by 40 and the deal never returns (about 28% over ten
+    // years). Impairment, at most once per deal, cuts coordination by 20 and lets the ceiling
+    // rise a few points; the deal stays in force while coordination holds at 60 or more.
+    // The deal holds capability through the year it dissolves or weakens, so the change
+    // bites the next year (and the campaign gets a turn to respond).
     const dealThisYear = dealActive(s, L);
     if (dealThisYear) {
-      gUS = Math.min(gUS, Math.max(0, TOP_EXPERT - s.capUS));
-      gCN = Math.min(gCN, Math.max(0, TOP_EXPERT - s.capCN));
-      if (d[8] < 0.06) { s.coord = clamp(s.coord - 40); s.dealCollapsed = s.year; }
+      if (s.dealStart == null) s.dealStart = s.year;
+      const ceil = dealCeiling(s), h = dealHazard(s.year - s.dealStart);
+      gUS = Math.min(gUS, Math.max(0, ceil - s.capUS));
+      gCN = Math.min(gCN, Math.max(0, ceil - s.capCN));
+      if (d[8] < h) { s.coord = clamp(s.coord - 40); s.dealCollapsed = s.year; }
+      else if (!s.dealImpaired && d[16] < h) { s.coord = clamp(s.coord - 20); s.dealImpaired = s.year; }
     }
     s.capUS = clamp(s.capUS + Math.max(0, gUS));
     s.capCN = clamp(s.capCN + Math.max(0, gCN));
@@ -715,7 +733,7 @@
 
   root.SimModel = {
     START_YEAR, END_YEAR, LEVER_INFO, STAT_INFO, OUTCOMES, ASSUMPTION_INFO,
-    AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
+    AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
     risks, transitionOdds, lockinOdds, lockinBelief, CATASTROPHES, step, monteCarlo, summarize, mulberry32, rankAmong, leverPct,

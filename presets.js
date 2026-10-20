@@ -11,19 +11,19 @@
   const PRESET_INFO = {
     'Under 2% risk': 'The smallest change from the status quo that keeps catastrophe under 2% under the default (AI 2040) assumptions, found by searching all levers. Only four levers move: slow the race almost to a stop, put half of AI compute on safety, cooperate fully with China, and set up strong oversight. Everything else stays at today\'s settings.',
     'Safest mix': 'The safest settings a search over every lever could find: stop racing, put a third of AI compute on safety, publish all research, and max out biodefense, diplomacy and oversight. With racing stopped, open weights and neural interfaces can stay at today\'s settings without adding risk. Under the default (AI 2040) assumptions, about 1% of futures still end badly, mostly in war, because China only partly slows down. Most futures reach 2040 on the careful path, with superintelligence still ahead.',
-    'Status quo': 'Today\'s trajectory: an intense race, 5% of AI compute on safety, partly open weights and little diplomacy.',
+    'Status quo': 'Today\'s trajectory: an intense race, an illustrative 5% of AI compute on safety (no lab publishes this figure; OpenAI\'s 2023 pledge of 20% was reportedly never met), partly open weights and little diplomacy.',
     'Open everything': 'Release frontier weights and most research. Power spreads out, but capable models reach anyone, including would-be bioterrorists. Pandemic risk only bites on paths that last long enough for open models to reach expert level.',
     'Open + biodefense': 'Open everything, plus heavy investment in DNA synthesis screening, surveillance and stockpiles to offset the bio risk.',
     'IAEA for AI': 'An independent international agency inspects every frontier lab, publishes safety scores and protects whistleblowers.',
-    'Neuralink bet': 'Keep racing, and push brain-computer interfaces hard so humans can keep up with AI and oversee it.',
-    'BCI-first': 'Slow the AI race and point AI at neurotech, so augmented humans are ready to oversee AI before it gets much stronger.',
+    'Neuralink bet': 'Keep racing, and push brain-computer interfaces hard so humans can keep up with AI and oversee it. The oversight benefit is a hypothetical mechanism in this model.',
+    'BCI-first': 'Slow the AI race and point AI at neurotech, so augmented humans are ready to oversee AI before it gets much stronger. The oversight benefit is a hypothetical mechanism in this model.',
     'All compute on safety': 'The US bloc spends 100% of AI compute on safety, a unilateral pause. China only partly slows down and often takes the lead with less alignment work, so this does worse than a 35% safety share, though a cautious China narrows the gap.',
   };
   const PLAN_INFO = {
-    'Plan A: Verified slowdown': { align: '72%', great: '42%', text: 'A verified US–China deal slows frontier AI, makes all research public and lets many labs keep up, pausing at top-expert level until 2040.' },
+    'Plan A: Verified slowdown': { align: '72%', great: '42%', others: 'Other AI 2040 authors give Plan A 80–81%.', text: 'A verified US–China deal slows frontier AI, makes all research public and lets many labs keep up, pausing at top-expert level until 2040.' },
     'Plan B: Fight China': { align: '50%', great: '25%', text: 'Sabotage China\'s AI program (cyber or kinetic) to win a lead, then burn that lead on safety. Nationalization concentrates power.' },
     'Plan C: Burn the lead': { align: '40%', great: '20%', text: 'The leading AI project spends some of its lead on safety, perhaps coordinating with other frontier projects.' },
-    'Plan D: Race to ASI': { align: '25%', great: '10%', text: 'Frontier projects race through the intelligence explosion at nearly maximum speed.' },
+    'Plan D: Race to ASI': { align: '25%', great: '10%', others: 'Other AI 2040 authors give Plan D 10–55%.', text: 'Frontier projects race through the intelligence explosion at nearly maximum speed.' },
     'Plan S: Shut it down': { text: 'An indefinite global halt to frontier AI development: a longer expected slowdown and more margin for error.' },
   };
   const PRESETS = {

@@ -23,7 +23,7 @@ for (const [name, L] of Object.entries(PRESETS)) {
 }
 console.log('');
 
-// --- AI 2040 calibration (their median p(alignment) per plan) ---
+// --- AI 2040 calibration (Eli Lifland's p(alignment) per plan, typical implementation) ---
 const pa = (n) => 100 * summaries[n].pAlignment;
 check('Plan A p(alignment) ≈ 72% (±5)', near(pa('Plan A: Verified slowdown'), 72, 5), pa('Plan A: Verified slowdown').toFixed(1));
 check('Plan B p(alignment) ≈ 50% (±5)', near(pa('Plan B: Fight China'), 50, 5), pa('Plan B: Fight China').toFixed(1));
@@ -168,6 +168,42 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
     }
   }
   check('Most collapsed deals get the response card (> 50%)', collapses > 0 && shown / collapses > 0.5, `${shown} of ${collapses}`);
+}
+
+// --- Deal decline (AI 2040 Deal Decline): age-based dissolution plus a one-time impairment ---
+{
+  // Analytic: each hazard runs 6% / 3.5% / 2% a year by deal age.
+  let keep = 1;
+  for (let age = 0; age < 10; age++) keep *= 1 - M.dealHazard(age);
+  check('Deal dissolution over ten years ≈ 28% (analytic, ±1 pt)', near(1 - keep, 0.28, 0.01), (100 * (1 - keep)).toFixed(1) + '%');
+  check('Deal decline (dissolved or weakened) over ten years ≈ 48% (analytic, ±1 pt)', near(1 - keep * keep, 0.48, 0.01), (100 * (1 - keep * keep)).toFixed(1) + '%');
+  // Sampled: a deal held in force by full diplomacy, ten years from signing.
+  const L = { ...M.defaultLevers(), race: 0.3, diplomacy: 1, oversight: 0.5 }, n = 20000;
+  let dissolved = 0, declined = 0, twice = 0;
+  const play = (seed) => {
+    const rng = M.mulberry32(seed), s = Object.assign(M.initialState(M.sampleWorld(A0, rng)), { coord: 100 });
+    let impairs = 0;
+    for (let y = 0; y < 10; y++) {
+      const before = s.dealImpaired;
+      M.step(s, L, rng, false);
+      if (!before && s.dealImpaired) impairs++;
+    }
+    return { s, impairs };
+  };
+  for (let i = 0; i < n; i++) {
+    const { s, impairs } = play(9000 + i);
+    if (s.dealCollapsed) dissolved++;
+    if (s.dealCollapsed || s.dealImpaired) declined++;
+    if (impairs > 1) twice++;
+  }
+  check('Deal dissolution over ten years ≈ 28% (sampled, ±2 pts)', near(dissolved / n, 0.28, 0.02), (100 * dissolved / n).toFixed(1) + '%');
+  check('Deal decline over ten years ≈ 48% (sampled, ±2 pts)', near(declined / n, 0.48, 0.02), (100 * declined / n).toFixed(1) + '%');
+  check('A deal is impaired at most once', twice === 0, String(twice));
+  const a = play(4242).s, b = play(4242).s;
+  check('Same seed gives the same deal history', a.dealImpaired === b.dealImpaired && a.dealCollapsed === b.dealCollapsed && a.capUS === b.capUS && a.coord === b.coord);
+  check('Same seed gives the same Plan A results', JSON.stringify(M.summarize(PRESETS['Plan A: Verified slowdown'], A0, 1500, 3).counts) === JSON.stringify(M.summarize(PRESETS['Plan A: Verified slowdown'], A0, 1500, 3).counts));
+  const w = Object.assign(M.initialState(), { dealImpaired: 2030 });
+  check('An impaired deal raises the ceiling a few points', M.dealCeiling(w) > M.TOP_EXPERT && M.dealCeiling(w) <= M.TOP_EXPERT + 8, String(M.dealCeiling(w)));
 }
 
 // --- China's caution ---
