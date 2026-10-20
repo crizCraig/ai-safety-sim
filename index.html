@@ -450,11 +450,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261019174355"></script>
-<script src="events.js?v=20261019174355"></script>
-<script src="landmask.js?v=20261019174355"></script>
-<script src="presets.js?v=20261019174355"></script>
-<script src="trees.js?v=20261019174355"></script>
+<script src="model.js?v=20261019175254"></script>
+<script src="events.js?v=20261019175254"></script>
+<script src="landmask.js?v=20261019175254"></script>
+<script src="presets.js?v=20261019175254"></script>
+<script src="trees.js?v=20261019175254"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -765,7 +765,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261019174355';
+const ASSET_VERSION = '20261019175254';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -2231,23 +2231,43 @@ function closeDist() {
 function scheduleDist() { clearTimeout(distTimer); distTimer = setTimeout(computeDist, 250); }
 function computeDist() {
   const job = ++distJob, L = { ...labL }, A = JSON.parse(JSON.stringify(labA));
-  const rng = M.mulberry32(2024), xs = [], t0 = performance.now();
+  const rng = M.mulberry32(2024), xs = [], kinds = [], t0 = performance.now();
   if (!$('catDist').innerHTML) $('catDist').innerHTML = '<div class="cd-sub">Working out the spread…</div>';
   const slice = () => {
     if (job !== distJob) return;
     const end = performance.now() + 12;
-    while (xs.length < DIST_WORLDS && performance.now() < end) xs.push(worldCatastrophe(M.sampleWorld(A, rng), L, DIST_RUNS, 5000 + xs.length));
+    while (xs.length < DIST_WORLDS && performance.now() < end) {
+      const w = M.sampleWorld(A, rng);
+      kinds.push({ safe: !!w.safe, kind: !!w.benevolent });
+      xs.push(worldCatastrophe(w, L, DIST_RUNS, 5000 + xs.length));
+    }
     if (xs.length < DIST_WORLDS) { setTimeout(slice, 0); return; }
     window.__distMs = Math.round(performance.now() - t0);
-    renderDist(xs);
+    renderDist(xs, kinds);
   };
   slice();
+}
+// Explain the humps only when the chart has them, and only as what those worlds actually are.
+function distExplain(xs, kinds, lo, hi) {
+  const n = xs.length, idx = (f) => xs.map((x, i) => i).filter((i) => f(xs[i]));
+  const top = idx((x) => x >= 0.95), low = idx((x) => x <= 0.05);
+  const share = (ids, f) => ids.length ? ids.filter((i) => kinds[i] && f(kinds[i])).length / ids.length : 0;
+  const parts = [];
+  if (hi <= 0.1) parts.push('With these settings nearly every world stays near 0%, whatever the hidden facts turn out to be.');
+  const tall = top.length >= n / 4 && share(top, (k) => !k.safe && !k.kind) >= 0.8;
+  if (tall) parts.push('<b>The tall bar at 100%:</b> worlds where alignment turns out hard and AI that escaped control is not kind. With these settings, alignment almost never catches up in those worlds, so catastrophe is nearly certain inside each one.');
+  const mid = idx((x) => x > 0.25 && x < 0.75);
+  if (tall && mid.length >= n * 0.05 && share(mid, (k) => k.safe) >= 0.6) parts.push('<b>The bars in the middle:</b> mostly worlds where alignment turns out easy by default. AI stays under control there, but most of the remaining risk is Locked-In Power.');
+  if (tall && low.length >= n * 0.03 && share(low, (k) => k.kind) >= 0.7) parts.push('<b>The bars near 0%:</b> worlds where AI that escapes control turns out kind. That ending is a Benevolent Takeover, which isn\'t counted as a catastrophe.');
+  if (tall) parts.push('So the uncertainty is mostly about <i>which</i> world we\'re in, not luck within it. "Nearly certain" is the model\'s assumption, not a fact about reality.');
+  if (hi > 0.1) parts.push('The spread is lopsided, so it\'s shown as a range, not ±.');
+  return parts.map((t) => `<p class="note">${t}</p>`).join('');
 }
 function quantile(sorted, q) {
   const i = (sorted.length - 1) * q, lo = Math.floor(i);
   return sorted[lo] + (sorted[Math.min(lo + 1, sorted.length - 1)] - sorted[lo]) * (i - lo);
 }
-function renderDist(xs) {
+function renderDist(xs, kinds = []) {
   const sorted = [...xs].sort((a, b) => a - b), lo = quantile(sorted, 0.05), hi = quantile(sorted, 0.95);
   const bins = new Array(20).fill(0);
   for (const x of xs) bins[Math.min(19, Math.floor(x * 20 + 1e-9))]++;
@@ -2275,7 +2295,7 @@ function renderDist(xs) {
   $('catDist').innerHTML = `<h4>Catastrophe across possible worlds</h4>
     <div class="cd-sub">Headline <b>${pct(labCat, labCat < 0.1 ? 1 : 0)}</b> · most worlds (5th–95th percentile) <b>${lbl(lo)}–${lbl(hi)}%</b></div>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Histogram of catastrophe chance across ${xs.length} possible worlds; most worlds between ${lbl(lo)} and ${lbl(hi)} percent">${svg}</svg>
-    <p class="note">Each bar counts possible worlds. A world is one draw of the hidden facts you set under Unknowns about the world (how hard alignment is, how fast AI moves, whether China slows…). The headline is the average over all of them. The world we're actually in could sit anywhere in this spread, which is lopsided, so it's shown as a range, not ±.</p>
+    <p class="note">Each bar counts possible worlds. A world is one draw of the hidden facts you set under Unknowns about the world (how hard alignment is, how fast AI moves, whether China slows…). The headline is the average over all of them.</p>${distExplain(xs, kinds, lo, hi)}
     <p class="note">Each world's chance is itself estimated from ${DIST_RUNS} runs, so a little of the spread is simulation noise.</p>`;
 }
 const DIFF_REF = 'Plan A: Verified slowdown';
