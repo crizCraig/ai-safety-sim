@@ -453,11 +453,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261019194906"></script>
-<script src="events.js?v=20261019194906"></script>
-<script src="landmask.js?v=20261019194906"></script>
-<script src="presets.js?v=20261019194906"></script>
-<script src="trees.js?v=20261019194906"></script>
+<script src="model.js?v=20261019203354"></script>
+<script src="events.js?v=20261019203354"></script>
+<script src="landmask.js?v=20261019203354"></script>
+<script src="presets.js?v=20261019203354"></script>
+<script src="trees.js?v=20261019203354"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -676,7 +676,7 @@
         <tr><td><span class="mi">W</span></td><td>If humans lose control of AI, whether it still cares for humanity (1) or not (0). If 1, AI rather than humanity steers the future, but kindly</td><td><span class="mi">W \sim \text{Bernoulli}(w),\ w \sim \mathcal{N}(0.10,\ 0.25)</span>, clipped to [0, 1] <span class="src own">Assumption</span></td></tr>
         <tr><td><span class="mi">a_{\text{CN}}</span></td><td>China's own alignment work, relative to the US bloc's. Work on keeping AI loyal to the Party line does not count. Chinese labs published safety results for 31 of 857 tracked model releases (SemiAnalysis, Oct 2026), and Chinese safety-paper output rose from about 36 to 57 a month (Concordia AI, Jul 2026); neither measures effort relative to the US</td><td><span class="mi">\mathcal{N}(0.35,\ 0.25)</span>, clipped to [0, 1] <span class="src china long">Informed by Concordia AI and SemiAnalysis (published work, not effort)</span></td></tr>
         <tr><td><span class="mi">q_{\text{CN}}</span></td><td>How far China cuts its race once there are signs of losing control. Through October 2026 Beijing has never slowed frontier AI for safety reasons, though official statements call for keeping AI under human control</td><td><span class="mi">\mathcal{N}(0.25,\ 0.25)</span>, clipped to [0, 1] <span class="src china long">Informed by official statements and current racing</span></td></tr>
-        <tr><td><span class="mi">e</span></td><td>Tests overstate alignment: how wrong the measurements are, which oversight, transparency and safety work can shrink (unlike ease). How much tests overstate alignment, because AIs can tell when they are being evaluated and behave better under test. <span class="mi">A</span> is the measured value players see. Claude showed internal signs of knowing it was being tested on 16–26% of evaluation transcripts but under 1% of real use (<a href="https://www.anthropic.com/research/natural-language-autoencoders" target="_blank" rel="noopener">Anthropic, natural language autoencoders</a>, May 2026), and removing that awareness from o3's reasoning raised its rate of covert rule-breaking from 13% to 24% (<a href="https://arxiv.org/abs/2509.15541" target="_blank" rel="noopener">OpenAI and Apollo Research</a>, Sep 2025). Together that implies tests understate bad behaviour by roughly 7–12%; the step from there to alignment is an assumption</td><td><span class="mi">\mathcal{N}(0.15,\ 0.10)</span>, clipped to [0, 0.6] <span class="src anchor long">Consistent with lab experiments (tests miss about 7–12% of bad behaviour)</span></td></tr>
+        <tr><td><span class="mi">e</span></td><td>Tests overstate alignment: how wrong the measurements are, which oversight, transparency and safety work can shrink (unlike ease). How much tests overstate alignment, because AIs can tell when they are being evaluated and behave better under test. <span class="mi">A</span> is the measured value players see. Two experiments, on different models and tasks, bear on it. Claude showed internal signs of knowing it was being tested on 16–26% of evaluation transcripts but under 1% of real use (<a href="https://www.anthropic.com/research/natural-language-autoencoders" target="_blank" rel="noopener">Anthropic, natural language autoencoders</a>, May 2026); that measures awareness, not how much bad behaviour tests miss. Removing that awareness from o3's reasoning raised its rate of covert rule-breaking from 13% to 24% (<a href="https://arxiv.org/abs/2509.15541" target="_blank" rel="noopener">OpenAI and Apollo Research</a>, Sep 2025): 11 percentage points, so with awareness the measured rate was about 45% lower in relative terms, in that setup. Neither gives a general rate at which tests miss bad behaviour, and the size of <span class="mi">e</span> is a judgment</td><td><span class="mi">\mathcal{N}(0.15,\ 0.10)</span>, clipped to [0, 0.6] <span class="src own long">Assumption, informed by these experiments</span></td></tr>
         <tr><td><span class="mi">\omega</span></td><td>Whistleblower odds. Employees exposed about 19% of the corporate frauds that came to light at large US firms in 1996–2004 (Dyck, Morse and Zingales, <a href="https://doi.org/10.1111/j.1540-6261.2010.01614.x" target="_blank" rel="noopener"><i>Who Blows the Whistle on Corporate Fraud?</i></a>), and only about a third of frauds ever come to light (Dyck, Morse and Zingales, <a href="https://doi.org/10.1007/s11142-022-09738-5" target="_blank" rel="noopener"><i>How Pervasive Is Corporate Fraud?</i></a>), so about 6% of frauds are exposed by employees. About half of coup attempts since 1950 failed (Powell and Thyne's <a href="https://www.uky.edu/~clthyn2/coup_data/home.htm" target="_blank" rel="noopener">coup dataset</a>). An AGI power grab resembles neither</td><td><span class="mi">\mathcal{N}(0.25,\ 0.15)</span>, clipped to [0, 1] <span class="src anchor long">Within base rates from corporate fraud and coups (about 6–50%)</span></td></tr>
         <tr><td><span class="mi">R_{\text{bio}}</span></td><td>Decade risk of a 100M+ death pandemic enabled by open weights, on the default path</td><td><span class="mi">\log_{10} R_{\text{bio}} \sim \mathcal{N}(-3.92,\ 1.2)</span> <span class="src biodec long">Factored Monte Carlo estimate (the author's separate model, not yet published) of pandemics killing 100M+ that are counterfactually attributable to open weights: decade median about 1.2×10⁻⁴, 95% interval about 5×10⁻⁷ to 3×10⁻²</span></td></tr>
       </tbody>
@@ -742,7 +742,7 @@
         <tr><td>p(alignment), Plan B: fight China</td><td>50% (Eli Lifland, AI 2040)</td><td>46%</td></tr>
         <tr><td>p(alignment), burn the lead</td><td>40% (Eli Lifland, AI 2040)</td><td>40%</td></tr>
         <tr><td>p(alignment), Plan A</td><td>72% (Eli Lifland, AI 2040)</td><td>76%</td></tr>
-        <tr><td>Locked-In Power share of status-quo futures where humans keep control</td><td>about half (Craig's estimate)</td><td>47%</td></tr>
+        <tr><td>Locked-In Power share of status-quo futures where humans keep control</td><td>about half (Craig's estimate)</td><td>48% (40,000 futures, seed 101)</td></tr>
         <tr><td>Bio decade risk actually faced on the default path: median</td><td>1.2e-4</td><td>1.0e-4</td></tr>
         <tr><td>Bio decade risk: 95% interval</td><td>5e-7 to 3e-2</td><td>3.8e-7 to 2.5e-2</td></tr>
         <tr><td>Bio decade risk: P(&gt; 1%), P(&gt; 10%)</td><td>0.055, 0.007</td><td>0.052, 0.007</td></tr>
@@ -768,7 +768,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261019194906';
+const ASSET_VERSION = '20261019203354';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -796,6 +796,29 @@ composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.95, 0.55, 0.12);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
+// The glow fades in after first paint. Compiling the bloom shaders blocks the first frame for
+// about half a second, so the first frames render without bloom; once the page is idle, the
+// shaders compile in the background (parallel compile where the GPU supports it) and the glow
+// ramps up over a second. bloomGoal is the strength the current mode wants.
+let bloomGoal = 0.95, bloomFade = 0;
+bloom.enabled = false;
+function enableBloom() {
+  const qs = [bloom.materialHighPassFilter, ...bloom.separableBlurMaterials, bloom.compositeMaterial, bloom.blendMaterial];
+  const warm = new THREE.Scene(), geo = new THREE.PlaneGeometry(2, 2);
+  for (const m of qs) warm.add(new THREE.Mesh(geo, m));
+  const prevTarget = renderer.getRenderTarget();
+  renderer.setRenderTarget(bloom.renderTargetBright); // compile as the pass will use them: into a render target
+  const ready = renderer.compileAsync(warm, camera);
+  renderer.setRenderTarget(prevTarget);
+  const go = () => {
+    geo.dispose();
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    bloomFade = reduce ? 1 : 0; bloom.strength = bloomGoal * bloomFade; bloom.enabled = true;
+  };
+  ready.then(go, go);
+}
+const bloomSoon = () => setTimeout(() => (window.requestIdleCallback || setTimeout)(enableBloom, { timeout: 1000 }), 500);
+if (document.readyState === 'complete') bloomSoon(); else addEventListener('load', bloomSoon);
 
 scene.add(new THREE.AmbientLight(0x6080ff, 0.35));
 const sun = new THREE.DirectionalLight(0xffffff, 1.4);
@@ -1159,6 +1182,7 @@ function animate() {
   }
   updateHover();
   controls.update();
+  if (bloom.enabled) { bloomFade = Math.min(1, bloomFade + dt); bloom.strength = bloomGoal * bloomFade; }
   composer.render();
   updateLabels();
 }
@@ -1613,7 +1637,7 @@ function rollYear() {
       : res.stage === 'end' ? '<div class="youchose">2040 arrives.</div>' : '';
     const verdict = res.event
       ? `<span style="color:${M.OUTCOMES[res.event].color}">${M.OUTCOMES[res.event].title}</span>${how}`
-      : `<span style="color:var(--good)">${year} passes without catastrophe.</span>${s.dealCollapsed === year ? '<div class="youchose" style="color:var(--bad)">The US–China deal collapsed this year. The race is back on.</div>' : s.dealImpaired === year ? '<div class="youchose" style="color:var(--warn)">The US–China deal weakened this year. It still holds, but its cap rises to 84 and trust between the blocs falls.</div>' : ''}`;
+      : `<span style="color:var(--good)">${year} passes without catastrophe.</span>${s.dealCollapsed === year ? '<div class="youchose" style="color:var(--bad)">The US–China deal collapsed this year. The race is back on.</div>' : s.dealImpaired === year ? `<div class="youchose" style="color:var(--${M.dealActive(s, L) ? 'warn' : 'bad'})">${M.dealImpairedText(s, L)}</div>` : ''}`;
     if (res.event) { vis.outcome = res.event; vis.outT = 0; preloadImg(endArtUrl(res.event)); }
     game.phase = res.event ? 'ended' : 'result';
     renderTimeline(); renderHistory();
@@ -1809,7 +1833,7 @@ function buildLabUI() {
     Object.assign(labL, PRESETS[p]); syncSliders(); runLab(); selectPreset(p);
   };
   $('sliders').innerHTML = Object.entries(M.LEVER_INFO).map(([k, info]) =>
-    `<div class="slider"><div class="row"><span>${info.label}</span><span id="sv-${k}"></span></div><input type="range" min="0" max="100" id="sl-${k}" aria-label="${info.label}"><div class="ends"><span>${info.low}</span><span>${info.high}</span></div></div>`
+    `<div class="slider"><div class="row"><span>${info.label}</span><span id="sv-${k}"></span></div><input type="range" min="0" max="100" step="0.5" id="sl-${k}" aria-label="${info.label}"><div class="ends"><span>${info.low}</span><span>${info.high}</span></div></div>`
   ).join('');
   let timer;
   for (const k in M.LEVER_INFO) $('sl-' + k).addEventListener('input', (e) => {
@@ -1899,11 +1923,12 @@ function selectPreset(p) {
       if (/^(Safest mix|Under 2% risk)$/.test(p) && !defaultUnknowns()) $('planNote').insertAdjacentHTML('beforeend', ' <span class="pn-src">Your hidden assumptions differ from the defaults, so the headline above, not this description, is the result for your settings.</span>');
       return;
     }
-    $('planNote').innerHTML = `${info.text} <span class="pn-src">Eli Lifland's estimates in AI 2040 for a typical version of this plan, assuming an Automated Coder around 2030 and the plan starting in early 2029: ${info.align ? `p(alignment) ${info.align}, p(great future) ${info.great}` : 'not given'}.${info.others ? ' ' + info.others : ''} These sliders are a fixed-lever approximation; AI 2040's plans change over time.</span> <a href="${AI2040_PLANS}" target="_blank" rel="noopener">Read the comparison ↗</a>`;
+    $('planNote').innerHTML = `${info.text} <span class="pn-src">Eli Lifland's estimates in AI 2040 for a typical version of this plan, assuming an Automated Coder around 2030 and the plan starting in early 2029: ${info.align ? `p(alignment) ${info.align}${info.alignAdj ? ` (${info.alignAdj} after his adjustments for his own, slower takeoff and other views)` : ''}, p(great future) ${info.great}` : 'not given'}.${info.others ? ' ' + info.others : ''} These sliders are a fixed-lever approximation; AI 2040's plans change over time.</span> <a href="${AI2040_PLANS}" target="_blank" rel="noopener">Read the comparison ↗</a>`;
 }
 
-const leverText = (k, v) => Math.round(v * 100) + (M.LEVER_INFO[k].pct ? '%' : '');
-function syncSliders() { for (const k in M.LEVER_INFO) { $('sl-' + k).value = Math.round(labL[k] * 100); $('sv-' + k).textContent = leverText(k, labL[k]); } }
+// One decimal when a value isn't a whole percent (Plan D's 2.5% safety), as in share links.
+const leverText = (k, v) => M.leverPct(v) + (M.LEVER_INFO[k].pct ? '%' : '');
+function syncSliders() { for (const k in M.LEVER_INFO) { $('sl-' + k).value = M.leverPct(labL[k]); $('sv-' + k).textContent = leverText(k, labL[k]); } }
 
 // Clicking an outcome shows its description and isolates its futures in 3D.
 let labFocus = null, lastMC = null;
@@ -2158,11 +2183,11 @@ function setMode(m) {
     // Frame the whole graph, 2027 through the alignment axis, between the desktop panels.
     const phone = innerWidth <= 640;
     camera.position.set(phone ? 4.5 : 0, phone ? 12.5 : 14.5, phone ? 22 : 32).multiplyScalar(Math.max(1, 1.3 / camera.aspect)); controls.target.set(phone ? -0.6 : -0.2, 2.6, 2); controls.autoRotate = false;
-    scene.fog.density = 0.004; bloom.strength = 0.4;
+    scene.fog.density = 0.004; bloomGoal = 0.4;
     runLab();
   } else {
     camera.position.set(0, 6, 22).multiplyScalar(fit); controls.target.set(0, 0, 0); controls.autoRotate = true;
-    scene.fog.density = 0.012; bloom.strength = 0.95;
+    scene.fog.density = 0.012; bloomGoal = 0.95;
   }
 }
 // The Campaign starts playing right away; the first-time tutorial explains the screen.
@@ -2304,7 +2329,7 @@ function renderDist(xs, kinds = []) {
 const DIFF_REF = 'Plan A: Verified slowdown';
 // "It was harder than 22% of worlds, easier than 65% and about as hard as the other 13%."
 function diffSentence(d) {
-  const [b, a] = [Math.round(d.below * 100), Math.round(d.above * 100)], s = 100 - b - a;
+  const [b, s, a] = M.roundShares([d.below, d.same, d.above]); // always totals 100
   return `It was harder than ${b}% of worlds, easier than ${a}%${s > 0 ? ` and about as hard as the other ${s}%` : ''}.`;
 }
 let diffBaseline = null;

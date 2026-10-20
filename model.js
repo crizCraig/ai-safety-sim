@@ -715,12 +715,32 @@
   // Share of reference scores below, about equal to (within tol) and above x.
   function rankAmong(xs, x, tol = 0) {
     let below = 0, same = 0;
-    for (const v of xs) { if (Math.abs(v - x) <= tol) same++; else if (v < x) below++; }
+    // The epsilon keeps exact half-step ties (0.0875 vs 0.075 or 0.1) inside the tolerance
+    // despite floating-point subtraction (0.1 - 0.0875 = 0.012500000000000011).
+    for (const v of xs) { if (Math.abs(v - x) <= tol + 1e-9) same++; else if (v < x) below++; }
     const n = xs.length || 1;
     return { below: below / n, same: same / n, above: (xs.length - below - same) / n };
   }
   // A lever value as a percentage for links: one decimal, no trailing zero (0.025 -> 2.5).
   const leverPct = (v) => +(v * 100).toFixed(1);
+  // Shares (summing to 1) as whole percentages that always total 100: round each down, then
+  // give the leftover points to the largest remainders (ties to the earlier share).
+  function roundShares(shares) {
+    const raw = shares.map((x) => x * 100), out = raw.map(Math.floor);
+    let left = 100 - out.reduce((a, b) => a + b, 0);
+    const order = raw.map((x, i) => [x - out[i], i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]);
+    for (let j = 0; left > 0 && j < order.length; j++, left--) out[order[j][1]]++;
+    return out;
+  }
+  // The campaign's message for the year a deal weakened. Impairment cuts coordination by 20, so
+  // a deal near the threshold stops being enforced (and its cap stops binding) until it recovers.
+  function dealImpairedText(s, L) {
+    if (dealActive(s, L)) return `The US–China deal weakened this year. It still holds, but its cap rises to ${dealCeiling(s)} and trust between the blocs falls.`;
+    const why = s.coord < 60
+      ? `coordination fell to ${Math.round(s.coord)}, below the 60 that keeps the deal enforced`
+      : 'diplomacy is below the level that keeps the deal enforced';
+    return `The US–China deal weakened this year, and ${why}. Its cap is suspended until that recovers, so the race can resume.`;
+  }
 
   function mulberry32(a) {
     return function () {
@@ -736,6 +756,6 @@
     AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
-    risks, transitionOdds, lockinOdds, lockinBelief, CATASTROPHES, step, monteCarlo, summarize, mulberry32, rankAmong, leverPct,
+    risks, transitionOdds, lockinOdds, lockinBelief, CATASTROPHES, step, monteCarlo, summarize, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

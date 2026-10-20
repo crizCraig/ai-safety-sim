@@ -19,11 +19,14 @@
     'BCI-first': 'Slow the AI race and point AI at neurotech, so augmented humans are ready to oversee AI before it gets much stronger. The oversight benefit is a hypothetical mechanism in this model.',
     'All compute on safety': 'The US bloc spends 100% of AI compute on safety, a unilateral pause. China only partly slows down and often takes the lead with less alignment work, so this does worse than a 35% safety share, though a cautious China narrows the gap.',
   };
+  // align/great: Eli Lifland's plain figures (the calibration targets); alignAdj: his p(alignment)
+  // after adjusting for his own views (slower takeoff, later start, expected rather than median
+  // implementation), from the same supplement.
   const PLAN_INFO = {
-    'Plan A: Verified slowdown': { align: '72%', great: '42%', others: 'Other AI 2040 authors give Plan A 80–81%.', text: 'A verified US–China deal slows frontier AI, makes all research public and lets many labs keep up, pausing at top-expert level until 2040.' },
-    'Plan B: Fight China': { align: '50%', great: '25%', text: 'Sabotage China\'s AI program (cyber or kinetic) to win a lead, then burn that lead on safety. Nationalization concentrates power.' },
-    'Plan C: Burn the lead': { align: '40%', great: '20%', text: 'The leading AI project spends some of its lead on safety, perhaps coordinating with other frontier projects.' },
-    'Plan D: Race to ASI': { align: '25%', great: '10%', others: 'Other AI 2040 authors give Plan D 10–55%.', text: 'Frontier projects race through the intelligence explosion at nearly maximum speed.' },
+    'Plan A: Verified slowdown': { align: '72%', alignAdj: '70%', great: '42%', others: 'Other AI 2040 authors give Plan A 80–81%.', text: 'A verified US–China deal slows frontier AI, makes all research public and lets many labs keep up, pausing at top-expert level until 2040.' },
+    'Plan B: Fight China': { align: '50%', alignAdj: '55%', great: '25%', text: 'Sabotage China\'s AI program (cyber or kinetic) to win a lead, then burn that lead on safety. Nationalization concentrates power.' },
+    'Plan C: Burn the lead': { align: '40%', alignAdj: '45%', great: '20%', text: 'The leading AI project spends some of its lead on safety, perhaps coordinating with other frontier projects.' },
+    'Plan D: Race to ASI': { align: '25%', alignAdj: '32%', great: '10%', others: 'Other AI 2040 authors give Plan D 10–55%.', text: 'Frontier projects race through the intelligence explosion at nearly maximum speed.' },
     'Plan S: Shut it down': { text: 'An indefinite global halt to frontier AI development: a longer expected slowdown and more margin for error.' },
   };
   const PRESETS = {
@@ -54,11 +57,19 @@
   // only the unknowns it changes; the rest stay at their defaults.
   const TIME_RSI = 'https://time.com/article/2026/10/14/recursive-self-improvement-AI-report/';
   const GLADSTONE_RSI = 'https://aiendgame.com/p/what-rsi-looks-like';
+  const AIFP_UPDATE = 'https://blog.aifutures.org/p/q25-2026-timelines-update-uplift';
+  const METR_UPLIFT = 'https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/';
   const UNKNOWN_PRESETS = {
     'AI 2040 (default)': { set: {},
       text: 'The default unknowns, with timelines calibrated to AI 2040: an Automated Coder around 2030 and superintelligence around 2031 on today\'s path.' },
     'RSI 2027 (lab insiders)': { set: { capNow: { mean: 50, sd: 0 }, speed: { mean: 1.3, sd: 0.3 } },
       html: `Most frontier-lab researchers interviewed for Gladstone AI's <a href="${GLADSTONE_RSI}" target="_blank" rel="noopener">report</a> (via <a href="${TIME_RSI}" target="_blank" rel="noopener">TIME</a>, Oct 2026) expect recursive self-improvement within 3 to 12 months, absent U.S. government intervention. This starts 2027 at capability 50, where AI speeds up its own research, at 1.3× AI 2040's pace. Milestones come about a year earlier (Automated Coder ~2029, superintelligence ~2030), and Plan A's catastrophe share roughly doubles.` },
+    // Daniel Kokotajlo's all-things-considered Automated Coder median is Nov 2027; the Lab labels a
+    // milestone with the year after it is reached, so that is the Lab's 2028 (as RSI's 2028 shows
+    // as 2029). Only the starting point moves: 59 at AI 2040's pace puts about three quarters of
+    // Automated Coders in 2027 and superintelligence a year later (labels 2028 and 2029).
+    'AI Futures (Aug 2026)': { set: { capNow: { mean: 59, sd: 0 } },
+      html: `The AI Futures Project's <a href="${AIFP_UPDATE}" target="_blank" rel="noopener">August 2026 update</a>: three methods (coding uplift, revenue and benchmark time horizons) agree on an Automated Coder around 2028, if AI is developed as fast as technically feasible. Its main uplift method relies on lab staff's self-reported speed-ups; <a href="${METR_UPLIFT}" target="_blank" rel="noopener">METR's controlled study</a> measured far less. This starts 2027 at capability 59.` },
   };
 
   root.SimPresets = { AI2040_PLANS, PRESET_INFO, PLAN_INFO, PRESETS, UNKNOWN_PRESETS, TIME_RSI, GLADSTONE_RSI };

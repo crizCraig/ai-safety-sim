@@ -385,5 +385,62 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Reference documents Current capability and README counts nine assumptions', html.includes('Current capability: the US bloc') && Object.keys(M.ASSUMPTION_INFO).length === 9 && readme.includes('nine uncertain'));
 }
 
+// --- Codex cycles 16 and 17 ---
+{
+  const PR = globalThis.SimPresets;
+  const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+  // C17-1: an impairment that drops coordination below 60 suspends the cap, and the campaign
+  // says so; one that leaves coordination at 60 or more keeps the cap at 84.
+  const L = { ...M.defaultLevers(), race: 0.3, diplomacy: 0.5, oversight: 0.5 };
+  const start = (coord) => Object.assign(M.initialState(M.meanWorld()), { capUS: 78, capCN: 78, align: 78, coord });
+  let seed = null;
+  for (let k = 1; k < 2000 && seed == null; k++) {
+    const s = start(60), r = M.step(s, L, M.mulberry32(k), false);
+    if (!r.event && s.dealImpaired && !s.dealCollapsed) seed = k;
+  }
+  const after = (coord) => {
+    const rng = M.mulberry32(seed), s = start(coord);
+    M.step(s, L, rng, false);
+    const text = M.dealImpairedText(s, L), active = M.dealActive(s, L);
+    M.step(s, L, rng, false);
+    return { text, active, cap: M.maxCap(s), impaired: s.dealImpaired };
+  };
+  const lo = after(60), hi = after(80);
+  check('Impairment below the coordination threshold: deal not enforced, message says the cap is suspended', seed != null && !lo.active && /suspended/.test(lo.text) && !/still holds/.test(lo.text), `seed ${seed}: ${lo.text}`);
+  check('…and the next year capability grows past the old cap', lo.cap > 78, String(lo.cap));
+  check('Impairment above the threshold: deal still enforced at 84, and the message says so', hi.impaired && hi.active && /still holds, but its cap rises to 84/.test(hi.text), hi.text);
+  check('…and the next year capability stays within 84', hi.cap <= 84, String(hi.cap));
+  check('The campaign verdict uses the impairment message', html.includes('M.dealImpairedText(s, L)') && !html.includes('It still holds, but its cap rises to 84'));
+  // C16-1: exact half-step ties count as about the same (scores are k/400 and j/40).
+  const t = M.rankAmong([3 / 40, 4 / 40], 35 / 400, 0.0125);
+  check('Half-step ties count as about the same (0.0875 vs 0.075 and 0.1)', t.same === 1 && t.below === 0 && t.above === 0, JSON.stringify(t));
+  const u = M.rankAmong([3 / 40, 4 / 40], 34 / 400, 0.0125);
+  check('Just past half a step is not about the same', u.same === 0.5 && u.above === 0.5, JSON.stringify(u));
+  // C16-2: difficulty percentages always total 100.
+  const r1 = M.roundShares([199 / 200, 0, 1 / 200]);
+  let sumOK = r1[0] + r1[1] + r1[2] === 100 && Math.min(...r1) >= 0;
+  const rng = M.mulberry32(5);
+  for (let i = 0; i < 2000; i++) {
+    const a = Math.floor(rng() * 201), b = Math.floor(rng() * (201 - a)), r = M.roundShares([a / 200, b / 200, (200 - a - b) / 200]);
+    if (r[0] + r[1] + r[2] !== 100 || Math.min(...r) < 0) sumOK = false;
+  }
+  check('Ending difficulty shares total 100 (199/0/1 and 2,000 random splits)', sumOK, JSON.stringify(r1));
+  // C16-3: Plan D's 2.5% safety shows as 2.5%, on the slider and in the export.
+  const leverText = new Function('M', html.match(/const leverText = [^\n]*/)[0] + ' return leverText;')(M);
+  check('Plan D safety displays as 2.5% (labels, slider, export)', leverText('safety', PR.PRESETS['Plan D: Race to ASI'].safety) === '2.5%' && leverText('safety', 0.35) === '35%'
+    && /\$\('sl-' \+ k\)\.value = M\.leverPct\(labL\[k\]\)/.test(html) && /step="0\.5" id="sl-/.test(html) && /\$\{leverText\(k, labL\[k\]\)\}/.test(html));
+  // AI Futures (Aug 2026): Automated Coder labelled 2028 (reached 2027) and superintelligence 2029.
+  const A = M.defaultAssumptions();
+  for (const k in PR.UNKNOWN_PRESETS['AI Futures (Aug 2026)'].set) A[k] = { ...A[k], ...PR.UNKNOWN_PRESETS['AI Futures (Aug 2026)'].set[k] };
+  const af = M.summarize(PR.PRESETS['Status quo'], A, 4000, 7);
+  check('AI Futures (Aug 2026): Automated Coder labelled 2028', af.acMedian === 2028, af.acMedian);
+  check('AI Futures (Aug 2026): superintelligence labelled 2029', af.asiMedian === 2029, af.asiMedian);
+  const words = PR.UNKNOWN_PRESETS['AI Futures (Aug 2026)'].html.replace(/<[^>]+>/g, '').split(/\s+/).length;
+  check('AI Futures note is at most 60 words', words <= 60, String(words));
+  // Eli Lifland's adjusted p(alignment) sits beside the plain one; calibration uses the plain one.
+  const adj = ['Plan A: Verified slowdown', 'Plan B: Fight China', 'Plan C: Burn the lead', 'Plan D: Race to ASI'].map((n) => PR.PLAN_INFO[n].align + '/' + PR.PLAN_INFO[n].alignAdj).join(' ');
+  check('Plan notes give Eli\'s plain and adjusted p(alignment)', adj === '72%/70% 50%/55% 40%/45% 25%/32%' && html.includes('info.alignAdj'), adj);
+}
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll checks passed');
 process.exit(failed ? 1 : 0);
