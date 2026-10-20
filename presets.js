@@ -69,7 +69,7 @@
     // as 2029). Only the starting point moves: 59 at AI 2040's pace puts about three quarters of
     // Automated Coders in 2027 and superintelligence a year later (labels 2028 and 2029).
     'AI Futures (Aug 2026)': { set: { capNow: { mean: 59, sd: 0 } },
-      html: `The AI Futures Project's <a href="${AIFP_UPDATE}" target="_blank" rel="noopener">August 2026 update</a>: its three methods (coding uplift, revenue and benchmark time horizons) give similar dates, and Daniel Kokotajlo's median for an Automated Coder is late 2027 (Eli Lifland's is 2030), if AI is developed as fast as technically feasible. This preset follows Kokotajlo's. Its main uplift method relies on lab staff's self-reported speed-ups; <a href="${METR_UPLIFT}" target="_blank" rel="noopener">METR's controlled study</a> measured far less. This starts 2027 at capability 59.` },
+      html: `The AI Futures Project's <a href="${AIFP_UPDATE}" target="_blank" rel="noopener">August 2026 update</a>, following Daniel Kokotajlo's median: an Automated Coder by late 2027 if AI is developed as fast as technically feasible (Eli Lifland's median is 2030). Its main method relies on lab staff's self-reported speed-ups; <a href="${METR_UPLIFT}" target="_blank" rel="noopener">METR's controlled study</a> measured far less. Starts 2027 at capability 59.` },
   };
 
   root.SimPresets = { AI2040_PLANS, PRESET_INFO, PLAN_INFO, PRESETS, UNKNOWN_PRESETS, TIME_RSI, GLADSTONE_RSI };
