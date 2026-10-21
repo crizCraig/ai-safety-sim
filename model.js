@@ -43,8 +43,15 @@
     capNow: { label: 'Current capability', mean: 44, sd: 0, min: 30, max: 62, fmt: 'num',
       marks: [[44, 'AI 2040'], [50, 'RSI 2027']],
       help: 'How capable the best AI is at the start of 2027 (US bloc; China starts 7 points behind). AI starts speeding up its own research at 50, and 70 is an Automated Coder. AI 2040 starts at 44; lab insiders quoted by Gladstone AI expect recursive self-improvement during 2027, which is about 50.' },
-    speed: { label: 'AI progress speed', mean: 1, sd: 0.3, min: 0.3, max: 2.5, fmt: 'x',
-      help: 'How fast AI improves for a given amount of compute. 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2031 and superintelligence to about 2033.' },
+    // Progress speed, lognormal in log10 units like ease: median 10^mean, spread ×10^sd. The median
+    // 1× is AI 2040's pace. The ln-sd 0.35 (central 90% about 0.56–1.78×) is an assumption informed
+    // by measured trends: Epoch's frontier training compute (~4–6×/yr) and algorithmic efficiency
+    // (~3×/yr) give effective-compute growth of roughly 0.72–1.31× the central rate through 2030,
+    // and METR's task-horizon doubling ranges from ~7 months (2019–25) to ~4.3 months (recent fit),
+    // a ratio of 1.63. Physical limits (HBM, CoWoS packaging, US power) make the slow worlds, though
+    // historically such walls have been stalls that get worked around more than ceilings.
+    speed: { label: 'AI progress speed', mean: 0, sd: 0.35 / Math.LN10, min: Math.log10(0.3), max: Math.log10(2.5), fmt: 'logx',
+      help: 'How fast AI improves for a given amount of compute. The median 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2031 and superintelligence to about 2033. 90% of worlds fall between about 0.56× and 1.78×, a spread informed by measured trends: frontier training compute growing 4–6× a year and algorithms about 3× a year (Epoch AI), and AI task horizons doubling every 4–7 months (METR). Slow worlds are ones where memory chips, chip packaging or US power hold AI back.' },
     benevolent: { label: 'Kind even if uncontrolled', mean: 0.1, sd: 0.25, min: 0, max: 1, fmt: 'pct',
       help: 'If humans lose control of AI, the chance it still cares for humanity. The future is then steered by AI, kindly, instead of by people (Benevolent Takeover).' },
     // China's own work and caution are judgments informed by published work (Concordia AI's
@@ -80,6 +87,23 @@
     return A;
   }
 
+  // Share links give progress speed in multiplier units, `speed=median:spread`, where the spread
+  // is the ln-sd (≈ the relative ±). Links from before speed was lognormal used N(mean, sd) in
+  // the same units, so they load with the same center and, at 1×, the same spread.
+  const urlCodec = {
+    speed: {
+      encode: (a) => [+Math.pow(10, a.mean).toFixed(3), +(a.sd * Math.LN10).toFixed(3)],
+      decode: (m, sd) => [m > 0 ? Math.log10(m) : NaN, sd / Math.LN10],
+    },
+  };
+  // [mean, sd] as written in a share link, and back. Other unknowns use their own units.
+  function assumptionToURL(k, a) {
+    return urlCodec[k] ? urlCodec[k].encode(a) : [+(+a.mean).toFixed(3), +(+a.sd).toFixed(3)];
+  }
+  function assumptionFromURL(k, m, sd) {
+    return urlCodec[k] ? urlCodec[k].decode(m, sd) : [m, sd];
+  }
+
   function gauss(rng) {
     return Math.sqrt(-2 * Math.log(1 - rng())) * Math.cos(2 * Math.PI * rng());
   }
@@ -92,7 +116,7 @@
     };
     const dd = diffDistOf(A);
     const difficulty = Math.min(5, Math.max(0.1, Math.pow(10, dd.mean + dd.sd * gauss(rng))));
-    const w = Object.assign({ difficulty, speed: draw('speed'), whistle: draw('whistle'), whistleNodes: clippedNodes(A.whistle, 0, 1).nodes }, difficultyWorld(difficulty, dd));
+    const w = Object.assign({ difficulty, speed: Math.pow(10, draw('speed')), whistle: draw('whistle'), whistleNodes: clippedNodes(A.whistle, 0, 1).nodes }, difficultyWorld(difficulty, dd));
     const pBen = draw('benevolent');
     Object.assign(w, { pBenevolent: clippedMean(A.benevolent), benevolent: rng() < pBen });
     // Bio: the decade risk is unclamped in log space (the tails are the point), capped below 1.
@@ -115,7 +139,7 @@
   function meanWorld() {
     const A = defaultAssumptions();
     const dd = diffDistOf(A), d = Math.pow(10, dd.mean);
-    return Object.assign({ difficulty: d, speed: A.speed.mean, capNow: A.capNow.mean, whistle: clippedMean(A.whistle), whistleNodes: clippedNodes(A.whistle, 0, 1).nodes,
+    return Object.assign({ difficulty: d, speed: Math.pow(10, A.speed.mean), capNow: A.capNow.mean, whistle: clippedMean(A.whistle), whistleNodes: clippedNodes(A.whistle, 0, 1).nodes,
       pBenevolent: clippedMean(A.benevolent), benevolent: false }, difficultyWorld(d, dd),
       chinaWorld(A, clippedMean(A.cnAlign), clippedMean(A.cnCaution)),
       evalWorld(A, clippedMean(A.evalGap)), shareWorld(A, clippedMean(A.share)),
@@ -779,7 +803,7 @@
     START_YEAR, END_YEAR, LEVER_INFO, STAT_INFO, OUTCOMES, ASSUMPTION_INFO,
     AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
-    clamp, sig, defaultLevers, defaultAssumptions, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
+    clamp, sig, defaultLevers, defaultAssumptions, assumptionToURL, assumptionFromURL, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
     risks, transitionOdds, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, summarize, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

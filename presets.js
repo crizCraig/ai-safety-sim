@@ -37,7 +37,7 @@
     'Safest mix': P({ race: 0, safety: 0.35, transparency: 1, biodef: 1, diplomacy: 1, oversight: 1, aggression: 0 }),
     // Smallest weighted change from the status quo that keeps catastrophe under 2%
     // (about 1.5% at 40,000 futures, seed 101). Harder-to-move levers weigh more.
-    'Under 2% risk': P({ race: 0.05, safety: 0.5, diplomacy: 1, oversight: 0.6, aggression: 0 }),
+    'Under 2% risk': P({ race: 0.02, safety: 0.5, diplomacy: 1, oversight: 0.6, aggression: 0 }),
     'Status quo': P({}),
     // AI 2040's five plans as fixed levers (their plans change over time; these are approximations).
     'Plan A: Verified slowdown': P({ race: 0.35, safety: 0.08, openness: 0.15, transparency: 0.9, biodef: 0.5, diplomacy: 0.85, oversight: 0.7 }),
@@ -62,7 +62,10 @@
   const UNKNOWN_PRESETS = {
     'AI 2040 (default)': { set: {},
       text: 'The default unknowns, with timelines calibrated to AI 2040: an Automated Coder around 2030 and superintelligence around 2031 on today\'s path.' },
-    'RSI 2027 (lab insiders)': { set: { capNow: { mean: 50, sd: 0 }, speed: { mean: 1.3, sd: 0.3 } },
+    // Speed is lognormal in log10 units: median 1.3× with the default spread (ln-sd 0.35). Links
+    // made before that wrote speed=1.3:0.3, which `legacy` maps back to this scenario.
+    'RSI 2027 (lab insiders)': { set: { capNow: { mean: 50, sd: 0 }, speed: { mean: Math.log10(1.3), sd: 0.35 / Math.LN10 } },
+      legacy: { speed: '1.3:0.3' },
       html: `Most frontier-lab researchers interviewed for Gladstone AI's <a href="${GLADSTONE_RSI}" target="_blank" rel="noopener">report</a> (via <a href="${TIME_RSI}" target="_blank" rel="noopener">TIME</a>, Oct 2026) expect recursive self-improvement within 3 to 12 months, absent U.S. government intervention. This starts 2027 at capability 50, where AI speeds up its own research, at 1.3× AI 2040's pace. Milestones come about a year earlier (Automated Coder ~2029, superintelligence ~2030), and Plan A's catastrophe share roughly doubles.` },
     // Daniel Kokotajlo's all-things-considered Automated Coder median is Nov 2027; the Lab labels a
     // milestone with the year after it is reached, so that is the Lab's 2028 (as RSI's 2028 shows

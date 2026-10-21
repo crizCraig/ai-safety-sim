@@ -487,5 +487,33 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Plan notes give Eli\'s plain and adjusted p(alignment)', adj === '72%/70% 50%/55% 40%/45% 25%/32%' && html.includes('info.alignAdj'), adj);
 }
 
+// --- Progress speed is lognormal: median 1×, central 90% about 0.56–1.78× (ln-sd 0.35) ---
+{
+  const PR = globalThis.SimPresets, html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+  const rng = M.mulberry32(23), n = 40000, v = [];
+  for (let i = 0; i < n; i++) v.push(M.sampleWorld(A0, rng, true).speed);
+  v.sort((a, b) => a - b);
+  const q = (p) => v[Math.floor(p * (n - 1))];
+  check('Speed median ≈ 1× (±0.02)', near(q(0.5), 1, 0.02), q(0.5).toFixed(3));
+  check('Speed central 90% ≈ 0.56–1.78× (±0.03)', near(q(0.05), 0.562, 0.03) && near(q(0.95), 1.778, 0.03), `${q(0.05).toFixed(2)}–${q(0.95).toFixed(2)}`);
+  check('Speed stays within [0.3, 2.5]', v[0] >= 0.3 - 1e-12 && v[n - 1] <= 2.5 + 1e-12, `${v[0].toFixed(2)}–${v[n - 1].toFixed(2)}`);
+  check('Mean world runs at 1×', Math.abs(M.meanWorld().speed - 1) < 1e-12);
+  const w1 = M.sampleWorld(A0, M.mulberry32(31)), w2 = M.sampleWorld(A0, M.mulberry32(31));
+  check('Speed draws are deterministic per seed', JSON.stringify(w1) === JSON.stringify(w2));
+  // Share links: speed is written in multiplier units (median:ln-sd), so links from before it was
+  // lognormal (N(mean, sd) in ×) keep their center.
+  const [m, sd] = M.assumptionFromURL('speed', 1.3, 0.3);
+  check('Old link speed=1.3:0.3 loads with median 1.3×', Math.abs(Math.pow(10, m) - 1.3) < 1e-9 && Math.abs(sd * Math.LN10 - 0.3) < 1e-9, `${Math.pow(10, m).toFixed(3)}× ln-sd ${(sd * Math.LN10).toFixed(3)}`);
+  const rsi = PR.UNKNOWN_PRESETS['RSI 2027 (lab insiders)'];
+  check('RSI 2027 keeps a 1.3× median with the default spread', Math.abs(Math.pow(10, rsi.set.speed.mean) - 1.3) < 1e-9 && rsi.set.speed.sd === A0.speed.sd);
+  check('RSI 2027 maps its old speed=1.3:0.3 link back to itself', rsi.legacy.speed === '1.3:0.3' && html.includes('u.legacy?.[k] === raw.join(\':\')'));
+  const back = M.assumptionFromURL('speed', ...M.assumptionToURL('speed', rsi.set.speed));
+  check('RSI 2027 speed round-trips through a share link exactly', back[0] === rsi.set.speed.mean && back[1] === rsi.set.speed.sd, M.assumptionToURL('speed', rsi.set.speed).join(':'));
+  const dflt = M.assumptionFromURL('speed', ...M.assumptionToURL('speed', A0.speed));
+  check('Default speed round-trips through a share link exactly', dflt[0] === A0.speed.mean && dflt[1] === A0.speed.sd, M.assumptionToURL('speed', A0.speed).join(':'));
+  check('Other unknowns keep their own URL units', JSON.stringify(M.assumptionToURL('ease', A0.ease)) === '[0.1,0.4]');
+  check('Model reference gives the lognormal speed spread', html.includes('\\log_{10} \\varphi \\sim \\mathcal{N}(0,\\ 0.152)') && html.includes('0.56–1.78×'));
+}
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll checks passed');
 process.exit(failed ? 1 : 0);
