@@ -100,8 +100,24 @@
   function assumptionToURL(k, a) {
     return urlCodec[k] ? urlCodec[k].encode(a) : [+(+a.mean).toFixed(3), +(+a.sd).toFixed(3)];
   }
+  // Links round to 3 decimals to stay short, so decoding snaps back to the exact values the
+  // page can produce: the default or a scenario's values if the link matches their encoding,
+  // otherwise the nearest slider position (center min + k·step, spread k·step).
   function assumptionFromURL(k, m, sd) {
-    return urlCodec[k] ? urlCodec[k].decode(m, sd) : [m, sd];
+    const info = ASSUMPTION_INFO[k];
+    if (info) {
+      const cands = [defaultAssumptions()[k]];
+      const UP = root.SimPresets && root.SimPresets.UNKNOWN_PRESETS;
+      if (UP) for (const u of Object.values(UP)) if (u.set && u.set[k]) cands.push(u.set[k]);
+      for (const c of cands) { const [em, es] = assumptionToURL(k, c); if (em === m && es === sd) return [c.mean, c.sd]; }
+    }
+    let [mv, sv] = urlCodec[k] ? urlCodec[k].decode(m, sd) : [m, sd];
+    if (info) {
+      const step = info.fmt === 'num' ? 1 : 0.01;
+      const snap = (v, base, st) => { if (!Number.isFinite(v)) return v; const g = base + Math.round((v - base) / st) * st; return Math.abs(g - v) <= st * 0.1 ? g : v; };
+      mv = snap(mv, info.min, step); sv = snap(sv, 0, 0.01); // the spread slider always steps by 0.01
+    }
+    return [mv, sv];
   }
 
   function gauss(rng) {

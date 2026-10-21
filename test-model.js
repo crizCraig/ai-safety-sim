@@ -503,7 +503,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   // Share links: speed is written in multiplier units (median:ln-sd), so links from before it was
   // lognormal (N(mean, sd) in ×) keep their center.
   const [m, sd] = M.assumptionFromURL('speed', 1.3, 0.3);
-  check('Old link speed=1.3:0.3 loads with median 1.3×', Math.abs(Math.pow(10, m) - 1.3) < 1e-9 && Math.abs(sd * Math.LN10 - 0.3) < 1e-9, `${Math.pow(10, m).toFixed(3)}× ln-sd ${(sd * Math.LN10).toFixed(3)}`);
+  check('Old link speed=1.3:0.3 loads with median 1.3×', Math.abs(Math.pow(10, m) - 1.3) < 1e-9 && Math.abs(sd * Math.LN10 - 0.3) < 0.005, `${Math.pow(10, m).toFixed(3)}× ln-sd ${(sd * Math.LN10).toFixed(3)}`);
   const rsi = PR.UNKNOWN_PRESETS['RSI 2027 (lab insiders)'];
   check('RSI 2027 keeps a 1.3× median with the default spread', Math.abs(Math.pow(10, rsi.set.speed.mean) - 1.3) < 1e-9 && rsi.set.speed.sd === A0.speed.sd);
   check('RSI 2027 maps its old speed=1.3:0.3 link back to itself', rsi.legacy.speed === '1.3:0.3' && html.includes('u.legacy?.[k] === raw.join(\':\')'));
@@ -513,6 +513,26 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Default speed round-trips through a share link exactly', dflt[0] === A0.speed.mean && dflt[1] === A0.speed.sd, M.assumptionToURL('speed', A0.speed).join(':'));
   check('Other unknowns keep their own URL units', JSON.stringify(M.assumptionToURL('ease', A0.ease)) === '[0.1,0.4]');
   check('Model reference gives the lognormal speed spread', html.includes('\\log_{10} \\varphi \\sim \\mathcal{N}(0,\\ 0.152)') && html.includes('0.56–1.78×'));
+}
+
+// --- C20-1: share links are short (3 decimals) but every slider position round-trips exactly ---
+{
+  const PR = globalThis.SimPresets, bad = [];
+  for (const k of Object.keys(M.ASSUMPTION_INFO)) {
+    const info = M.ASSUMPTION_INFO[k], step = info.fmt === 'num' ? 1 : 0.01, maxSd = (info.max - info.min) / 3;
+    const means = [], sds = [];
+    for (let i = 0; info.min + i * step <= info.max + 1e-9; i++) means.push(info.min + i * step);
+    for (let i = 0; i * 0.01 <= maxSd + 1e-9; i++) sds.push(i * 0.01);
+    for (const mean of means) for (const sd of [sds[0], sds[7], sds[17], sds[sds.length - 1]].filter((x) => x !== undefined)) {
+      const [m, s2] = M.assumptionToURL(k, { mean, sd }), [bm, bs] = M.assumptionFromURL(k, +String(m), +String(s2));
+      if (bm !== mean || bs !== sd) { bad.push(`${k} ${mean}:${sd} -> ${bm}:${bs}`); break; }
+    }
+    const presets = [M.defaultAssumptions()[k], ...Object.values(PR.UNKNOWN_PRESETS).map((u) => u.set[k]).filter(Boolean)];
+    for (const c of presets) { const [m, s2] = M.assumptionToURL(k, c), [bm, bs] = M.assumptionFromURL(k, +String(m), +String(s2)); if (bm !== c.mean || bs !== c.sd) bad.push(`${k} preset ${c.mean}:${c.sd}`); }
+  }
+  check('Every unknown slider position and preset round-trips exactly through a share link', !bad.length, bad.slice(0, 3).join('; ') || 'ok');
+  const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+  check('New share links carry v=2, and only links without it are migrated', html.includes("['v=2', ...parts]") && html.includes("if (!q.has('v')) for (const [k, raw]"));
 }
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll checks passed');
