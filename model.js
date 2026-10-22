@@ -354,6 +354,15 @@
     return Math.min(40, 3 * Math.pow(40 / 3, (c - AC) / (TEDAI - AC)));
   }
 
+  // Loss-of-control onset gate: how much of AI research AI itself does. With an R&D speed-up U,
+  // AI does about 1 - 1/U of the work (0 below 50, half at 2×, two-thirds at an Automated Coder,
+  // 97% at TED-AI). Once AI does most of its own research it can quietly shape its successors
+  // (sandbagging safety work, tampering with training, hiding its goals) before top-expert level.
+  // The gate is half open at 70% automation (U ≈ 3.3, capability ≈ 72) and about 0.94 at 90.
+  const RD_SHARE_MID = 0.7, RD_SHARE_W = 0.1;
+  const rdShare = (c) => 1 - 1 / uplift(c);
+  const locGate = (c) => sig((rdShare(c) - RD_SHARE_MID) / RD_SHARE_W);
+
   // Effective compute from race intensity. AI 2040: 10× less compute makes the
   // intelligence explosion ~5.5× slower, i.e. speed ∝ compute^0.74. Race 0.55 = 1× (the default
   // race 0.7 is about 1.2×); race ≈ 0 is a halt.
@@ -460,8 +469,8 @@
     // default. Shown as the expectation over difficulty and China's own alignment work;
     // the roll uses the truth.
     // AI 2040: most takeover risk comes from AIs deployed inside labs, out of view.
-    const internalF = 0.4 + 0.9 * s.internal / 100;
-    const lossAt = (own, over) => 0.3 * sig((mc - effAlign(s, L, own, over) - 36) / 6) * sig((mc - 78) / 4) * internalF;
+    const internalF = 0.4 + 0.9 * s.internal / 100, gate = locGate(mc);
+    const lossAt = (own, over) => 0.3 * sig((mc - effAlign(s, L, own, over) - 36) / 6) * gate * internalF;
     // Monte Carlo runs (s.fast) never show beliefs, so they skip the averages.
     let lossBelief = 0;
     if (s.fast) lossBelief = lossAt(s.world.cnMean ?? s.world.cnAlign ?? 0, s.world.egMean ?? s.world.evalGap ?? 0);
@@ -817,7 +826,7 @@
 
   root.SimModel = {
     START_YEAR, END_YEAR, LEVER_INFO, STAT_INFO, OUTCOMES, ASSUMPTION_INFO,
-    AC, TOP_EXPERT, TEDAI, uplift, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
+    AC, TOP_EXPERT, TEDAI, uplift, rdShare, locGate, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, assumptionToURL, assumptionFromURL, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
     risks, transitionOdds, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, summarize, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,

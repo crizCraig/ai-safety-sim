@@ -535,5 +535,24 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('New share links carry v=2, and only links without it are migrated', html.includes("['v=2', ...parts]") && html.includes("if (!q.has('v')) for (const [k, raw]"));
 }
 
+// --- Loss-of-control onset follows how much of AI research AI does ---
+{
+  const g = M.locGate, old = (c) => M.sig((c - 78) / 4);
+  const cs = Array.from({ length: 141 }, (_, i) => 30 + i * 0.5);
+  check('Onset gate is closed while AI does none of its own research (≤ 50)', g(44) < 0.002 && g(50) < 0.002, `${g(44).toFixed(4)}, ${g(50).toFixed(4)}`);
+  check('Onset gate never falls as capability rises', cs.every((c, i) => !i || g(c) >= g(cs[i - 1]) - 1e-12));
+  check('Onset gate tracks the R&D speed-up: share 1 - 1/U, half open at 70%', Math.abs(M.rdShare(70) - 2 / 3) < 1e-12 && cs.every((c) => Math.abs(g(c) - M.sig((1 - 1 / M.uplift(c) - 0.7) / 0.1)) < 1e-12));
+  check('Onset gate opens earlier than the old top-expert gate at 2–3× speed-up', g(62.6) > 4 * old(62.6) && g(70) > 3 * old(70), `U=2: ${g(62.6).toFixed(3)} vs ${old(62.6).toFixed(3)}; AC: ${g(70).toFixed(3)} vs ${old(70).toFixed(3)}`);
+  check('Onset gate is near 1 by top-expert-dominating AI (≥ 0.93 at 90)', g(90) >= 0.93 && g(100) >= 0.93, g(90).toFixed(3));
+  // Shown and rolled risk use the same gate: with no hidden uncertainty they agree exactly.
+  const L = M.defaultLevers(), st = Object.assign(M.initialState(), { capUS: 72, capCN: 66, align: 30 });
+  const w = Object.assign({}, st.world, { hazard: st.world.hazardBelief, cnNodes: null, egNodes: null, cnAlign: 0, evalGap: 0 });
+  const r1 = M.risks(Object.assign({}, st, { world: w }), L), r2 = M.risks(Object.assign({}, st, { world: w }), L);
+  check('Shown and true loss-of-control risk agree when nothing is hidden, and repeat exactly', r1.misalign > 0 && Math.abs(r1.misalign - r1.misalignTrue) < 1e-12 && r1.misalign === r2.misalign && r1.misalignTrue === r2.misalignTrue, r1.misalign.toExponential(3));
+  const A = M.defaultAssumptions();
+  for (const k in globalThis.SimPresets.UNKNOWN_PRESETS['RSI 2027 (lab insiders)'].set) A[k] = { ...globalThis.SimPresets.UNKNOWN_PRESETS['RSI 2027 (lab insiders)'].set[k] };
+  check('Same seed gives the same RSI 2027 results', JSON.stringify(M.summarize(PRESETS['Status quo'], A, 1500, 3).counts) === JSON.stringify(M.summarize(PRESETS['Status quo'], A, 1500, 3).counts));
+}
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll checks passed');
 process.exit(failed ? 1 : 0);
