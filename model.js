@@ -34,8 +34,9 @@
   // Game of AGI, each simulated future samples them from Gaussians (mean ± sd).
   const ASSUMPTION_INFO = {
     // Ease of alignment = 1 / difficulty. Lognormal, set in log10 units: median
-    // 10^mean, spread ×10^sd. Calibrated to AI 2040's p(alignment) estimates.
-    ease: { label: 'Ease of alignment', mean: 0.10, sd: 0.4, min: -0.6, max: 0.7, fmt: 'logx',
+    // 10^mean, spread ×10^sd. Calibrated to AI 2040's p(alignment) estimates (0.10 before
+    // delegation was added; 0.13 restores Plan B's p(alignment) to where it was).
+    ease: { label: 'Ease of alignment', mean: 0.13, sd: 0.4, min: -0.6, max: 0.7, fmt: 'logx',
       help: 'How hard the problem really is: how much real alignment the superintelligence handoff needs. Policy cannot change it. Easy enough (above 3.3×), fixing safety problems as they come up leads to long-term alignment and loss of control cannot happen; at 0.5×, progress comes at half the speed. Compare "Tests overstate alignment", which is about measuring progress, not the problem itself.' },
     // Where the frontier stands at the start of 2027. AI 2040's starting point is 44; Gladstone
     // AI's lab insiders expect recursive self-improvement (AI substantially speeding up AI R&D,

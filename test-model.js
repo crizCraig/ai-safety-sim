@@ -511,7 +511,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('RSI 2027 speed round-trips through a share link exactly', back[0] === rsi.set.speed.mean && back[1] === rsi.set.speed.sd, M.assumptionToURL('speed', rsi.set.speed).join(':'));
   const dflt = M.assumptionFromURL('speed', ...M.assumptionToURL('speed', A0.speed));
   check('Default speed round-trips through a share link exactly', dflt[0] === A0.speed.mean && dflt[1] === A0.speed.sd, M.assumptionToURL('speed', A0.speed).join(':'));
-  check('Other unknowns keep their own URL units', JSON.stringify(M.assumptionToURL('ease', A0.ease)) === '[0.1,0.4]');
+  check('Other unknowns keep their own URL units', JSON.stringify(M.assumptionToURL('ease', A0.ease)) === '[0.13,0.4]');
   check('Model reference gives the lognormal speed spread', html.includes('\\log_{10} \\varphi \\sim \\mathcal{N}(0,\\ 0.152)') && html.includes('0.56–1.78×'));
 }
 

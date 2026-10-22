@@ -453,11 +453,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261022152638"></script>
-<script src="events.js?v=20261022152638"></script>
-<script src="landmask.js?v=20261022152638"></script>
-<script src="presets.js?v=20261022152638"></script>
-<script src="trees.js?v=20261022152638"></script>
+<script src="model.js?v=20261022152942"></script>
+<script src="events.js?v=20261022152942"></script>
+<script src="landmask.js?v=20261022152942"></script>
+<script src="presets.js?v=20261022152942"></script>
+<script src="trees.js?v=20261022152942"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -671,7 +671,7 @@
     <div class="tablewrap"><table>
       <thead><tr><th>Symbol</th><th>Meaning</th><th>Distribution</th></tr></thead>
       <tbody>
-        <tr><td><span class="mi">1/\delta</span></td><td>Ease of alignment: how hard the problem really is, which policy cannot change. The equations use its inverse, difficulty <span class="mi">\delta</span>. Above 3.3× ease (<span class="mi">\delta \le 0.3</span>, about 15% of worlds) fixing safety problems as they come up leads to long-term alignment without a general solution, and loss of control cannot happen</td><td><span class="mi">\log_{10}(1/\delta) \sim \mathcal{N}(0.10,\ 0.4)</span>, median 1.26× <span class="src a2040">AI 2040</span> (calibrated)</td></tr>
+        <tr><td><span class="mi">1/\delta</span></td><td>Ease of alignment: how hard the problem really is, which policy cannot change. The equations use its inverse, difficulty <span class="mi">\delta</span>. Above 3.3× ease (<span class="mi">\delta \le 0.3</span>, about 16% of worlds) fixing safety problems as they come up leads to long-term alignment without a general solution, and loss of control cannot happen</td><td><span class="mi">\log_{10}(1/\delta) \sim \mathcal{N}(0.13,\ 0.4)</span>, median 1.35× <span class="src a2040">AI 2040</span> (calibrated)</td></tr>
         <tr><td><span class="mi">C_0</span></td><td>Current capability: the US bloc's capability at the start of 2027; China starts 7 points behind (<span class="mi">C_{\text{CN}} = C_0 - 7</span>). 44 matches AI 2040; the RSI 2027 scenario starts at 50</td><td><span class="mi">\mathcal{N}(44,\ 0)</span>, clipped to [30, 62]; fixed at its center unless given a spread</td></tr>
         <tr><td><span class="mi">\varphi</span></td><td>AI progress speed: how fast AI improves for a given amount of compute. Measured trends set the spread: frontier training compute has grown 4–6× a year and algorithmic efficiency about 3× a year (<a href="https://epoch.ai/trends" target="_blank" rel="noopener">Epoch AI</a>), about 0.7–1.3× the central rate of effective-compute growth through 2030, and AI task horizons have doubled every 4–7 months (<a href="https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/" target="_blank" rel="noopener">METR</a>). Slow worlds are those where memory (HBM), chip packaging and US power <a href="https://epoch.ai/blog/can-ai-scaling-continue-through-2030" target="_blank" rel="noopener">bind first</a>; historically such walls have been stalls that get worked around more than ceilings</td><td><span class="mi">\log_{10} \varphi \sim \mathcal{N}(0,\ 0.152)</span>, i.e. lognormal with median 1× and ln-sd 0.35 (central 90% about 0.56–1.78×), clipped to [0.3, 2.5]. Median <span class="src a2040">AI 2040</span>; spread <span class="src china long">Assumption, informed by Epoch AI's compute and algorithm trends and METR's task horizons</span></td></tr>
         <tr><td><span class="mi">W</span></td><td>If humans lose control of AI, whether it still cares for humanity (1) or not (0). If 1, AI rather than humanity steers the future, but kindly</td><td><span class="mi">W \sim \text{Bernoulli}(w),\ w \sim \mathcal{N}(0.10,\ 0.25)</span>, clipped to [0, 1] <span class="src own">Assumption</span></td></tr>
@@ -741,14 +741,14 @@
       <tbody>
         <tr><td>Automated Coder, default path</td><td>~2030 (AI 2040)</td><td>2030 (median)</td></tr>
         <tr><td>Superintelligence after Automated Coder</td><td>~1 year (AI 2040)</td><td>1–2 years</td></tr>
-        <tr><td>p(alignment), race to superintelligence</td><td>25% (Eli Lifland, AI 2040)</td><td>15%</td></tr>
-        <tr><td>p(alignment), Plan B: fight China</td><td>50% (Eli Lifland, AI 2040)</td><td>43% (below the ±5 check since delegation was added; see the proposed recalibration)</td></tr>
-        <tr><td>p(alignment), burn the lead</td><td>40% (Eli Lifland, AI 2040)</td><td>36%</td></tr>
-        <tr><td>p(alignment), Plan A</td><td>72% (Eli Lifland, AI 2040)</td><td>73%</td></tr>
+        <tr><td>p(alignment), race to superintelligence</td><td>25% (Eli Lifland, AI 2040)</td><td>17%</td></tr>
+        <tr><td>p(alignment), Plan B: fight China</td><td>50% (Eli Lifland, AI 2040)</td><td>45%</td></tr>
+        <tr><td>p(alignment), burn the lead</td><td>40% (Eli Lifland, AI 2040)</td><td>39%</td></tr>
+        <tr><td>p(alignment), Plan A</td><td>72% (Eli Lifland, AI 2040)</td><td>76%</td></tr>
         <tr><td>Locked-In Power share of status-quo futures where humans keep control</td><td>about 70% (Craig's estimate)</td><td>71% (40,000 futures, seed 101)</td></tr>
         <tr><td>Bio decade risk actually faced on the default path: median</td><td>1.2e-4</td><td>1.0e-4</td></tr>
         <tr><td>Bio decade risk: 95% interval</td><td>5e-7 to 3e-2</td><td>3.8e-7 to 2.5e-2</td></tr>
-        <tr><td>Bio decade risk: P(&gt; 1%), P(&gt; 10%)</td><td>0.055, 0.007</td><td>0.051, 0.007</td></tr>
+        <tr><td>Bio decade risk: P(&gt; 1%), P(&gt; 10%)</td><td>0.055, 0.007</td><td>0.052, 0.007</td></tr>
       </tbody>
     </table></div>
     <p>Figures from 30,000–40,000 simulated futures. The realized bio median sits a little below the target because futures last different lengths of time, so each world's exposure varies around the average used for calibration. p(alignment) counts aligned handoffs as 1 and loss of control as 0, benevolent or not; futures still short of superintelligence in 2040 count their handoff odds given the hidden world; pandemic and war futures are left out.</p>
@@ -771,7 +771,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261022152638';
+const ASSET_VERSION = '20261022152942';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
