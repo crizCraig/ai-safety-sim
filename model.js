@@ -470,7 +470,7 @@
     // the roll uses the truth.
     // AI 2040: most takeover risk comes from AIs deployed inside labs, out of view.
     const internalF = 0.4 + 0.9 * s.internal / 100, gate = locGate(mc);
-    const lossAt = (own, over) => 0.3 * sig((mc - effAlign(s, L, own, over) - 36) / 6) * gate * internalF;
+    const lossAt = (own, over) => 0.25 * sig((mc - effAlign(s, L, own, over) - 36) / 6) * gate * internalF;
     // Monte Carlo runs (s.fast) never show beliefs, so they skip the averages.
     let lossBelief = 0;
     if (s.fast) lossBelief = lossAt(s.world.cnMean ?? s.world.cnAlign ?? 0, s.world.egMean ?? s.world.evalGap ?? 0);
