@@ -9,7 +9,7 @@
   const AI2040_PLANS = 'https://ai-2040.com/supplements/comparing-possible-plans';
   // Short descriptions for the non-AI-2040 presets.
   const PRESET_INFO = {
-    'Under 2% risk': 'The smallest change from the status quo that keeps catastrophe under 2% under the default (AI 2040) assumptions, found by searching all levers. Only four levers move: slow the race almost to a stop, put half of AI compute on safety, cooperate fully with China, and set up strong oversight. Everything else stays at today\'s settings.',
+    'Under 2% risk': 'The smallest change from the status quo that keeps catastrophe under 2% under the default (AI 2040) assumptions, found by searching all levers. Only four levers move: stop the race, put half of AI compute on safety, cooperate fully with China, and set up strong oversight. Everything else stays at today\'s settings.',
     'Safest mix': 'The safest settings a search over every lever could find: stop racing, put a third of AI compute on safety, publish all research, and max out biodefense, diplomacy and oversight. With racing stopped, open weights and neural interfaces can stay at today\'s settings without adding risk. Under the default (AI 2040) assumptions, about 1% of futures still end badly, mostly in war, because China only partly slows down. Most futures reach 2040 on the careful path, with superintelligence still ahead.',
     'Status quo': 'Today\'s trajectory: an intense race, an illustrative 5% of AI compute on safety (no lab publishes this figure; OpenAI\'s 2023 pledge of 20% was reportedly never met), partly open weights and little diplomacy.',
     'Open everything': 'Release frontier weights and most research. Power spreads out, but capable models reach anyone, including would-be bioterrorists. Pandemic risk only bites on paths that last long enough for open models to reach expert level.',
@@ -37,7 +37,7 @@
     'Safest mix': P({ race: 0, safety: 0.35, transparency: 1, biodef: 1, diplomacy: 1, oversight: 1, aggression: 0 }),
     // Smallest weighted change from the status quo that keeps catastrophe under 2%
     // (about 1.5% at 40,000 futures, seed 101). Harder-to-move levers weigh more.
-    'Under 2% risk': P({ race: 0.02, safety: 0.5, diplomacy: 1, oversight: 0.6, aggression: 0 }),
+    'Under 2% risk': P({ race: 0, safety: 0.5, diplomacy: 1, oversight: 0.6, aggression: 0 }),
     'Status quo': P({}),
     // AI 2040's five plans as fixed levers (their plans change over time; these are approximations).
     'Plan A: Verified slowdown': P({ race: 0.35, safety: 0.08, openness: 0.15, transparency: 0.9, biodef: 0.5, diplomacy: 0.85, oversight: 0.7 }),
