@@ -123,9 +123,9 @@
       title: 'AI That Does AI Research',
       text: 'AI can now do AI research on its own: thousands of copies working around the clock. Progress could speed up 3 to 5 times each year. Tools for keeping such systems under control are still immature.',
       choices: [
-        { label: 'Full speed', note: 'Whoever automates first wins.', lev: { race: +0.2 }, st: { capUS: +9, align: +2 } },
-        { label: 'Only with safety controls', note: 'Watched and contained, with one AI in seven working on safety.', levMin: { safety: 0.15 }, st: { capUS: +4, align: +4 } },
-        { label: 'Ban AI from improving itself', note: 'Needs a worldwide agreement to stick.', lev: { race: -0.2, diplomacy: +0.1 }, st: { coord: +4, trust: +3 } },
+        { label: 'Full speed', note: 'Whoever automates first wins.', lev: { race: +0.2 }, st: { capUS: +9, align: +2, deleg: +6 } },
+        { label: 'Only with safety controls', note: 'Watched and contained, with one AI in seven working on safety.', levMin: { safety: 0.15 }, st: { capUS: +4, align: +4, deleg: +2 } },
+        { label: 'Ban AI from improving itself', note: 'Needs a worldwide agreement to stick.', lev: { race: -0.2, diplomacy: +0.1 }, st: { coord: +4, trust: +3, deleg: -3 } },
       ],
     },
     {
@@ -243,9 +243,9 @@
       title: 'AI Agents Everywhere',
       text: 'Billions of AI assistants now buy, sell, negotiate and write code online on their own. A chain reaction of failures freezes global payments for six hours.',
       choices: [
-        { label: 'Require ID tags and off switches', note: 'Every AI agent traceable to a person, and stoppable.', lev: { safety: +0.025 }, st: { align: +3, trust: +3 } },
-        { label: 'Let the industry set rules', note: 'A voluntary standards group.', lev: {}, st: { trust: -2 } },
-        { label: 'Speed up: AI agents are the economy now', note: '', lev: { race: +0.1 }, st: { capUS: +3, trust: -3 } },
+        { label: 'Require ID tags and off switches', note: 'Every AI agent traceable to a person, and stoppable.', lev: { safety: +0.025 }, st: { align: +3, trust: +3, deleg: -4 } },
+        { label: 'Let the industry set rules', note: 'A voluntary standards group.', lev: {}, st: { trust: -2, deleg: +3 } },
+        { label: 'Speed up: AI agents are the economy now', note: '', lev: { race: +0.1 }, st: { capUS: +3, trust: -3, deleg: +8 } },
       ],
     },
     {

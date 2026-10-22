@@ -554,5 +554,54 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Same seed gives the same RSI 2027 results', JSON.stringify(M.summarize(PRESETS['Status quo'], A, 1500, 3).counts) === JSON.stringify(M.summarize(PRESETS['Status quo'], A, 1500, 3).counts));
 }
 
+// --- Delegation Λ: decisions handed to AI with little human checking ---
+{
+  const fs = require('fs'), html = fs.readFileSync(__dirname + '/index.html', 'utf8');
+  const L = M.defaultLevers(), SQ = PRESETS['Status quo'], SAFE = PRESETS['Safest mix'];
+  const s0 = M.initialState();
+  check('Delegation starts at 12 in 2027 and is a campaign state variable', s0.deleg === 12 && M.DELEG0 === 12 && !!M.STAT_INFO.deleg);
+  // One expected-value step from a given state and levers (no noise: rng 0.5).
+  const after = (st, Lx) => { const s = Object.assign(M.initialState(), st); M.step(s, Lx, () => 0.5, false); return s.deleg; };
+  const base = { capUS: 60, capCN: 55, deleg: 20 };
+  const want = (() => { const mc = 60, sx = Math.min(1, M.safetyEffect(L.safety));
+    return 20 + (2.5 + 0.06 * (mc - 40) + 10 * M.rdShare(mc)) * (0.5 + L.race) * 0.8 - (0.15 * L.oversight + 0.1 * L.transparency + 0.1 * sx) * 20; })();
+  check('Delegation update matches its equation', Math.abs(after(base, L) - want) < 1e-9, `${after(base, L).toFixed(3)} vs ${want.toFixed(3)}`);
+  check('Delegation grows with capability (automation)', after({ ...base, capUS: 75 }, L) > after(base, L) + 1 && after(base, L) > after({ ...base, capUS: 45, capCN: 40 }, L));
+  check('Racing raises delegation; a pause slows it', after(base, { ...L, race: 1 }) > after(base, L) && after(base, L) > after(base, { ...L, race: 0 }));
+  check('Oversight, transparency and safety share each lower it', ['oversight', 'transparency', 'safety'].every((k) => after(base, { ...L, [k]: Math.min(1, L[k] + 0.5) }) < after(base, L)));
+  check('Delegation stays within 0–100', after({ ...base, deleg: 100, capUS: 99 }, { ...L, race: 1 }) <= 100 && after({ ...base, deleg: 0 }, SAFE) >= 0);
+  // Effects, each neutral at the 2027 level.
+  const at = (d, extra) => Object.assign(M.initialState(), { capUS: 80, capCN: 74, align: 40, deleg: d }, extra);
+  const Lov = { ...L, oversight: 1, transparency: 1 };
+  check('Rubber-stamp oversight: delegation weakens oversight\'s grip on the evaluation gap', M.hiddenShare(at(80), Lov) > M.hiddenShare(at(12), Lov) + 0.2,
+    `${M.hiddenShare(at(12), Lov).toFixed(3)} -> ${M.hiddenShare(at(80), Lov).toFixed(3)}`);
+  const hNext = (d) => { const s = at(d); M.step(s, Lov, () => 0.5, false); return s.internal; };
+  check('…and its pull on hidden internal AI', hNext(80) > hNext(12) + 2, `${hNext(12).toFixed(1)} -> ${hNext(80).toFixed(1)}`);
+  const q = (d) => M.transitionOdds(at(d, { capUS: 100, align: 75 }), false, L);
+  check('Delegation raises the handoff bar (lower odds)', q(60) < q(12) - 0.02, `${(100 * q(12)).toFixed(1)}% -> ${(100 * q(60)).toFixed(1)}%`);
+  const loc = (d) => M.risks(at(d), L).misalign;
+  check('Delegation raises the yearly loss-of-control hazard modestly (×1.1–1.5 at 100)', loc(100) / loc(12) > 1.1 && loc(100) / loc(12) < 1.6, (loc(100) / loc(12)).toFixed(3));
+  check('Delegation effects are neutral at the 2027 level', M.delegHazard(s0) === 1 && Math.abs(M.oversightBite(s0) - 0.94) < 1e-12);
+  // Trajectories: higher on the status quo than on Plan A or the Safest mix.
+  const traj = (Lx, seed) => { const rng = M.mulberry32(seed), out = [];
+    for (let i = 0; i < 400; i++) { const s = M.initialState(M.sampleWorld(A0, rng)); s.fast = true;
+      for (let y = 0; y < 3 && !s.outcome; y++) M.step(s, Lx, rng, true); if (!s.outcome) out.push(s.deleg); }
+    out.sort((a, b) => a - b); return out[out.length >> 1]; };
+  const dSQ = traj(SQ, 4), dA = traj(PRESETS['Plan A: Verified slowdown'], 4), dS = traj(SAFE, 4);
+  check('Delegation by 2030: status quo > Plan A > Safest mix, and status quo above its start', dSQ > dA && dA > dS && dSQ > 18, `${dSQ.toFixed(1)} / ${dA.toFixed(1)} / ${dS.toFixed(1)}`);
+  // Determinism: same seed, same delegation path.
+  const run = () => { const rng = M.mulberry32(21), s = M.initialState(M.sampleWorld(A0, rng)), d = [];
+    for (let y = 0; y < 13 && !s.outcome; y++) { M.step(s, SQ, rng, true); d.push(s.deleg); } return d; };
+  check('Delegation paths are deterministic per seed', JSON.stringify(run()) === JSON.stringify(run()));
+  // Shown in the campaign and documented.
+  const cards = E.CARDS.filter((c) => c.choices.some((ch) => ch.st && 'deleg' in ch.st)).map((c) => c.id);
+  check('Campaign shows delegation (World state panel, year changes, chips) and two cards move it',
+    /deleg: 'decisions left to AI'/.test(html) && /deleg: 'Delegated to AI'/.test(html) && /'internal', 'deleg'/.test(html)
+      && cards.includes('automate') && cards.includes('agents'), cards.join(', '));
+  check('Model reference documents Λ: state row, update equation, rubber-stamp oversight, gradual disempowerment',
+    html.includes('<span class="mi">\\Lambda</span></td><td>Decisions delegated to AI') && html.includes('\\Delta\\Lambda =') && /rubber-stamp oversight/i.test(html) && /Gradual Disempowerment/.test(html)
+      && html.includes('0.15\\,(\\Lambda-12)'));
+}
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll checks passed');
 process.exit(failed ? 1 : 0);

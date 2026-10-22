@@ -308,6 +308,7 @@
     coord:   { label: 'International coordination',    color: '#7fe3ff' },
     bci:     { label: 'Neural-interface adoption',     color: '#d68cff' },
     internal: { label: 'Hidden internal AI',           color: '#ff5fa2' },
+    deleg:   { label: 'Decisions delegated to AI',     color: '#c9a27e' },
     conc:    { label: 'Power concentration',           color: '#ff9f43' },
     trust:   { label: 'Public trust & stability',      color: '#e0e6f0' },
   };
@@ -327,6 +328,7 @@
       capUS: cap0, capCN: cap0 - 7, align: 16, openCap: 32, bio: 14,
       coord: 22, bci: 4, conc: 45, trust: 55,
       internal: 30,       // how far AI used inside labs is ahead of what outsiders can see
+      deleg: DELEG0,      // share of real decision-making handed to AI with little human checking
       cnMult: 1,          // modified by export controls
       survival: 1,        // cumulative probability of avoiding catastrophe so far (expected, not rolled)
       alive: 1,           // ...of which: the future is still running
@@ -342,6 +344,17 @@
   }
 
   const maxCap = (s) => Math.max(s.capUS, s.capCN);
+
+  // Delegation Λ (0..100): how much of society's and labs' real decision-making is handed to AI
+  // with little human checking (gradual disempowerment; approvals become rubber stamps).
+  // 12 in 2027: AI agents already write much of the code at frontier labs and act inside many
+  // workflows, but most consequential decisions still get real human review. An assumption.
+  const DELEG0 = 12;
+  // Rubber-stamp oversight: the share of oversight's and transparency's bite that survives.
+  // 1 at Λ = 0, 0.5 when everything is delegated.
+  const oversightBite = (s) => 1 - 0.5 * (s.deleg ?? DELEG0) / 100;
+  // Small multiplier on the yearly loss-of-control hazard, 1 at the 2027 level.
+  const delegHazard = (s) => 1 + 0.5 * ((s.deleg ?? DELEG0) - DELEG0) / 100;
 
   // Capability scale anchored to AI 2040's milestones:
   //   70 = Automated Coder (AC), 90 = top-expert-dominating AI (TED-AI), 100 = superintelligence.
@@ -426,7 +439,7 @@
   // About 0.7 on today's settings, about 0.3 with full oversight and transparency.
   function hiddenShare(s, L) {
     const o = L ? L.oversight : 0.1, t = L ? L.transparency : 0.2, sx = L ? Math.min(1, safetyEffect(L.safety)) : 0.14;
-    return clamp(0.6 + 0.8 * s.internal / 100 - 0.5 * o - 0.3 * t - 0.3 * sx, 0.1, 1.4);
+    return clamp(0.6 + 0.8 * s.internal / 100 - (0.5 * o + 0.3 * t) * oversightBite(s) - 0.3 * sx, 0.1, 1.4);
   }
   // Real (not measured) alignment of the US bloc's work, ignoring China's sharing gap.
   const realAlign = (s, L) => s.align * (1 - (s.world.evalGap || 0) * hiddenShare(s, L));
@@ -470,7 +483,7 @@
     // the roll uses the truth.
     // AI 2040: most takeover risk comes from AIs deployed inside labs, out of view.
     const internalF = 0.4 + 0.9 * s.internal / 100, gate = locGate(mc);
-    const lossAt = (own, over) => 0.25 * sig((mc - effAlign(s, L, own, over) - 36) / 6) * gate * internalF;
+    const lossAt = (own, over) => 0.25 * sig((mc - effAlign(s, L, own, over) - 36) / 6) * gate * internalF * delegHazard(s);
     // Monte Carlo runs (s.fast) never show beliefs, so they skip the averages.
     let lossBelief = 0;
     if (s.fast) lossBelief = lossAt(s.world.cnMean ?? s.world.cnAlign ?? 0, s.world.egMean ?? s.world.evalGap ?? 0);
@@ -502,7 +515,8 @@
     // The bar alignment must clear rises with the hidden difficulty; outsiders
     // only know its average (1×), so the shown odds use that.
     // High-bandwidth BCIs let humans check AI reasoning directly, lowering the bar.
-    const bar = (d) => 45 + 32 * d + 0.2 * (s.internal - 30) - 10 * (s.bci / 100);
+    // A society that has delegated more is less able to step back in (Λ above its 2027 level).
+    const bar = (d) => 45 + 32 * d + 0.2 * (s.internal - 30) + 0.15 * ((s.deleg ?? DELEG0) - DELEG0) - 10 * (s.bci / 100);
     if (truth) return s.world.safe ? 1 : sig((effAlign(s, L) - bar(s.world.difficulty)) / 6);
     const dn = diffNodes(s.world.diffDist), bars = dn.map(([, dz]) => bar(dz));
     let p = 0;
@@ -640,7 +654,16 @@
     // Hidden internal AI: automated R&D runs inside labs; transparency and
     // inspections pull it into view.
     // Augmented overseers (BCI) can follow what thousands of AI copies are doing.
-    s.internal = clamp(s.internal + 4 * L.race * Math.sqrt(uplift(mc)) - 9 * L.transparency - 5 * L.oversight - 6 * (s.bci / 100) - 0.5);
+    // Rubber-stamp oversight (high delegation) pulls less of it into view.
+    const bite = oversightBite(s);
+    s.internal = clamp(s.internal + 4 * L.race * Math.sqrt(uplift(mc)) - (9 * L.transparency + 5 * L.oversight) * bite - 6 * (s.bci / 100) - 0.5);
+
+    // Delegation: automation (capability and the share of AI research AI does) and racing (no time
+    // to check) hand more decisions to AI; oversight, transparency and safety work that keeps
+    // humans in the loop take some back. Growth slows as little is left to hand over.
+    const delegUp = (2.5 + 0.06 * Math.max(0, mc - 40) + 10 * rdShare(mc)) * (0.5 + L.race) * (1 - s.deleg / 100);
+    const delegDown = (0.15 * L.oversight + 0.1 * L.transparency + 0.1 * Math.min(1, sx)) * s.deleg;
+    s.deleg = clamp(s.deleg + delegUp - delegDown);
 
     s.coord = clamp(s.coord + 13 * L.diplomacy + 2 * L.oversight + 3 * L.transparency - 6 * L.race - 10 * L.aggression - 0.5 + noise(12) * 1.5);
 
@@ -826,7 +849,7 @@
 
   root.SimModel = {
     START_YEAR, END_YEAR, LEVER_INFO, STAT_INFO, OUTCOMES, ASSUMPTION_INFO,
-    AC, TOP_EXPERT, TEDAI, uplift, rdShare, locGate, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
+    AC, TOP_EXPERT, TEDAI, DELEG0, oversightBite, delegHazard, uplift, rdShare, locGate, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, assumptionToURL, assumptionFromURL, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
     risks, transitionOdds, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, summarize, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
