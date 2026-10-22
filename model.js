@@ -358,7 +358,7 @@
   // AI does about 1 - 1/U of the work (0 below 50, half at 2×, two-thirds at an Automated Coder,
   // 97% at TED-AI). Once AI does most of its own research it can quietly shape its successors
   // (sandbagging safety work, tampering with training, hiding its goals) before top-expert level.
-  // The gate is half open at 70% automation (U ≈ 3.3, capability ≈ 72) and about 0.94 at 90.
+  // The gate is half open at 70% automation (U ≈ 3.3, capability ≈ 71) and about 0.94 at 90.
   const RD_SHARE_MID = 0.7, RD_SHARE_W = 0.1;
   const rdShare = (c) => 1 - 1 / uplift(c);
   const locGate = (c) => sig((rdShare(c) - RD_SHARE_MID) / RD_SHARE_W);
@@ -464,7 +464,7 @@
     const bio = expectedBio(s.world.bioNodes, shape);
     const bioTrue = 1 - Math.exp(-s.world.bioScale * shape);
 
-    // Loss of control: grows when capability outruns alignment near the top.
+    // Loss of control: grows once AI does most of its own research and capability outruns alignment.
     // Scaled by how hard alignment is: zero in worlds where it is easy by
     // default. Shown as the expectation over difficulty and China's own alignment work;
     // the roll uses the truth.
