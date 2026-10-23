@@ -453,11 +453,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261023152023"></script>
-<script src="events.js?v=20261023152023"></script>
-<script src="landmask.js?v=20261023152023"></script>
-<script src="presets.js?v=20261023152023"></script>
-<script src="trees.js?v=20261023152023"></script>
+<script src="model.js?v=20261023163726"></script>
+<script src="events.js?v=20261023163726"></script>
+<script src="landmask.js?v=20261023163726"></script>
+<script src="presets.js?v=20261023163726"></script>
+<script src="trees.js?v=20261023163726"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -771,7 +771,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261023152023';
+const ASSET_VERSION = '20261023163726';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -2557,6 +2557,7 @@ addEventListener('resize', () => { if (tour) showTourStep(); });
 addEventListener('resize', () => { if (distOpen && $('catDist').classList.contains('cd-inline') !== phoneLayout()) openDist(); });
 // Run each mode's tutorial once, the first time that mode is used.
 function maybeTour(m) {
+  if (DEEP_MODEL) return; // a direct link to the model page shouldn't start a tutorial
   let seen = false;
   // Marked seen only when the tutorial is finished or skipped (endTour), so closing the tab
   // mid-tutorial, or opening another tab first, still shows it.
@@ -2568,6 +2569,8 @@ $('tourBtn').onclick = () => {
   startTour(mode);
 };
 
+// thegameofagi.com/#model (or #how-it-works) opens straight to "How the model works".
+const DEEP_MODEL = /^#(model|how-it-works)$/i.test(location.hash);
 syncSecrets();
 if (loadShared()) { setMode('lab'); maybeTour('lab'); }
 else {
@@ -2576,6 +2579,11 @@ else {
   try { saved = localStorage.getItem('goagi-mode'); } catch (e) {}
   if (saved === 'lab') { setMode('lab'); maybeTour('lab'); } else openSplash();
 }
+if (DEEP_MODEL) { closeSplash(); $('modelBtn').onclick(); }
+// Closing the model page with no game under it brings back the title screen.
+function afterModelClose() { if (mode === 'campaign' && !game) openSplash(); }
+document.querySelectorAll('[data-close="modelInfo"]').forEach((b) => b.addEventListener('click', afterModelClose));
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && DEEP_MODEL) afterModelClose(); });
 animate();
 </script>
 </body>
