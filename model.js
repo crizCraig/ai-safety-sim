@@ -353,7 +353,7 @@
   const DELEG0 = 12;
   // Rubber-stamp oversight: the share of oversight's and transparency's bite that survives.
   // 1 at Λ = 0, 0.5 when everything is delegated.
-  const oversightBite = (s) => 1 - 0.5 * (s.deleg ?? DELEG0) / 100;
+  const oversightBite = (s) => 1 - 0.5 * ((s.deleg ?? DELEG0) - DELEG0) / 100; // 1 at the 2027 level, like the other two effects
   // Small multiplier on the yearly loss-of-control hazard, 1 at the 2027 level.
   const delegHazard = (s) => 1 + 0.5 * ((s.deleg ?? DELEG0) - DELEG0) / 100;
 

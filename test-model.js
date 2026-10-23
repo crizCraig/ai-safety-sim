@@ -573,7 +573,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   // Effects, each neutral at the 2027 level.
   const at = (d, extra) => Object.assign(M.initialState(), { capUS: 80, capCN: 74, align: 40, deleg: d }, extra);
   const Lov = { ...L, oversight: 1, transparency: 1 };
-  check('Rubber-stamp oversight: delegation weakens oversight\'s grip on the evaluation gap', M.hiddenShare(at(80), Lov) > M.hiddenShare(at(12), Lov) + 0.2,
+  check('Rubber-stamp oversight: delegation weakens oversight\'s grip on the evaluation gap', M.hiddenShare(at(80), Lov) > M.hiddenShare(at(12), Lov) + 0.15, // measured from the 2027 level
     `${M.hiddenShare(at(12), Lov).toFixed(3)} -> ${M.hiddenShare(at(80), Lov).toFixed(3)}`);
   const hNext = (d) => { const s = at(d); M.step(s, Lov, () => 0.5, false); return s.internal; };
   check('…and its pull on hidden internal AI', hNext(80) > hNext(12) + 2, `${hNext(12).toFixed(1)} -> ${hNext(80).toFixed(1)}`);
@@ -581,7 +581,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Delegation raises the handoff bar (lower odds)', q(60) < q(12) - 0.02, `${(100 * q(12)).toFixed(1)}% -> ${(100 * q(60)).toFixed(1)}%`);
   const loc = (d) => M.risks(at(d), L).misalign;
   check('Delegation raises the yearly loss-of-control hazard modestly (×1.1–1.5 at 100)', loc(100) / loc(12) > 1.1 && loc(100) / loc(12) < 1.6, (loc(100) / loc(12)).toFixed(3));
-  check('Delegation effects are neutral at the 2027 level', M.delegHazard(s0) === 1 && Math.abs(M.oversightBite(s0) - 0.94) < 1e-12);
+  check('Delegation effects are neutral at the 2027 level', M.delegHazard(s0) === 1 && M.oversightBite(s0) === 1);
   // Trajectories: higher on the status quo than on Plan A or the Safest mix.
   const traj = (Lx, seed) => { const rng = M.mulberry32(seed), out = [];
     for (let i = 0; i < 400; i++) { const s = M.initialState(M.sampleWorld(A0, rng)); s.fast = true;
