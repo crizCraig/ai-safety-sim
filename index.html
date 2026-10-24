@@ -461,11 +461,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261023214544"></script>
-<script src="events.js?v=20261023214544"></script>
-<script src="landmask.js?v=20261023214544"></script>
-<script src="presets.js?v=20261023214544"></script>
-<script src="trees.js?v=20261023214544"></script>
+<script src="model.js?v=20261023215756"></script>
+<script src="events.js?v=20261023215756"></script>
+<script src="landmask.js?v=20261023215756"></script>
+<script src="presets.js?v=20261023215756"></script>
+<script src="trees.js?v=20261023215756"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -767,7 +767,7 @@
       <thead><tr><th>Value</th><th>Constant</th><th>Largest effect</th><th>Kind</th></tr></thead>
       <tbody>
         <tr><td>0.3</td><td>Safety share where returns start to diminish</td><td>at 0.15, Plan C p(alignment) +18 points</td><td>Judgment</td></tr>
-        <tr><td>0.52</td><td>Race level that gives 1× compute in <span class="mi">\kappa(r)</span></td><td>halved, Plan A catastrophe +16</td><td>Fitted (AI 2040 pace)</td></tr>
+        <tr><td>0.52</td><td>Compute normalization in <span class="mi">\kappa(r)</span> (1× compute at race 0.55)</td><td>halved, Plan A catastrophe +16</td><td>Fitted (AI 2040 pace)</td></tr>
         <tr><td>13</td><td>Coordination gained per year from diplomacy</td><td>halved, Plan A catastrophe +16 (the deal rarely forms)</td><td>Judgment</td></tr>
         <tr><td>0.55</td><td>Overall alignment progress rate</td><td>halved, Plans A–C p(alignment) −13 to −14</td><td>Fitted (Plans A–C)</td></tr>
         <tr><td>0.3</td><td>Difficulty below which alignment is easy by default</td><td>at 0.45, Plan D p(alignment) +13</td><td>Judgment</td></tr>
@@ -798,7 +798,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261023214544';
+const ASSET_VERSION = '20261023215756';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';

@@ -105,7 +105,7 @@ const META = {
   upliftTED: ['S', 'R&D speed-up at TED-AI (AI 2040: ~40×)'],
   rdShareMid: ['J', 'Share of AI research done by AI where the loss-of-control gate is half open'],
   rdShareW: ['J', 'Width of the loss-of-control onset gate'],
-  computeNorm: ['F', 'Race level giving 1× compute (sets the AI 2040 pace)'],
+  computeNorm: ['F', 'Compute normalization denominator: 1× compute at race 0.03 + this (0.55); sets the AI 2040 pace'],
   computeExp: ['S', 'Speed ∝ compute^0.74 (AI 2040: 10× compute ≈ 5.5× speed)'],
   safetyKnee: ['J', 'Safety share where returns start to diminish'],
   safetyTail: ['J', 'Extra safety effect from the knee to 100%'],
@@ -261,9 +261,12 @@ const METRICS = [
   ['paA', 'Plan A p(alignment)'], ['paB', 'Plan B p(alignment)'], ['paC', 'Plan C p(alignment)'], ['paD', 'Plan D p(alignment)'],
 ];
 
+const BOUNDED = new Set(['fundExpensive']);
 function variants(K0, k) {
   const v = K0[k];
   if (SHIFT[k]) return [[v - SHIFT[k][0], `−${SHIFT[k][0]}`], [v + SHIFT[k][0], `+${SHIFT[k][0]}`]];
+  // Bounded fractions stay within [0, 1], so a perturbation can't reverse the mechanism (e.g. buying into selling).
+  if (BOUNDED.has(k)) return [[v * 0.5, '×0.5'], [Math.min(1, v * 1.5), v * 1.5 > 1 ? '→1' : '×1.5']];
   return [[v * 0.5, '×0.5'], [v * 1.5, '×1.5']];
 }
 

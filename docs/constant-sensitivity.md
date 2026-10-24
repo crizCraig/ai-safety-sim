@@ -25,7 +25,7 @@ Fitted constants are not free: moving one moves the calibration target it was fi
 | # | Constant | Default | Low / high | Max \|Δ\| | Where | SQ | A | Safe | pA | pB | pC | pD | Class | Role |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | `safetyKnee` | 0.3 | ×0.5 / ×1.5 | 18.5 | Plan C p(alignment) at ×0.5 | −1.0 / +0.3 | −3.8 / +2.5 | +0.0 / +0.0 | +4.7 / −3.7 | +13.7 / −10.1 | +18.5 / −9.0 | +0.3 / −0.1 | judgment | Safety share where returns start to diminish |
-| 2 | `computeNorm` | 0.52 | ×0.5 / ×1.5 | 15.9 | Plan A catastrophe at ×0.5 | −1.6 / +1.2 | +15.9 / −3.6 | +2.1 / −0.3 | −11.5 / +1.5 | −5.9 / +4.3 | −6.8 / +4.9 | +0.1 / +0.1 | fitted | Race level giving 1× compute (sets the AI 2040 pace) |
+| 2 | `computeNorm` | 0.52 | ×0.5 / ×1.5 | 15.9 | Plan A catastrophe at ×0.5 | −1.6 / +1.2 | +15.9 / −3.6 | +2.1 / −0.3 | −11.5 / +1.5 | −5.9 / +4.3 | −6.8 / +4.9 | +0.1 / +0.1 | fitted | Compute normalization denominator: 1× compute at race 0.03 + this (0.55); sets the AI 2040 pace |
 | 3 | `coDip` | 13 | ×0.5 / ×1.5 | 15.7 | Plan A catastrophe at ×0.5 | +0.1 / −0.0 | +15.7 / −1.5 | +1.3 / −0.4 | −8.2 / +0.5 | +0.0 / +0.0 | −0.1 / +0.3 | +0.0 / −0.0 | judgment | Coordination gained from diplomacy |
 | 4 | `alRate` | 0.55 | ×0.5 / ×1.5 | 14.4 | Plan C p(alignment) at ×0.5 | +0.4 / −0.8 | +7.3 / −2.8 | +0.1 / +0.0 | −12.6 / +3.6 | −14.3 / +9.2 | −14.4 / +9.8 | −0.1 / +0.6 | fitted | Overall alignment progress rate (Plans A–C p(alignment)) |
 | 5 | `diffSafe` | 0.3 | ×0.5 / ×1.5 | 13.3 | Plan D p(alignment) at ×1.5 | +0.6 / −1.3 | +0.0 / −0.1 | +0.0 / +0.0 | −0.1 / +0.1 | −0.4 / +1.3 | −0.8 / +2.0 | −10.0 / +13.3 | judgment | Difficulty below which alignment is easy by default (ease 3.3×) |
@@ -188,7 +188,7 @@ Fitted constants are not free: moving one moves the calibration target it was fi
 | 162 | `concAggr` | 3 | ×0.5 / ×1.5 | 0.0 |  | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | judgment | Concentration added by sabotage |
 | 163 | `dealDip` | 0.5 | −0.1 / +0.1 | 0.0 |  | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | judgment | Diplomacy lever needed for a verified deal |
 | 164 | `endTrust` | 45 | −10 / +10 | 0.0 |  | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | judgment | Trust below which power can lock in by 2040 without ASI |
-| 165 | `fundExpensive` | 0.85 | ×0.5 / ×1.5 | 0.0 |  | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | judgment | How much harder buying in gets past expert level |
+| 165 | `fundExpensive` | 0.85 | ×0.5 / →1 | 0.0 |  | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | judgment | How much harder buying in gets past expert level |
 | 166 | `fundSell` | 0.2 | ×0.5 / ×1.5 | 0.0 |  | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | judgment | Yearly rate of selling down to the fund target |
 | 167 | `laborPause` | 0.5 | ×0.5 / ×1.5 | 0.0 |  | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | judgment | Extra AI labor share on safety past the knee |
 | 168 | `pauseCoord` | 55 | −10 / +10 | 0.0 |  | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | +0.0 / +0.0 | judgment | Coordination needed for the careful-path ending |
