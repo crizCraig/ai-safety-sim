@@ -12,6 +12,86 @@
   const clamp = (x, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, x));
   const sig = (x) => 1 / (1 + Math.exp(-x));
 
+
+  // Named model constants. The formulas below read them from K, so a sensitivity sweep
+  // (scripts/sweep_constants.js) can override them at runtime with setConstants(); the defaults
+  // reproduce the published model exactly. docs/constant-sensitivity.md ranks them by effect.
+  // Pure bookkeeping (clamps, quadrature) and AI 2040's milestones 70/90/100 stay inline.
+  const K_DEFAULTS = Object.freeze({
+    // Starting state, 2027
+    align0: 16, cnGap0: 7, openCap0: 32, bio0: 14, coord0: 22, bci0: 4, conc0: 45, trust0: 55,
+    internal0: 30, fund0: 3, deleg0: 12,
+    // Difficulty: aligned by default below diffSafe, full loss-of-control exposure diffRamp above it
+    diffSafe: 0.3, diffRamp: 0.5,
+    // Delegation's effects: rubber-stamp oversight, yearly hazard multiplier
+    delegBite: 0.5, delegHaz: 0.5,
+    // AI R&D uplift: starts at upliftStart, upliftAC× at an Automated Coder, upliftTED× at TED-AI
+    upliftStart: 50, upliftAC: 3, upliftTED: 40,
+    // Loss-of-control onset gate (share of AI research done by AI)
+    rdShareMid: 0.7, rdShareW: 0.1,
+    // Compute from race intensity
+    computeNorm: 0.52, computeExp: 0.74,
+    // Safety share: linear to the knee, then diminishing; AI labor on safety
+    safetyKnee: 0.3, safetyTail: 0.6, laborBase: 0.08, laborSafety: 0.35, laborPause: 0.5,
+    // US–China deal
+    dealCoord: 60, dealDip: 0.5, dealCap: 78, dealSlack: 6,
+    dealHaz0: 0.06, dealHaz1: 0.035, dealHaz2: 0.02, dealCollapseCut: 40, dealImpairCut: 20,
+    // China's race and its slowdown near the brink
+    usPushSafety: 0.5, cnRaceBase: 0.6, cnRaceResp: 0.45, cnRaceCoord: 0.55,
+    cnWarnCap: 83, cnWarnW: 4, cnWarnGap: 30, cnWarnGapW: 8, cnSlowRace: 0.7, cnRecip: 0.6, cnSlowMax: 0.9,
+    // How much US alignment work China's lab can use
+    shareBase: 0.55, shareCoord: 0.45, shareTransp: 0.3, leadW: 3,
+    // Hidden share of the test overstatement
+    hidBase: 0.6, hidInternal: 0.8, hidOversight: 0.5, hidTransp: 0.3, hidSafety: 0.3,
+    // Loss-of-control hazard
+    locScale: 0.25, locOffset: 36, locWidth: 6, intBase: 0.4, intSlope: 0.9,
+    // Great-power war
+    warBase: 0.055, warCloseW: 25, warCloseFloor: 0.3, warStakesMid: 60, warStakesW: 8,
+    warAggr: 1.5, warSabot: 0.07, warBehindW: 20, warBehindFloor: 0.4,
+    // Bio: open-weights uplift and missing biodefense
+    bioOpenMid: 62, bioOpenW: 6, bioDefExp: 2,
+    // Superintelligence handoff bar
+    barBase: 45, barDiff: 32, barInternal: 0.2, barDeleg: 0.15, barBci: 10, barW: 6,
+    // Locked-in power
+    lockK: 4.0, lockWhistle: 0.6, lockConcFloor: 0.45, lockConcMid: 64, lockConcW: 6, lockPhysYears: 6,
+    lockAutoFloor: 0.6, lockRaceBase: 0.8, lockRaceSlope: 0.4, lockTrustBase: 1.3, lockTrustSlope: 0.6,
+    lockPluralW: 15, lockFund: 0.7, lockOversight: 0.45, lockTransp: 0.35, lockPlural: 0.15, lockOpen: 0.1, lockDip: 0.2,
+    // Capability growth
+    capBase: 7, ovsTax: 0.08, fundDrag: 0.05, sabotSlow: 0.35, leak: 0.25,
+    jumpP: 0.15, jumpUS: 3, jumpUSRand: 5, jumpCN: 2, jumpCNRand: 4,
+    // Alignment growth
+    alRate: 0.55, alBase: 1.9, alSafety: 10, alOversight: 1.5, alShCoord: 0.35, alShTransp: 0.4, alBci: 0.5,
+    alNoise: 0.5, alJumpP: 0.12, alJumpBase: 3, alJumpRand: 6,
+    // Hidden internal AI
+    intRace: 4, intTransp: 9, intOversight: 5, intBci: 6, intDecay: 0.5,
+    // Delegation
+    delBase: 2.5, delCap: 0.06, delRd: 10, delRaceBase: 0.5, delOversight: 0.15, delTransp: 0.1, delSafety: 0.1,
+    // Coordination
+    coDip: 13, coOversight: 2, coTransp: 3, coRace: 6, coAggr: 10, coDecay: 0.5, coNoise: 1.5,
+    // Open weights, biodefense, neural interfaces
+    openBase: 0.62, openLever: 0.36, openTransp: 0.06, openRate: 0.45,
+    bioDef: 9, bioOpen: 1.2, bioDecay: 1.6,
+    bciCap: 20, bciLever: 11, bciBase: 0.6, bciUplift: 0.4,
+    // Power concentration
+    concRace: 10, concRaceOpen: 0.5, concRaceTransp: 0.5, concCap: 0.06, concOpen: 2.5, concTransp: 4,
+    concBci: 2.2, concOversight: 4, concAggr: 3, concDecay: 0.8,
+    // Public trust
+    trCap: 0.04, trSafety: 2.5, trOversight: 1.5, trTransp: 1.5, trRaceConc: 1.5, trDrift: 0.3,
+    // Public wealth fund
+    fundBuy: 0.4, fundExpensive: 0.85, fundSell: 0.2,
+    // 2040 endings
+    endTrust: 45, pauseCoord: 55,
+  });
+  const K = Object.assign({}, K_DEFAULTS);
+  // Override constants by name (the rest return to their defaults); setConstants() restores them all.
+  // Clears the caches that depend on them (the bio reference exposure, bio belief nodes).
+  function setConstants(over = {}) {
+    for (const k in over) if (!(k in K_DEFAULTS)) throw new Error('Unknown model constant: ' + k);
+    Object.assign(K, K_DEFAULTS, over);
+    CN_LABOR = safetyLabor(0.3);
+    BIO_REF = null; BIO_NODE_CACHE.clear();
+  }
+
   const START_YEAR = 2027;
   const END_YEAR = 2040;
 
@@ -227,7 +307,7 @@
   // over the difficulty distribution, used for what players are shown.
   // Internally the model works with difficulty δ = 1 / ease (log10 δ = -log10 ease).
   const diffDistOf = (A) => ({ mean: -A.ease.mean, sd: A.ease.sd });
-  const lossHazard = (d) => clamp((d - 0.3) / 0.5, 0, 1);
+  const lossHazard = (d) => clamp((d - K.diffSafe) / K.diffRamp, 0, 1);
   const DZ = 0.05;
   const DIFF_Z = Array.from({ length: 161 }, (_, i) => -4 + i * DZ);
   const zWeight = (z) => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI) * DZ;
@@ -240,8 +320,8 @@
   function difficultyWorld(d, dist) {
     let hb = 0;
     for (const z of DIFF_Z) hb += zWeight(z) * lossHazard(Math.pow(10, dist.mean + dist.sd * z));
-    const pSafe = dist.sd > 0 ? normCdf((Math.log10(0.3) - dist.mean) / dist.sd) : (Math.pow(10, dist.mean) <= 0.3 ? 1 : 0);
-    return { hazard: lossHazard(d), safe: d <= 0.3, hazardBelief: hb, pSafe, diffDist: { mean: dist.mean, sd: dist.sd } };
+    const pSafe = dist.sd > 0 ? normCdf((Math.log10(K.diffSafe) - dist.mean) / dist.sd) : (Math.pow(10, dist.mean) <= K.diffSafe ? 1 : 0);
+    return { hazard: lossHazard(d), safe: d <= K.diffSafe, hazardBelief: hb, pSafe, diffDist: { mean: dist.mean, sd: dist.sd } };
   }
 
   // Turn a decade bio risk into a hazard scale k = -ln(1 - R) / G_ref, where G_ref is
@@ -282,7 +362,7 @@
   // negligible: states are deterred, and closed models keep capabilities away from
   // rogue actors (see Superintelligence Strategy, nationalsecurity.ai).
   function bioShape(s) {
-    return sig((s.openCap - 62) / 6) * Math.pow(1 - s.bio / 100, 2);
+    return sig((s.openCap - K.bioOpenMid) / K.bioOpenW) * Math.pow(1 - s.bio / 100, K.bioDefExp);
   }
 
   // Mean bio exposure over 2027–2036 that default-path futures actually go through,
@@ -326,15 +406,15 @@
     return {
       world,
       year: START_YEAR,
-      capUS: cap0, capCN: cap0 - 7, align: 16, openCap: 32, bio: 14,
-      coord: 22, bci: 4, conc: 45, trust: 55,
-      internal: 30,       // how far AI used inside labs is ahead of what outsiders can see
-      deleg: DELEG0,      // share of real decision-making handed to AI with little human checking
+      capUS: cap0, capCN: cap0 - K.cnGap0, align: K.align0, openCap: K.openCap0, bio: K.bio0,
+      coord: K.coord0, bci: K.bci0, conc: K.conc0, trust: K.trust0,
+      internal: K.internal0,       // how far AI used inside labs is ahead of what outsiders can see
+      deleg: K.deleg0,    // share of real decision-making handed to AI with little human checking
       cnMult: 1,          // modified by export controls
       survival: 1,        // cumulative probability of avoiding catastrophe so far (expected, not rolled)
       alive: 1,           // ...of which: the future is still running
       safeEnded: 0,
-      fundStake: 3,       // public ownership of AI returns, 0..100 (Alaska-style funds exist today)
+      fundStake: K.fund0, // public ownership of AI returns, 0..100 (Alaska-style funds exist today)
       acYear: null,       // year the Automated Coder milestone was reached
       dealStart: null,    // first year a US–China deal was in force
       dealImpaired: null, // year the deal was weakened (at most once)
@@ -350,12 +430,12 @@
   // with little human checking (gradual disempowerment; approvals become rubber stamps).
   // 12 in 2027: AI agents already write much of the code at frontier labs and act inside many
   // workflows, but most consequential decisions still get real human review. An assumption.
-  const DELEG0 = 12;
+  const DELEG0 = K_DEFAULTS.deleg0; // the default; formulas use K.deleg0
   // Rubber-stamp oversight: the share of oversight's and transparency's bite that survives.
   // 1 at Λ = 0, 0.5 when everything is delegated.
-  const oversightBite = (s) => 1 - 0.5 * ((s.deleg ?? DELEG0) - DELEG0) / 100; // 1 at the 2027 level, like the other two effects
+  const oversightBite = (s) => 1 - K.delegBite * ((s.deleg ?? K.deleg0) - K.deleg0) / 100; // 1 at the 2027 level, like the other two effects
   // Small multiplier on the yearly loss-of-control hazard, 1 at the 2027 level.
-  const delegHazard = (s) => 1 + 0.5 * ((s.deleg ?? DELEG0) - DELEG0) / 100;
+  const delegHazard = (s) => 1 + K.delegHaz * ((s.deleg ?? K.deleg0) - K.deleg0) / 100;
 
   // Capability scale anchored to AI 2040's milestones:
   //   70 = Automated Coder (AC), 90 = top-expert-dominating AI (TED-AI), 100 = superintelligence.
@@ -363,9 +443,9 @@
 
   // AI R&D speed-up from AI labor: 1× below 50, 3× at AC, ~40× at TED-AI (AI 2040 takeoff forecast).
   function uplift(c) {
-    if (c < 50) return 1;
-    if (c < AC) return Math.pow(3, (c - 50) / (AC - 50));
-    return Math.min(40, 3 * Math.pow(40 / 3, (c - AC) / (TEDAI - AC)));
+    if (c < K.upliftStart) return 1;
+    if (c < AC) return Math.pow(K.upliftAC, (c - K.upliftStart) / (AC - K.upliftStart));
+    return Math.min(K.upliftTED, K.upliftAC * Math.pow(K.upliftTED / K.upliftAC, (c - AC) / (TEDAI - AC)));
   }
 
   // Loss-of-control onset gate: how much of AI research AI itself does. With an R&D speed-up U,
@@ -373,37 +453,35 @@
   // 97% at TED-AI). Once AI does most of its own research it can quietly shape its successors
   // (sandbagging safety work, tampering with training, hiding its goals) before top-expert level.
   // The gate is half open at 70% automation (U ≈ 3.3, capability ≈ 71) and about 0.94 at 90.
-  const RD_SHARE_MID = 0.7, RD_SHARE_W = 0.1;
   const rdShare = (c) => 1 - 1 / uplift(c);
-  const locGate = (c) => sig((rdShare(c) - RD_SHARE_MID) / RD_SHARE_W);
+  const locGate = (c) => sig((rdShare(c) - K.rdShareMid) / K.rdShareW);
 
   // Effective compute from race intensity. AI 2040: 10× less compute makes the
   // intelligence explosion ~5.5× slower, i.e. speed ∝ compute^0.74. Race 0.55 = 1× (the default
   // race 0.7 is about 1.2×); race ≈ 0 is a halt.
-  const computeSpeed = (race) => Math.pow(Math.max(0, race - 0.03) / 0.52, 0.74);
+  const computeSpeed = (race) => Math.pow(Math.max(0, race - 0.03) / K.computeNorm, K.computeExp);
 
   // Safety lever = fraction of AI compute and AI labor spent on safety (0–100%).
   // Effect is linear up to 30%, then diminishes: people and ideas become the bottleneck.
   // At 100% no compute is left for capabilities, which amounts to a unilateral pause.
-  const safetyEffect = (f) => f <= 0.3 ? Math.max(0, (f - 0.01) / 0.29) : 1 + 0.6 * (f - 0.3) / 0.7;
-  const safetyLabor = (f) => 0.08 + 0.35 * Math.min(1, safetyEffect(f)) + 0.5 * Math.max(0, f - 0.3) / 0.7;
-  const CN_LABOR = safetyLabor(0.3); // AI labor share China puts on alignment at full own effort
+  const safetyEffect = (f) => f <= K.safetyKnee ? Math.max(0, (f - 0.01) / (K.safetyKnee - 0.01)) : 1 + K.safetyTail * (f - K.safetyKnee) / (1 - K.safetyKnee);
+  const safetyLabor = (f) => K.laborBase + K.laborSafety * Math.min(1, safetyEffect(f)) + K.laborPause * Math.max(0, f - K.safetyKnee) / (1 - K.safetyKnee);
+  let CN_LABOR = safetyLabor(0.3); // AI labor share China puts on alignment at full own effort
 
   // A verified US–China deal: frontier scaling stops at top-human-expert level.
   // Once a deal has collapsed it stays dead.
-  const dealActive = (s, L) => !s.dealCollapsed && s.coord >= 60 && L.diplomacy >= 0.5;
+  const dealActive = (s, L) => !s.dealCollapsed && s.coord >= K.dealCoord && L.diplomacy >= K.dealDip;
   // The deal's capability ceiling: top-expert level, a few points higher once it is impaired.
-  const DEAL_IMPAIRED_SLACK = 6;
-  const dealCeiling = (s) => TOP_EXPERT + (s.dealImpaired ? DEAL_IMPAIRED_SLACK : 0);
+  const dealCeiling = (s) => K.dealCap + (s.dealImpaired ? K.dealSlack : 0);
   // AI 2040's Deal Decline schedule: dissolution and impairment each run 6% a year at deal age
   // 0-2, 3.5% at 2-5 and 2% after that. Age counts from the first year the deal is in force.
-  const dealHazard = (age) => age < 2 ? 0.06 : age < 5 ? 0.035 : 0.02;
+  const dealHazard = (age) => age < 2 ? K.dealHaz0 : age < 5 ? K.dealHaz1 : K.dealHaz2;
 
   // China's effective race intensity responds to the US posture and to trust.
   // A US pause (race down, or all compute on safety) eases it only partly.
   function chinaRace(s, L) {
-    const usPush = L.race * (1 - 0.5 * L.safety);
-    const base = clamp(0.6 + 0.45 * (usPush - 0.5) - 0.55 * (s.coord / 100), 0.05, 1);
+    const usPush = L.race * (1 - K.usPushSafety * L.safety);
+    const base = clamp(K.cnRaceBase + K.cnRaceResp * (usPush - 0.5) - K.cnRaceCoord * (s.coord / 100), 0.05, 1);
     return clamp(base * (1 - chinaSlowdown(s, L)), 0.05, 1);
   }
 
@@ -415,10 +493,10 @@
     const caution = s.world.cnCaution || 0;
     if (!caution) return 0;
     const mc = maxCap(s);
-    const warning = sig((mc - 83) / 4) * sig((mc - s.align - 30) / 8);
-    const usSlow = clamp(1 - L.race * (1 - 0.5 * L.safety) / 0.7, 0, 1);
-    const recip = 0.6 * (1 + Math.max(usSlow, dealActive(s, L) ? 1 : 0));
-    return clamp(caution * warning * recip, 0, 0.9);
+    const warning = sig((mc - K.cnWarnCap) / K.cnWarnW) * sig((mc - s.align - K.cnWarnGap) / K.cnWarnGapW);
+    const usSlow = clamp(1 - L.race * (1 - K.usPushSafety * L.safety) / K.cnSlowRace, 0, 1);
+    const recip = K.cnRecip * (1 + Math.max(usSlow, dealActive(s, L) ? 1 : 0));
+    return clamp(caution * warning * recip, 0, K.cnSlowMax);
   }
 
   // Alignment research is done mostly in the US bloc. If China leads, its lab
@@ -430,9 +508,9 @@
   // `over` is how much tests overstate alignment; the part still hidden this year
   // (hiddenShare) is subtracted, so this is real alignment, not the measured s.align.
   function effAlign(s, L, own = s.world.cnAlign || 0, over = s.world.evalGap || 0) {
-    const share = Math.min(1, 0.55 + 0.45 * (s.coord / 100) + 0.3 * (L ? L.transparency : 0));
+    const share = Math.min(1, K.shareBase + K.shareCoord * (s.coord / 100) + K.shareTransp * (L ? L.transparency : 0));
     const cover = 1 - (1 - share) * (1 - own);
-    const chinaLeads = sig((s.capCN - s.capUS) / 3);
+    const chinaLeads = sig((s.capCN - s.capUS) / K.leadW);
     return s.align * (1 - over * hiddenShare(s, L)) * (1 - chinaLeads * (1 - cover));
   }
   // How much of the test overstatement stays hidden: more with secret internal AI, less with
@@ -440,7 +518,7 @@
   // About 0.7 on today's settings, about 0.3 with full oversight and transparency.
   function hiddenShare(s, L) {
     const o = L ? L.oversight : 0.1, t = L ? L.transparency : 0.2, sx = L ? Math.min(1, safetyEffect(L.safety)) : 0.14;
-    return clamp(0.6 + 0.8 * s.internal / 100 - (0.5 * o + 0.3 * t) * oversightBite(s) - 0.3 * sx, 0.1, 1.4);
+    return clamp(K.hidBase + K.hidInternal * s.internal / 100 - (K.hidOversight * o + K.hidTransp * t) * oversightBite(s) - K.hidSafety * sx, 0.1, 1.4);
   }
   // Real (not measured) alignment of the US bloc's work, ignoring China's sharing gap.
   const realAlign = (s, L) => s.align * (1 - (s.world.evalGap || 0) * hiddenShare(s, L));
@@ -457,8 +535,8 @@
   function cnBelief(s, L) {
     const w = s.world;
     if (!w.cnNodes) return [[1, w.cnAlign || 0]];
-    const share = Math.min(1, 0.55 + 0.45 * (s.coord / 100) + 0.3 * (L ? L.transparency : 0));
-    const reach = s.align * sig((s.capCN - s.capUS) / 3) * (1 - share);
+    const share = Math.min(1, K.shareBase + K.shareCoord * (s.coord / 100) + K.shareTransp * (L ? L.transparency : 0));
+    const reach = s.align * sig((s.capCN - s.capUS) / K.leadW) * (1 - share);
     return reach < 0.05 ? [[1, w.cnMean]] : w.cnNodes;
   }
   // Difficulty nodes [weight, difficulty], cached per distribution.
@@ -483,8 +561,8 @@
     // default. Shown as the expectation over difficulty and China's own alignment work;
     // the roll uses the truth.
     // AI 2040: most takeover risk comes from AIs deployed inside labs, out of view.
-    const internalF = 0.4 + 0.9 * s.internal / 100, gate = locGate(mc);
-    const lossAt = (own, over) => 0.25 * sig((mc - effAlign(s, L, own, over) - 36) / 6) * gate * internalF * delegHazard(s);
+    const internalF = K.intBase + K.intSlope * s.internal / 100, gate = locGate(mc);
+    const lossAt = (own, over) => K.locScale * sig((mc - effAlign(s, L, own, over) - K.locOffset) / K.locWidth) * gate * internalF * delegHazard(s);
     // Monte Carlo runs (s.fast) never show beliefs, so they skip the averages.
     let lossBelief = 0;
     if (s.fast) lossBelief = lossAt(s.world.cnMean ?? s.world.cnAlign ?? 0, s.world.egMean ?? s.world.evalGap ?? 0);
@@ -493,13 +571,13 @@
     const misalignTrue = s.world.hazard * lossAt(s.world.cnAlign || 0, s.world.evalGap || 0);
 
     // Great-power conflict: tight race + low trust + high strategic stakes.
-    const closeness = clamp(1 - Math.abs(s.capUS - s.capCN) / 25, 0, 1);
-    const stakes = sig((mc - 60) / 8);
+    const closeness = clamp(1 - Math.abs(s.capUS - s.capCN) / K.warCloseW, 0, 1);
+    const stakes = sig((mc - K.warStakesMid) / K.warStakesW);
     // Sabotage (AI 2040's Plan B) provokes: it raises baseline war risk, and
     // a China falling behind under attack has a reason to strike first.
-    const behind = clamp((s.capUS - s.capCN) / 20, 0, 1);
-    const war = 0.055 * Math.pow(1 - s.coord / 100, 2) * (0.3 + 0.7 * closeness) * stakes * (1 + 1.5 * L.aggression)
-      + 0.07 * L.aggression * (0.4 + 0.6 * behind) * stakes;
+    const behind = clamp((s.capUS - s.capCN) / K.warBehindW, 0, 1);
+    const war = K.warBase * Math.pow(1 - s.coord / 100, 2) * (K.warCloseFloor + (1 - K.warCloseFloor) * closeness) * stakes * (1 + K.warAggr * L.aggression)
+      + K.warSabot * L.aggression * (K.warBehindFloor + (1 - K.warBehindFloor) * behind) * stakes;
 
     // Hazards are rolled one after another: pandemic, then loss of control, then war.
     // `total` is the chance of a catastrophe this year; losing control to a kind AI is not one.
@@ -517,13 +595,13 @@
     // only know its average (1×), so the shown odds use that.
     // High-bandwidth BCIs let humans check AI reasoning directly, lowering the bar.
     // A society that has delegated more is less able to step back in (Λ above its 2027 level).
-    const bar = (d) => 45 + 32 * d + 0.2 * (s.internal - 30) + 0.15 * ((s.deleg ?? DELEG0) - DELEG0) - 10 * (s.bci / 100);
-    if (truth) return s.world.safe ? 1 : sig((effAlign(s, L) - bar(s.world.difficulty)) / 6);
+    const bar = (d) => K.barBase + K.barDiff * d + K.barInternal * (s.internal - K.internal0) + K.barDeleg * ((s.deleg ?? K.deleg0) - K.deleg0) - K.barBci * (s.bci / 100);
+    if (truth) return s.world.safe ? 1 : sig((effAlign(s, L) - bar(s.world.difficulty)) / K.barW);
     const dn = diffNodes(s.world.diffDist), bars = dn.map(([, dz]) => bar(dz));
     let p = 0;
     for (const [wc, own, over] of alignBelief(s, L)) {
       const a = effAlign(s, L, own, over);
-      for (let i = 0; i < dn.length; i++) p += wc * dn[i][0] * (dn[i][1] <= 0.3 ? 1 : sig((a - bars[i]) / 6));
+      for (let i = 0; i < dn.length; i++) p += wc * dn[i][0] * (dn[i][1] <= K.diffSafe ? 1 : sig((a - bars[i]) / K.barW));
     }
     return p;
   }
@@ -536,26 +614,26 @@
   // The baseline pressure scales with 1 - share: how unlikely the few are to share the gains
   // when nothing forces them.
   function lockinOdds(s, L, whistle = s.world.whistle, share = s.world.share) {
-    return clamp(lockinScale(share) * lockinBase(s, L) * (1 - 0.6 * whistle), 0, 0.95);
+    return clamp(lockinScale(share) * lockinBase(s, L) * (1 - K.lockWhistle * whistle), 0, 0.95);
   }
   // Everything in the lock-in odds except the hidden draws (whistleblowers, sharing).
   function lockinBase(s, L) {
     const mc = maxCap(s);
-    const conc = 0.45 + 0.55 * sig((s.conc - 64) / 6);                   // power already concentrated
-    const phys = s.acYear ? clamp((s.year - s.acYear) / 6, 0, 1) : 0;   // robots follow software
-    const automation = 0.6 + 0.4 * phys;
-    const pressure = (0.8 + 0.4 * L.race) * (1.3 - 0.6 * s.trust / 100); // automate or die; weak public voice
-    const plural = Math.max(clamp(1 - Math.abs(s.capUS - s.capCN) / 15, 0, 1), clamp((s.openCap - 80) / 20, 0, 1));
+    const conc = K.lockConcFloor + (1 - K.lockConcFloor) * sig((s.conc - K.lockConcMid) / K.lockConcW); // power already concentrated
+    const phys = s.acYear ? clamp((s.year - s.acYear) / K.lockPhysYears, 0, 1) : 0;   // robots follow software
+    const automation = K.lockAutoFloor + (1 - K.lockAutoFloor) * phys;
+    const pressure = (K.lockRaceBase + K.lockRaceSlope * L.race) * (K.lockTrustBase - K.lockTrustSlope * s.trust / 100); // automate or die; weak public voice
+    const plural = Math.max(clamp(1 - Math.abs(s.capUS - s.capCN) / K.lockPluralW, 0, 1), clamp((s.openCap - 80) / 20, 0, 1));
     return conc * automation * pressure
-      * (1 - 0.7 * s.fundStake / 100)                                     // public owns part of AI
-      * (1 - 0.45 * L.oversight) * (1 - 0.35 * L.transparency)            // accountable AI owners
-      * (1 - 0.15 * plural)                                               // rivals help only a little
-      * (1 - 0.1 * L.openness * clamp(s.openCap / Math.max(1, mc), 0, 1)) // open weights spread access
-      * (1 - 0.2 * L.diplomacy * clamp((s.trust - 50) / 30, 0, 1));       // coordination, only with public pressure
+      * (1 - K.lockFund * s.fundStake / 100)                                // public owns part of AI
+      * (1 - K.lockOversight * L.oversight) * (1 - K.lockTransp * L.transparency) // accountable AI owners
+      * (1 - K.lockPlural * plural)                                         // rivals help only a little
+      * (1 - K.lockOpen * L.openness * clamp(s.openCap / Math.max(1, mc), 0, 1)) // open weights spread access
+      * (1 - K.lockDip * L.diplomacy * clamp((s.trust - 50) / 30, 0, 1));   // coordination, only with public pressure
   }
   // Calibrated so about 70% of status-quo futures where humans keep control lock in.
-  const LOCK_K = 4.0;
-  const lockinScale = (share) => LOCK_K * (1 - share);
+  const LOCK_K = K_DEFAULTS.lockK; // the default; formulas use K.lockK
+  const lockinScale = (share) => K.lockK * (1 - share);
   // Endings that count as catastrophes (a kind takeover does not).
   const CATASTROPHES = ['bio', 'misalign', 'war', 'lockin'];
   // Shown (belief) lock-in odds: the capped probability averaged over the joint distribution
@@ -567,7 +645,7 @@
     let p = 0;
     for (const [ws, sv] of sn) {
       const k = lockinScale(sv) * base;
-      for (const [w, v] of wn) p += ws * w * clamp(k * (1 - 0.6 * v), 0, 0.95);
+      for (const [w, v] of wn) p += ws * w * clamp(k * (1 - K.lockWhistle * v), 0, 0.95);
     }
     return p;
   }
@@ -607,19 +685,19 @@
 
     // Capability: base pace × compute × hidden progress speed × AI R&D uplift.
     // Published research lets China (and everyone else) close part of the gap.
-    const BASE = 7;
+    const BASE = K.capBase;
     const sx = safetyEffect(L.safety);
-    const safetyTax = Math.max(0, 1 - L.safety - 0.08 * L.oversight);
+    const safetyTax = Math.max(0, 1 - L.safety - K.ovsTax * L.oversight);
     // Noise and surprise breakthroughs scale with the compute each side actually
     // spends on capabilities, so a pause (race 0 or all compute on safety) holds.
     // A public fund taking a share of AI returns drags slightly on reinvestment.
-    const cUS = computeSpeed(L.race) * safetyTax * (1 - 0.05 * L.fund);
-    const cCN = computeSpeed(chinaRace(s, L)) * s.cnMult * (1 - 0.35 * L.aggression); // sabotage slows China's labs
+    const cUS = computeSpeed(L.race) * safetyTax * (1 - K.fundDrag * L.fund);
+    const cCN = computeSpeed(chinaRace(s, L)) * s.cnMult * (1 - K.sabotSlow * L.aggression); // sabotage slows China's labs
     const jUS = Math.min(1.5, cUS), jCN = Math.min(1.5, cCN);
     let gUS = (BASE * w.speed * uplift(s.capUS) + noise(3)) * cUS;
     let gCN = (BASE * w.speed * uplift(s.capCN) + noise(4)) * cCN
-      + 0.25 * L.transparency * Math.max(0, s.capUS - s.capCN) * (1 - 0.35 * L.aggression);
-    if (d[5] < 0.15) { gUS += (3 + d[6] * 5) * jUS; gCN += (2 + d[7] * 4) * jCN; }
+      + K.leak * L.transparency * Math.max(0, s.capUS - s.capCN) * (1 - K.sabotSlow * L.aggression);
+    if (d[5] < K.jumpP) { gUS += (K.jumpUS + d[6] * K.jumpUSRand) * jUS; gCN += (K.jumpCN + d[7] * K.jumpCNRand) * jCN; }
     // AI 2040's Deal Decline: about 48% of deals decline within ten years, split about equally
     // between dissolution (leadership change, a side caught cheating, ...) and impairment.
     // Dissolution cuts coordination by 40 and the deal never returns (about 28% over ten
@@ -633,8 +711,8 @@
       const ceil = dealCeiling(s), h = dealHazard(s.year - s.dealStart);
       gUS = Math.min(gUS, Math.max(0, ceil - s.capUS));
       gCN = Math.min(gCN, Math.max(0, ceil - s.capCN));
-      if (d[8] < h) { s.coord = clamp(s.coord - 40); s.dealCollapsed = s.year; }
-      else if (!s.dealImpaired && d[16] < h) { s.coord = clamp(s.coord - 20); s.dealImpaired = s.year; }
+      if (d[8] < h) { s.coord = clamp(s.coord - K.dealCollapseCut); s.dealCollapsed = s.year; }
+      else if (!s.dealImpaired && d[16] < h) { s.coord = clamp(s.coord - K.dealImpairCut); s.dealImpaired = s.year; }
     }
     s.capUS = clamp(s.capUS + Math.max(0, gUS));
     s.capCN = clamp(s.capCN + Math.max(0, gCN));
@@ -647,48 +725,48 @@
     // China's by its own alignment effort (100% = a serious program, like a US bloc spending
     // 30% of compute on safety). So a cautious China that leads the race speeds alignment up too.
     const assist = 1 + (uplift(capUS0) - 1) * safetyLabor(L.safety) + (uplift(capCN0) - 1) * CN_LABOR * (w.cnAlign || 0);
-    const shared = 1 + 0.35 * (s.coord / 100) + 0.4 * L.transparency;
-    const bciBoost = 1 + 0.5 * (s.bci / 100);
-    s.align = clamp(s.align + 0.55 * (1.9 + 10 * sx + 1.5 * L.oversight) * assist * shared * bciBoost / w.difficulty + noise(9) * 0.5);
-    if (d[10] < 0.12) s.align = clamp(s.align + 3 + d[11] * 6 * (0.5 + Math.min(1, sx)));
+    const shared = 1 + K.alShCoord * (s.coord / 100) + K.alShTransp * L.transparency;
+    const bciBoost = 1 + K.alBci * (s.bci / 100);
+    s.align = clamp(s.align + K.alRate * (K.alBase + K.alSafety * sx + K.alOversight * L.oversight) * assist * shared * bciBoost / w.difficulty + noise(9) * K.alNoise);
+    if (d[10] < K.alJumpP) s.align = clamp(s.align + K.alJumpBase + d[11] * K.alJumpRand * (0.5 + Math.min(1, sx)));
 
     // Hidden internal AI: automated R&D runs inside labs; transparency and
     // inspections pull it into view.
     // Augmented overseers (BCI) can follow what thousands of AI copies are doing.
     // Rubber-stamp oversight (high delegation) pulls less of it into view.
     const bite = oversightBite(s);
-    s.internal = clamp(s.internal + 4 * L.race * Math.sqrt(uplift(mc)) - (9 * L.transparency + 5 * L.oversight) * bite - 6 * (s.bci / 100) - 0.5);
+    s.internal = clamp(s.internal + K.intRace * L.race * Math.sqrt(uplift(mc)) - (K.intTransp * L.transparency + K.intOversight * L.oversight) * bite - K.intBci * (s.bci / 100) - K.intDecay);
 
     // Delegation: automation (capability and the share of AI research AI does) and racing (no time
     // to check) hand more decisions to AI; oversight, transparency and safety work that keeps
     // humans in the loop take some back. Growth slows as little is left to hand over.
-    const delegUp = (2.5 + 0.06 * Math.max(0, mc - 40) + 10 * rdShare(mc)) * (0.5 + L.race) * (1 - s.deleg / 100);
-    const delegDown = (0.15 * L.oversight + 0.1 * L.transparency + 0.1 * Math.min(1, sx)) * s.deleg;
+    const delegUp = (K.delBase + K.delCap * Math.max(0, mc - 40) + K.delRd * rdShare(mc)) * (K.delRaceBase + L.race) * (1 - s.deleg / 100);
+    const delegDown = (K.delOversight * L.oversight + K.delTransp * L.transparency + K.delSafety * Math.min(1, sx)) * s.deleg;
     s.deleg = clamp(s.deleg + delegUp - delegDown);
 
-    s.coord = clamp(s.coord + 13 * L.diplomacy + 2 * L.oversight + 3 * L.transparency - 6 * L.race - 10 * L.aggression - 0.5 + noise(12) * 1.5);
+    s.coord = clamp(s.coord + K.coDip * L.diplomacy + K.coOversight * L.oversight + K.coTransp * L.transparency - K.coRace * L.race - K.coAggr * L.aggression - K.coDecay + noise(12) * K.coNoise);
 
     // Open-weights frontier tracks the closed frontier with a policy-set lag.
-    const openTarget = maxCap(s) * (0.62 + 0.36 * L.openness + 0.06 * L.transparency);
-    s.openCap = clamp(s.openCap + (openTarget - s.openCap) * 0.45);
+    const openTarget = maxCap(s) * (K.openBase + K.openLever * L.openness + K.openTransp * L.transparency);
+    s.openCap = clamp(s.openCap + (openTarget - s.openCap) * K.openRate);
 
     // Biodefense decays without investment; open tools give modest d/acc help.
-    s.bio = clamp(s.bio + 9 * L.biodef + 1.2 * L.openness - 1.6);
+    s.bio = clamp(s.bio + K.bioDef * L.biodef + K.bioOpen * L.openness - K.bioDecay);
 
     // Pointing AI labor at neurotech speeds BCIs up, but surgery, approval and
     // rollout cap adoption at about 20 points a year.
-    s.bci = clamp(s.bci + Math.min(20, (11 * L.bci + 0.6) * (1 + (uplift(mc) - 1) * 0.4 * L.bci)));
+    s.bci = clamp(s.bci + Math.min(K.bciCap, (K.bciLever * L.bci + K.bciBase) * (1 + (uplift(mc) - 1) * K.bciUplift * L.bci)));
 
-    s.conc = clamp(s.conc + 10 * L.race * (1 - 0.5 * L.openness - 0.5 * L.transparency) + 0.06 * Math.max(0, mc - 60)
-      - 2.5 * L.openness - 4 * L.transparency + 2.2 * L.bci * (1 - L.diplomacy) - 4 * L.oversight + 3 * L.aggression - 0.8);
+    s.conc = clamp(s.conc + K.concRace * L.race * (1 - K.concRaceOpen * L.openness - K.concRaceTransp * L.transparency) + K.concCap * Math.max(0, mc - 60)
+      - K.concOpen * L.openness - K.concTransp * L.transparency + K.concBci * L.bci * (1 - L.diplomacy) - K.concOversight * L.oversight + K.concAggr * L.aggression - K.concDecay);
 
-    s.trust = clamp(s.trust - 0.04 * Math.max(0, mc - 55) + 2.5 * Math.min(1, sx) + 1.5 * L.oversight + 1.5 * L.transparency
-      - 1.5 * L.race * (s.conc / 100) + 0.3);
+    s.trust = clamp(s.trust - K.trCap * Math.max(0, mc - 55) + K.trSafety * Math.min(1, sx) + K.trOversight * L.oversight + K.trTransp * L.transparency
+      - K.trRaceConc * L.race * (s.conc / 100) + K.trDrift);
 
     // Public stake in AI: builds toward the fund lever, but buying in gets far more
     // expensive once AI value explodes (capability past expert level), so early funds own more.
     const target = 100 * L.fund;
-    const buyIn = target > s.fundStake ? 0.4 * (1 - 0.85 * sig((mc - 80) / 5)) : 0.2;
+    const buyIn = target > s.fundStake ? K.fundBuy * (1 - K.fundExpensive * sig((mc - 80) / 5)) : K.fundSell;
     s.fundStake = clamp(s.fundStake + (target - s.fundStake) * buyIn);
 
     s.year += 1;
@@ -713,14 +791,14 @@
 
     if (s.year >= END_YEAR) {
       // Without superintelligence, power can still lock in by 2040 if public trust has collapsed.
-      if (s.trust < 45 && !s.fast) {
+      if (s.trust < K.endTrust && !s.fast) {
         const lock = lockinBelief(s, L);
         s.alive *= 1 - lock; s.survival = s.safeEnded + s.alive;
       }
-      if (s.trust < 45 && d[15] < lockinOdds(s, L)) return finish(s, 'lockin', r, 'end');
+      if (s.trust < K.endTrust && d[15] < lockinOdds(s, L)) return finish(s, 'lockin', r, 'end');
       // Judged on effective alignment (what the leading bloc really has): a margin that
       // exists only on tests, or only in the US while China leads, is not a careful path.
-      if (effAlign(s, L) >= maxCap(s) && s.coord > 55) return finish(s, 'pause', r, 'end');
+      if (effAlign(s, L) >= maxCap(s) && s.coord > K.pauseCoord) return finish(s, 'pause', r, 'end');
       return finish(s, 'muddle', r, 'end');
     }
     return { risk: r, event: null };
@@ -849,6 +927,7 @@
   }
 
   root.SimModel = {
+    K, K_DEFAULTS, setConstants,
     START_YEAR, END_YEAR, LEVER_INFO, STAT_INFO, OUTCOMES, ASSUMPTION_INFO,
     AC, TOP_EXPERT, TEDAI, DELEG0, oversightBite, delegHazard, uplift, rdShare, locGate, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,

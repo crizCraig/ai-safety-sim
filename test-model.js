@@ -603,5 +603,22 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
       && html.includes('0.15\\,(\\Lambda-12)'));
 }
 
+// --- Named constants (K): the defaults reproduce the stored seeded baseline ---
+// After a deliberate model change, regenerate it with: node scripts/sweep_constants.js --baseline
+{
+  const stored = require('./test-k-baseline.json');
+  const same = () => Object.entries(PRESETS).every(([k, L]) => {
+    const r = M.summarize(L, M.defaultAssumptions(), 1500, 7), b = stored[k];
+    return b && JSON.stringify(r.counts) === JSON.stringify(b.counts) && r.pAlignment === b.pAlignment && r.acMedian === b.acMedian && r.asiMedian === b.asiMedian;
+  });
+  check('K defaults reproduce the stored seeded baseline for every preset', JSON.stringify(M.K) === JSON.stringify(M.K_DEFAULTS) && same());
+  M.setConstants({ locScale: 0.5, capBase: 9 });
+  const moved = M.summarize(PRESETS['Status quo'], M.defaultAssumptions(), 1500, 7).counts.misalign !== stored['Status quo'].counts.misalign;
+  M.setConstants();
+  check('Overriding constants changes results, and setConstants() restores the baseline', moved && same());
+  let threw = false; try { M.setConstants({ noSuchConstant: 1 }); } catch (e) { threw = true; }
+  check('setConstants rejects unknown names', threw);
+}
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll checks passed');
 process.exit(failed ? 1 : 0);

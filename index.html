@@ -305,6 +305,14 @@
   .doc .math { margin: 10px 0; padding: 12px 14px; background: rgba(255,255,255,0.035); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; font-size: 15px; color: var(--text); }
   .doc .math:not(.rendered), .doc .mi:not(.rendered) { font-family: var(--mono); font-size: 12px; white-space: pre-wrap; }
   .doc math { font-size: 1.08em; color: var(--text); }
+  /* Long display formulas scroll sideways inside their box: the rendered math is as wide as its
+     content (centred when it fits), so nothing is clipped, and the scrollbar stays visible. */
+  .doc .math { overscroll-behavior-x: contain; }
+  .doc .math > math { width: max-content; min-width: 100%; }
+  .doc .math::-webkit-scrollbar { height: 8px; }
+  .doc .math::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.22); border-radius: 4px; }
+  .doc .math::-webkit-scrollbar-track { background: transparent; }
+  @supports not selector(::-webkit-scrollbar) { .doc .math { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.25) transparent; } }
   .doc .tablewrap { overflow-x: auto; margin: 6px 0 12px; }
   .doc table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .doc th, .doc td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--line); line-height: 1.5; }
@@ -453,11 +461,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261023163726"></script>
-<script src="events.js?v=20261023163726"></script>
-<script src="landmask.js?v=20261023163726"></script>
-<script src="presets.js?v=20261023163726"></script>
-<script src="trees.js?v=20261023163726"></script>
+<script src="model.js?v=20261023214544"></script>
+<script src="events.js?v=20261023214544"></script>
+<script src="landmask.js?v=20261023214544"></script>
+<script src="presets.js?v=20261023214544"></script>
+<script src="trees.js?v=20261023214544"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -753,7 +761,26 @@
     </table></div>
     <p>Figures from 30,000–40,000 simulated futures. The realized bio median sits a little below the target because futures last different lengths of time, so each world's exposure varies around the average used for calibration. p(alignment) counts aligned handoffs as 1 and loss of control as 0, benevolent or not; futures still short of superintelligence in 2040 count their handoff odds given the hidden world; pandemic and war futures are left out.</p>
 
-    <h3>7. What it leaves out</h3>
+    <h3>7. Which numbers matter</h3>
+    <p>Most constants above are judgment calls, so we moved each of the model's 169 named constants on its own, to half and one and a half times its value (midpoints and thresholds ±10 points), and watched seven headline numbers: catastrophe under the status quo, Plan A and the Safest mix, and p(alignment) under Plans A–D (4,000 futures per run, the same futures every run). The ten that matter most:</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Value</th><th>Constant</th><th>Largest effect</th><th>Kind</th></tr></thead>
+      <tbody>
+        <tr><td>0.3</td><td>Safety share where returns start to diminish</td><td>at 0.15, Plan C p(alignment) +18 points</td><td>Judgment</td></tr>
+        <tr><td>0.52</td><td>Race level that gives 1× compute in <span class="mi">\kappa(r)</span></td><td>halved, Plan A catastrophe +16</td><td>Fitted (AI 2040 pace)</td></tr>
+        <tr><td>13</td><td>Coordination gained per year from diplomacy</td><td>halved, Plan A catastrophe +16 (the deal rarely forms)</td><td>Judgment</td></tr>
+        <tr><td>0.55</td><td>Overall alignment progress rate</td><td>halved, Plans A–C p(alignment) −13 to −14</td><td>Fitted (Plans A–C)</td></tr>
+        <tr><td>0.3</td><td>Difficulty below which alignment is easy by default</td><td>at 0.45, Plan D p(alignment) +13</td><td>Judgment</td></tr>
+        <tr><td>0.6</td><td>China's race intensity against a middling US push</td><td>at 0.9, Plan A catastrophe +11</td><td>Judgment</td></tr>
+        <tr><td>7</td><td>Base yearly capability gain</td><td>halved, Plan C p(alignment) +11</td><td>Fitted (AI 2040 timeline)</td></tr>
+        <tr><td>32</td><td>Handoff bar's rise per unit of difficulty</td><td>at 48, Plan A p(alignment) −10</td><td>Fitted (Plans A–C)</td></tr>
+        <tr><td>10</td><td>Alignment progress from safety compute</td><td>halved, Plan B p(alignment) −10</td><td>Judgment</td></tr>
+        <tr><td>1.3</td><td>Lock-in pressure with no public trust</td><td>halved, status-quo catastrophe −10</td><td>Judgment</td></tr>
+      </tbody>
+    </table></div>
+    <p>None of the other 159 moves any headline number by more than 7.3 points, and 145 of the 169 move none by more than 3. No constant moves the status quo's catastrophe rate by more than 10 points. Fitted constants trade off against the target they were fitted to, so their swings show how much that target matters. The <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/constant-sensitivity.md" target="_blank" rel="noopener">full table</a> lists every constant, its role and its class (source, fitted, baseline offset or judgment); <code>scripts/sweep_constants.js</code> reproduces it.</p>
+
+    <h3>8. What it leaves out</h3>
     <p>Covert projects and cheating on the deal (beyond the age-based dissolution and impairment rates), cyberattacks, countries other than the two blocs, misuse beyond bio, conflict between AGIs, anything after 2040, plans that change over time in the Futures Lab, and whether capability can really be put on one axis at all. Treat it as an argument you can poke at, not an oracle.</p>
 
     <p class="disclaimer">All parameters are illustrative. The lab, company and leaders in this game are fictional composites.</p>
@@ -771,7 +798,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261023163726';
+const ASSET_VERSION = '20261023214544';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
