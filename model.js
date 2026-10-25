@@ -159,7 +159,7 @@
     // its controllers intend). Labs aim for it, e.g. constitutions telling models to refuse
     // illegitimate power grabs, but nothing shows it holds when the weights' owners push.
     valueAlign: { label: 'Aligned AI fights corruption', mean: 0.25, sd: 0.20, min: 0, max: 1, fmt: 'pct',
-      help: 'Value alignment: the chance an aligned superintelligence cares about humanity broadly and would decline to help a few seize power, even when its controllers ask. Labs aim for this (e.g. constitutions that tell models to refuse illegitimate power grabs), but it\'s unproven under pressure from whoever controls the weights.' },
+      help: 'Value alignment: the chance an aligned superintelligence cares about humanity broadly and would decline to help a few seize power, even when its controllers ask. Labs aim for this (e.g. constitutions that tell models to refuse illegitimate power grabs), but it\'s unproven under pressure from whoever controls the weights. At the default it cuts status-quo lock-in from about 70% to about 57% of futures where humans keep control.' },
     // Lognormal, set in log10 units. Calibrated to a separate factored Monte Carlo
     // decomposition: decade median 1.2e-4, 95% interval ~5e-7 to ~3e-2,
     // P(>1%) ≈ 5.5%, P(>10%) ≈ 0.7%. That is median 10^-3.92 with a log10 sd of about 1.2.
@@ -645,7 +645,8 @@
       * (1 - K.lockOpen * L.openness * clamp(s.openCap / Math.max(1, mc), 0, 1)) // open weights spread access
       * (1 - K.lockDip * L.diplomacy * clamp((s.trust - 50) / 30, 0, 1));   // coordination, only with public pressure
   }
-  // Calibrated so about 70% of status-quo futures where humans keep control lock in.
+  // Calibrated so about 70% of status-quo futures where humans keep control lock in before
+  // value alignment (nu = 0); the default nu (mean 0.25) brings that to about 57%.
   const LOCK_K = K_DEFAULTS.lockK; // the default; formulas use K.lockK
   const lockinScale = (share) => K.lockK * (1 - share);
   // Endings that count as catastrophes (a kind takeover does not).

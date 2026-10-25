@@ -319,9 +319,15 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const ctl = (r) => r.counts.flourish + r.counts.lockin;
   const sq = M.summarize(M.defaultLevers(), A0, 20000, 11);
   const share = sq.counts.lockin / ctl(sq);
-  check('Status quo: Locked-In Power in about 70% of futures where humans keep control (65-75%)', share > 0.65 && share < 0.75, (100 * share).toFixed(1) + '%');
+  // Craig's ~70% judgment is lock-in *before* value alignment: with no aligned AI that refuses
+  // to help (valueAlign 0) about 70% of controlled status-quo futures lock in. The default chance
+  // that aligned AI declines to help a few seize power (mean 0.25) brings that to about 57%
+  // (Craig chose this over recalibrating: "This is my hope. That AI will do what's right.").
+  check('Status quo: Locked-In Power in about 57% of futures where humans keep control (52-62%)', near(share, 0.57, 0.05), (100 * share).toFixed(1) + '%');
   const sq7 = M.summarize(M.defaultLevers(), A0, 20000, 7), share7 = sq7.counts.lockin / ctl(sq7);
-  check('…and about 70% (±5) at 20,000 futures, seed 7', near(share7, 0.7, 0.05), (100 * share7).toFixed(1) + '%');
+  check('…and about 57% (±5) at 20,000 futures, seed 7', near(share7, 0.57, 0.05), (100 * share7).toFixed(1) + '%');
+  const sq0 = M.summarize(M.defaultLevers(), { ...A0, valueAlign: { mean: 0, sd: 0 } }, 20000, 7), share0 = sq0.counts.lockin / ctl(sq0);
+  check('…and about 70% (±5) with no aligned AI that refuses (value alignment 0), seed 7', near(share0, 0.7, 0.05), (100 * share0).toFixed(1) + '%');
   // Strong countermeasures (full fund, oversight and transparency, sure whistleblowers) still
   // bring it to a few percent, even though the powerful rarely share unforced.
   const Lcm = { race: 0.7, safety: 0.25, openness: 0.45, transparency: 1, biodef: 0.2, diplomacy: 0.25, bci: 0.1, oversight: 1, aggression: 0, fund: 1 };
