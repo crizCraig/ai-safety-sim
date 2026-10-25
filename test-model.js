@@ -419,6 +419,13 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('DRAW_ORDER keeps the existing draws first and covers every unknown once',
     FIXED.every((k, i) => M.DRAW_ORDER[i] === k) && M.DRAW_ORDER.length === Object.keys(M.ASSUMPTION_INFO).length
       && new Set(M.DRAW_ORDER).size === M.DRAW_ORDER.length && M.DRAW_ORDER.every((k) => typeof M.ASSUMPTION_INFO[k].world === 'function') && Object.isFrozen(M.DRAW_ORDER));
+  // The campaign reveals every unknown but Current capability (public): a roll-screen row each,
+  // and a secret-facts row each (China's two share one).
+  const rolls = Object.keys(M.ASSUMPTION_INFO).filter((k) => M.ASSUMPTION_INFO[k].roll);
+  const secrets = M.secretRows(M.initialState(), M.defaultLevers(), { pct: (p) => String(p), over: false });
+  check('Every secret unknown has a roll-screen row and a secret fact, in revealOrder',
+    rolls.length === Object.keys(M.ASSUMPTION_INFO).length - 1 && !M.ASSUMPTION_INFO.capNow.roll && rolls.every((k) => Number.isFinite(M.ASSUMPTION_INFO[k].revealOrder))
+      && M.rollRows()[0][0] === 'How hard alignment is' && secrets.length === rolls.length - 1 && secrets[3][0] === 'China' && secrets.every(([l, h]) => l && typeof h === 'string' && !h.includes('undefined')));
 }
 
 // --- China's own AI speeds up alignment in proportion to its own effort ---

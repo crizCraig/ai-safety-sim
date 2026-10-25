@@ -213,7 +213,7 @@ Updated as steps land.
 | Step | Status |
 |---|---|
 | R1 | done: hidden-unknown checklist 17 → 15 |
-| R2 | planned |
+| R2 | done: hidden-unknown checklist 15 → 13 |
 | R3 | planned |
 | R4 | planned |
 | R5 | planned |

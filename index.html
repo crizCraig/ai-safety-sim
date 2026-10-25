@@ -1781,21 +1781,7 @@ function renderStats() {
 
 // The hidden facts of this game's world, as a list (ending reveal and the campaign's secrets view).
 function secretList(s, L) {
-  const w = s.world;
-  const gap = M.hiddenShare(s, L) * w.evalGap, ease = 1 / w.difficulty;
-  const rows = [
-    ['How hard alignment was', `${ease >= 1 ? `${ease.toFixed(1)}× easier than` : `${ease.toFixed(1)}× as easy as`} the baseline. ${w.safe
-      ? '<span style="color:var(--good)">Easy enough that fixing problems as they came up was all it took</span>'
-      : 'Not easy enough for quick fixes to do the job'} (that had a ${pct(w.pSafe, 0)} chance).`],
-    ['How fast AI progressed', `${w.speed.toFixed(1)}× the expected pace for the compute spent.`],
-    ['How misleading the tests were', `${game && game.phase === 'over' ? 'By the end, real alignment was' : 'Right now, real alignment is'} <b>${pct(gap, 0)}</b> lower than the tests showed.`],
-    ['China', `Did <b>${pct(w.cnAlign, 0)}</b> as much alignment work as the US bloc, and ${w.cnCaution < 0.005 ? 'would not have slowed down' : `would have slowed <b>${pct(w.cnCaution, 0)}</b>`} near the brink.`],
-    ['Insiders', `A <b>${pct(w.whistle, 0)}</b> chance they would expose a power grab.`],
-    ['The powerful', `A <b>${pct(w.share, 0)}</b> chance they would share AI's gains if nothing forced them.`],
-    ['Aligned AI fights corruption', `A <b>${pct(w.valueAlign, 0)}</b> chance an aligned AI would refuse to help a few seize power, even if its controllers asked.`],
-    ['If AI had escaped control', w.benevolent ? '<span style="color:#ff9ecf">It would have cared for humanity.</span>' : 'It would not have cared for humanity.'],
-    ['Pandemic risk from open models', `<b>${pct(w.bioDecade, 2)}</b> per decade.`],
-  ];
+  const rows = M.secretRows(s, L, { pct, over: !!(game && game.phase === 'over') });
   return `<ul>${rows.map(([k, v]) => `<li><span class="wk">${k}:</span> ${v}</li>`).join('')}</ul>`;
 }
 
@@ -2228,18 +2214,7 @@ function setMode(m) {
 // The Campaign starts playing right away; the first-time tutorial explains the screen.
 function startCampaign() { closeSplash(); setMode('campaign'); newGame(); rollWorld(() => maybeTour('campaign')); }
 // The unknowns each game draws, with a sample value to flash while "rolling".
-const UNKNOWNS = [
-  ['How hard alignment is', (r) => `${(Math.pow(10, -0.6 + 1.3 * r)).toFixed(1)}× ease`],
-  ['How fast AI progresses', (r) => `${(0.5 + r).toFixed(1)}× speed`],
-  ['How much safety tests overstate alignment', (r) => `${Math.round(r * 40)}%`],
-  ['How much alignment work China does itself', (r) => `${Math.round(r * 100)}%`],
-  ['Whether China slows down near the brink', (r) => `${Math.round(r * 70)}%`],
-  ['Whether insiders would expose a power grab', (r) => `${Math.round(r * 60)}%`],
-  ['Whether the powerful would share AI\'s gains', (r) => `${Math.round(r * 70)}%`],
-  ['Whether aligned AI fights corruption', (r) => `${Math.round(r * 70)}%`],
-  ['Whether an AI that escaped control would be kind', (r) => (r < 0.5 ? 'yes' : 'no')],
-  ['Pandemic risk from open models', (r) => `${(Math.pow(10, -6 + 4 * r) * 100).toPrecision(2)}%`],
-];
+const UNKNOWNS = M.rollRows();
 // Show the unknowns shuffling and locking one by one, then hand over to the game.
 // Begin 2027 works at any time; pressing it early skips the rest of the roll.
 function rollWorld(then) {

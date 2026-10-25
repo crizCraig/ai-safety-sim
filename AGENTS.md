@@ -68,8 +68,12 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
 1. `model.js` `ASSUMPTION_INFO`: `{ label, mean, sd, min, max, fmt, help }` and a source comment,
    plus `world(A, v)`: the fields a world carries for value `v`, belief nodes included (e.g.
    `({ x, xNodes: clippedNodes(A.x, 0, 1).nodes })`). Add `sample(A, rng, draw)` and `atMean(A)`
-   only if it is not a clipped normal (see `ease`, `speed`, `benevolent`, `bioDecade`). This one
-   entry drives the draw (`sampleWorld`), the mean world (`meanWorld`), the Futures Lab sliders,
+   only if it is not a clipped normal (see `ease`, `speed`, `benevolent`, `bioDecade`). Give it
+   `revealOrder`, `roll: [label, (r) => sample text]` (the campaign's roll screen) and
+   `secret: [label, (w, c) => html]` (the campaign's "Show secret facts" and the ending reveal;
+   `c` has the page's `pct`, the state `s`, levers `L` and `over`). This one
+   entry drives the draw (`sampleWorld`), the mean world (`meanWorld`), the roll screen
+   (`UNKNOWNS = M.rollRows()`), the secret facts (`secretList` via `M.secretRows`), the Futures Lab sliders,
    unknown-preset matching, share links (`shareURL`/`loadShared` in index.html) and Copy for LLMs
    (`scenarioText`). Append it after the existing keys. If its link units differ from `mean:sd`,
    add a `urlCodec` entry (as `speed`).
@@ -84,22 +88,18 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
 6. `index.html` model page §2 Notation: a row in the "Hidden unknowns" table (symbol, meaning
    with sources, distribution).
 7. `index.html` the equation(s) in §3/§4 that use it, with constants typed by hand.
-8. `index.html` `secretList(s, L)`: a row for the campaign's "Show secret facts" and the
-   ending reveal.
-9. `index.html` `UNKNOWNS`: a row for the roll screen (label and a sample-value formatter),
-   in the same order as `secretList`.
-10. `index.html` the Lab path tooltip ("Secret facts in this future", `tip-world`) only if it is
+8. `index.html` the Lab path tooltip ("Secret facts in this future", `tip-world`) only if it is
     one of the headline unknowns (today: ease, speed, bio).
-11. `index.html` §6 calibration table if it moves a calibration target.
-12. `README.md` the count of uncertain assumptions ("eleven"), and the test that checks it
+9. `index.html` §6 calibration table if it moves a calibration target.
+10. `README.md` the count of uncertain assumptions ("eleven"), and the test that checks it
     (`Object.keys(M.ASSUMPTION_INFO).length === 11 && readme.includes('eleven uncertain')`).
-13. `test-model.js`: calibration of whatever it feeds; belief = average of truth; belief does not
+11. `test-model.js`: calibration of whatever it feeds; belief = average of truth; belief does not
     depend on the hidden draw; the dice use the draw; the draw-order tests (append the key to
     `FIXED`; "... is the last draw of a world", and move the previous last draw to "comes just
     before it").
-14. `test-k-baseline.json`: regenerate (a new draw shifts every seeded future), then rerun the
+12. `test-k-baseline.json`: regenerate (a new draw shifts every seeded future), then rerun the
     sweep (see rules).
-15. Optional: `presets.js` `UNKNOWN_PRESETS` scenarios; an `events.js` card that gives players a
+13. Optional: `presets.js` `UNKNOWN_PRESETS` scenarios; an `events.js` card that gives players a
     handle on it.
 
 ### A state variable
