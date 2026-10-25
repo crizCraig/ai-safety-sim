@@ -165,8 +165,8 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
 2. `model.js` `CATASTROPHES` if it is one.
 3. `model.js` `step()`: the dice branch that returns `finish(s, key, r, stage)` **and** the
    expected-value bookkeeping (`s.alive`, `s.safeEnded`, `s.survival`) that mirrors it.
-4. `model.js` `summarize`'s p(alignment) rule (and its copy in
-   `scripts/sweep_constants.js` `summarizeCRN`).
+4. `model.js` `alignmentScore` (the p(alignment) rule `summarize` and the sweep's
+   `summarizeCRN` share).
 5. `index.html` `ATMO` (globe colour), the globe's ending visuals (`out === 'lockin'` etc. in the
    ending animation), `endKicker` wording (good / unresolved / catastrophe), and the ending art
    `assets/endings-gpt/<key>.webp` (`scripts/gen_card_art.py endings`).

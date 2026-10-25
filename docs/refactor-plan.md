@@ -223,4 +223,5 @@ Updated as steps land.
 | R4 | done: 175 placeholders fill 152 of the 170 constants; the equations hold no hand-typed constant (tested). Left by hand: prose numbers, the unknowns' distributions in the notation table |
 | R5a | done: copies 1, 3 and 4 named once (`chinaShare`, `chinaLeads`, `usPush`, `alignedByDefault`); fingerprint exactly equal |
 | R5b | remaining: `expect` over the registry's belief nodes, truth functions taking `h`, the three belief functions rewritten on it (copy 2 goes with it) |
-| R6 | planned |
+| R6a | done: `alignmentScore` shared by `summarize` and the sweep's `summarizeCRN` |
+| R6b–e | remaining: endings as `[outcome, probability]` lists (after struct1), `hiddenShare` defaults (behaviour-changing, own commit), README count, one quadrature scheme |

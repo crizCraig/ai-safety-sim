@@ -44,7 +44,7 @@ function summarizeCRN(M, L, n) {
     if (M.CATASTROPHES.includes(ev)) cat++;
     if (ev === 'bio' || ev === 'war') continue;
     nAlign++;
-    pAlign += ev === 'misalign' || ev === 'benevolent' ? 0 : M.maxCap(s) >= 100 ? 1 : M.transitionOdds(s, true, L);
+    pAlign += M.alignmentScore(ev, s, L);
   }
   return { cat: 100 * cat / n, pAlign: nAlign ? 100 * pAlign / nAlign : NaN };
 }

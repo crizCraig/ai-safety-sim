@@ -940,6 +940,11 @@
     return { counts, n, paths, meanYears: yearsSum / n };
   }
 
+  // A future's p(alignment) score: 0 after loss of control, 1 after an aligned handoff (whether or
+  // not power then locked in), and the handoff odds in the hidden world for futures still short of
+  // superintelligence in 2040. Pandemic and war futures are left out by the caller.
+  const alignmentScore = (ev, s, L) => (ev === 'misalign' || ev === 'benevolent' ? 0 : maxCap(s) >= 100 ? 1 : transitionOdds(s, true, L));
+
   // Summary statistics for a policy: outcome mix, milestone years and
   // p(alignment) (aligned handoffs count 1, loss of control 0, futures still
   // short of ASI in 2040 count their odds at the eventual handoff given the
@@ -958,7 +963,7 @@
       if (maxCap(s) >= 100) asiYears.push(s.year);
       if (ev === 'bio' || ev === 'war') continue;
       nAlign++;
-      pAlign += ev === 'misalign' || ev === 'benevolent' ? 0 : maxCap(s) >= 100 ? 1 : transitionOdds(s, true, L);
+      pAlign += alignmentScore(ev, s, L);
     }
     const median = (a) => { if (!a.length) return null; a.sort((x, y) => x - y); return a[a.length >> 1]; };
     return {
@@ -1015,6 +1020,6 @@
     AC, TOP_EXPERT, TEDAI, DELEG0, oversightBite, delegHazard, uplift, rdShare, locGate, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, assumptionToURL, assumptionFromURL, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
-    risks, transitionOdds, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, summarize, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
+    risks, transitionOdds, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, summarize, alignmentScore, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
