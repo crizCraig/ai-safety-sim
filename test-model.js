@@ -359,7 +359,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const cm = M.summarize(Lcm, { ...A0, ease: { mean: 0.7, sd: 0 }, whistle: { mean: 1, sd: 0 } }, 20000, 7);
   check('Strong countermeasures keep lock-in at or under 5% of controlled futures', cm.counts.lockin / ctl(cm) <= 0.05, (100 * cm.counts.lockin / ctl(cm)).toFixed(2) + '%');
   // Sharing scales the pressure: a world where the powerful always share never locks in.
-  const atS = Object.assign(M.initialState(), { capUS: 100, trust: 70, acYear: 2033, year: 2034, conc: 50 });
+  const atS = Object.assign(M.initialState(), { capUS: 100, trust: 70, deleg: 40, year: 2034, conc: 50 });
   check('Lock-in odds fall with sharing, to zero when the powerful always share', M.lockinOdds(atS, M.defaultLevers(), 0.25, 0) > M.lockinOdds(atS, M.defaultLevers(), 0.25, 0.5) && M.lockinOdds(atS, M.defaultLevers(), 0.25, 1) === 0);
   check('Locked-In Power counts as a catastrophe', Math.abs(sq.catastrophe - (sq.counts.bio + sq.counts.misalign + sq.counts.war + sq.counts.lockin) / sq.n) < 1e-12);
   const fund = M.summarize({ ...M.defaultLevers(), fund: 1 }, A0, 20000, 11);
@@ -368,12 +368,12 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const Lf = { ...M.defaultLevers(), fund: 1 };
   M.step(late, Lf, () => 0.99, false); M.step(early, Lf, () => 0.99, false);
   check('Buying in is cheaper before AI value explodes', early.fundStake > 2 * late.fundStake, `${early.fundStake.toFixed(0)} vs ${late.fundStake.toFixed(0)}`);
-  const at = (trust) => Object.assign(M.initialState(), { capUS: 100, trust, acYear: 2030, year: 2034 });
+  const at = (trust) => Object.assign(M.initialState(), { capUS: 100, trust, deleg: 40, year: 2034 });
   const pk = (st, o) => M.lockinOdds(st, { ...M.defaultLevers(), ...o });
   check('Diplomacy helps only with public pressure (trust above 50)', pk(at(70), { diplomacy: 1 }) < pk(at(70), { diplomacy: 0 }) && pk(at(40), { diplomacy: 1 }) === pk(at(40), { diplomacy: 0 }));
   // Survival: a successful handoff that locks in power is not survival.
   const w = Object.assign({}, M.initialState().world, { safe: true, difficulty: 0.1, pBenevolent: 0, hazard: 0, hazardBelief: 0, whistle: 0.25, whistleNodes: [[1, 0.25]], share: 0.5, shareNodes: [[1, 0.5]], valueAlign: 0.25, valueNodes: [[1, 0.25]] });
-  const sh = Object.assign(M.initialState(w), { capUS: 99.9, capCN: 70, align: 100, conc: 55, trust: 60, coord: 100, acYear: 2029, year: 2034 });
+  const sh = Object.assign(M.initialState(w), { capUS: 99.9, capCN: 70, align: 100, conc: 55, trust: 60, coord: 100, deleg: 40, year: 2034 });
   const Ls = { ...M.defaultLevers(), openness: 0 }, r0 = M.risks(sh, Ls);
   M.step(sh, Ls, () => 0.99, false);
   const lk = M.lockinOdds(sh, Ls, 0.25), q = M.transitionOdds(sh, false, Ls), want = (1 - r0.bio) * (1 - r0.war) * q * (1 - lk);
@@ -383,7 +383,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
 // --- Shown lock-in odds average the capped probability over whistleblowers, sharing and value alignment (Codex C11-1) ---
 {
   const A = M.defaultAssumptions(), L = M.defaultLevers();
-  const st = Object.assign(M.initialState(M.sampleWorld(A, M.mulberry32(2))), { capUS: 100, capCN: 60, conc: 65, trust: 60, acYear: 2028, year: 2036 });
+  const st = Object.assign(M.initialState(M.sampleWorld(A, M.mulberry32(2))), { capUS: 100, capCN: 60, conc: 65, trust: 60, deleg: 40, year: 2036 });
   const shown = M.lockinBelief(st, L);
   const rng = M.mulberry32(17); let sum = 0; const n = 200000;
   for (let i = 0; i < n; i++) { const w = M.sampleWorld(A, rng); sum += M.lockinOdds(st, L, w.whistle, w.share, w.valueAlign); }

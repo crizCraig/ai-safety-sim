@@ -106,9 +106,9 @@ const GROUPS = [
   ['china', 'China',
     'China\'s race intensity responds to how hard the US pushes and to coordination. It may slow near the brink (its hidden caution), and when it leads it can use US alignment work only partly. A hotter Chinese race makes the deal harder and raises risk under Plan A and the Safest mix.'],
   ['power', 'Power and lock-in',
-    'If humans keep control at the handoff, power can still lock in with a few. The lock-in odds multiply how concentrated power already is, how automated the economy is, and pressure from racing and low public trust, then subtract what the wealth fund, oversight, transparency, rivals, open weights, diplomacy, whistleblowers and value-aligned AI (the hidden chance that an aligned AI refuses to help a few seize power) take away. On today\'s path about 57% of the futures that keep control lock in (about 70% before value alignment), so these are the constants that move today\'s path the most.'],
+    'If humans keep control at the handoff, power can still lock in with a few. The lock-in odds multiply how concentrated power already is, how much has been delegated to AI, and pressure from racing and low public trust, then subtract what the wealth fund, oversight, transparency, rivals, open weights, diplomacy, whistleblowers and value-aligned AI (the hidden chance that an aligned AI refuses to help a few seize power) take away. On today\'s path about 54% of the futures that keep control lock in (about 70% before value alignment), so these are the constants that move today\'s path the most.'],
   ['deleg', 'Delegation',
-    'Decisions handed to AI with little human checking grow with automation and racing; oversight, transparency and safety work take some back. More delegation blunts oversight, raises the loss-of-control hazard and raises the handoff bar. All three effects are neutral at the 2027 level, so they move the headline numbers only a little.'],
+    'Decisions handed to AI with little human checking grow with automation and racing; oversight, transparency and safety work take some back. More delegation blunts oversight, raises the loss-of-control hazard, raises the handoff bar and raises the lock-in odds. All four effects are neutral at the 2027 level, so they move the headline numbers only a little.'],
 ];
 
 // Per constant: [type, group, plain name, what it does].
@@ -242,8 +242,6 @@ const META = {
   lockConcFloor: ['J', 'power', 'Lock-in with power spread out', 'Lock-in factor when power is not concentrated'],
   lockConcMid: ['J', 'power', 'Concentration that tips lock-in', 'Concentration where its lock-in factor is halfway up'],
   lockConcW: ['J', 'power', 'Concentration sharpness', 'Width of that curve'],
-  lockPhysYears: ['J', 'power', 'Years for robots to follow', 'Years after an Automated Coder until physical work is automated'],
-  lockAutoFloor: ['J', 'power', 'Lock-in before robots', 'Lock-in factor before physical work is automated'],
   lockRaceSlope: ['J', 'power', 'Lock-in pressure from racing', 'Relative rise in pressure under an all-out race (1 at race 0)'],
   lockTrustSlope: ['J', 'power', 'Lock-in pressure removed by trust', 'Share of the pressure removed when public trust is full (0.6/1.3; 1 with no trust)'],
   lockPluralW: ['J', 'power', 'What counts as a close rival', 'Capability gap at which a rival stops counting'],
@@ -277,6 +275,7 @@ const META = {
   deleg0: ['B', 'deleg', 'Delegation in 2027', 'Where delegation starts; its effects are neutral here'],
   delegBite: ['J', 'deleg', 'Oversight lost to rubber-stamping', 'Share of oversight\'s bite lost when everything is delegated'],
   delegHaz: ['J', 'deleg', 'Hazard from delegation', 'Extra loss-of-control hazard when everything is delegated'],
+  lockDeleg: ['J', 'deleg', 'Lock-in from delegation', 'Relative rise in lock-in pressure when everything is delegated (0 at the 2027 level)'],
   barDeleg: ['J', 'deleg', 'Handoff bar raised by delegation', 'Extra alignment the handoff needs per point of delegation'],
   delBase: ['J', 'deleg', 'Delegation growth, base', 'Yearly growth before automation'],
   delCap: ['J', 'deleg', 'Delegation from capability', 'Yearly growth per capability point above 40'],

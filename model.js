@@ -53,9 +53,11 @@
     // Superintelligence handoff bar
     barBase: 45, barDiff: 32, barInternal: 0.2, barDeleg: 0.15, barBci: 10, barW: 6,
     // Locked-in power. Pressure (1 + 0.5 r)(1 - (0.6/1.3) T/100) is the old (0.8 + 0.4 r)(1.3 - 0.6 T/100)
-    // divided by 0.8 × 1.3 = 1.04, which lockK absorbs (4.0 × 1.04 = 4.16)
-    lockK: 4.16, lockWhistle: 0.6, lockValue: 1, lockConcFloor: 0.45, lockConcMid: 64, lockConcW: 6, lockPhysYears: 6,
-    lockAutoFloor: 0.6, lockRaceSlope: 0.5, lockTrustSlope: 0.6 / 1.3,
+    // divided by 0.8 × 1.3 = 1.04, which lockK absorbs (4.0 × 1.04 = 4.16). Delegation replaced the
+    // old automation ramp (0.6 before the Automated Coder, rising to 1 over six years), which was 0.6
+    // in 2027 where the delegation factor is 1, so lockK absorbs that floor too: 4.16 × 0.6 = 2.496.
+    lockK: 2.496, lockWhistle: 0.6, lockValue: 1, lockConcFloor: 0.45, lockConcMid: 64, lockConcW: 6,
+    lockDeleg: 0.5, lockRaceSlope: 0.5, lockTrustSlope: 0.6 / 1.3,
     lockPluralW: 15, lockFund: 0.7, lockOversight: 0.45, lockTransp: 0.35, lockPlural: 0.15, lockOpen: 0.1, lockDip: 0.2,
     // Capability growth
     capBase: 7, ovsTax: 0.08, sabotSlow: 0.35, leak: 0.25,
@@ -477,7 +479,6 @@
       alive: 1,           // ...of which: the future is still running
       safeEnded: 0,
       fundStake: K.fund0, // public ownership of AI returns, 0..100 (Alaska-style funds exist today)
-      acYear: null,       // year the Automated Coder milestone was reached
       dealStart: null,    // first year a US–China deal was in force
       dealImpaired: null, // year the deal was weakened (at most once)
       dealCollapsed: null, // year the deal dissolved (it never returns)       // ...of which: it already ended without catastrophe (kind takeover, handoff)
@@ -689,11 +690,17 @@
   function lockinBase(s, L) {
     const mc = maxCap(s);
     const conc = K.lockConcFloor + (1 - K.lockConcFloor) * sig((s.conc - K.lockConcMid) / K.lockConcW); // power already concentrated
-    const phys = s.acYear ? clamp((s.year - s.acYear) / K.lockPhysYears, 0, 1) : 0;   // robots follow software
-    const automation = K.lockAutoFloor + (1 - K.lockAutoFloor) * phys;
+    // Erosion of control: delegation is how people lose their say, economically (their work, and
+    // the leverage it gave them, passes to AI owned by a few) and in decisions (choices made by AI
+    // with little human checking). The more is delegated, the less the many can resist or undo a
+    // concentration of power. Neutral at the 2027 level like delegation's other effects; with
+    // lockDeleg = delegHaz = 0.5 the status quo's Λ path (about 39 at its handoff) rises about as
+    // the old time-based ramp did (+13% vs +12% over its 2027 level), while paths that keep humans
+    // in the loop (Plan A, Λ about 29 at its handoff) no longer gain lock-in merely by lasting longer.
+    const delegation = 1 + K.lockDeleg * ((s.deleg ?? K.deleg0) - K.deleg0) / 100;
     const pressure = (1 + K.lockRaceSlope * L.race) * (1 - K.lockTrustSlope * s.trust / 100); // automate or die; weak public voice
     const plural = Math.max(clamp(1 - Math.abs(s.capUS - s.capCN) / K.lockPluralW, 0, 1), clamp((s.openCap - 80) / 20, 0, 1));
-    return conc * automation * pressure
+    return conc * delegation * pressure
       * (1 - K.lockFund * s.fundStake / 100)                                // public owns part of AI
       * (1 - K.lockOversight * L.oversight) * (1 - K.lockTransp * L.transparency) // accountable AI owners
       * (1 - K.lockPlural * plural)                                         // rivals help only a little
@@ -854,7 +861,6 @@
 
     // End of year: the milestone, handoff and 2040 checks read the updated state (see above).
     s.year += 1;
-    if (!s.acYear && maxCap(s) >= AC) s.acYear = s.year;
 
     // Superintelligence threshold.
     if (maxCap(s) >= 100) {

@@ -47,7 +47,7 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
   distribution). Test both: belief equals the Monte Carlo average of truth over sampled worlds,
   and belief does not change when only the hidden draw changes.
 - **A new mechanism is neutral at its 2027 level.** Write effects relative to the starting value
-  (as `oversightBite`, `delegHazard` and the handoff bar do with `deleg - K.deleg0`) so adding it
+  (as `oversightBite`, `delegHazard`, the handoff bar and `lockinBase`'s delegation factor do with `deleg - K.deleg0`) so adding it
   does not move 2027 risks.
 - **Recalibrate in a separate commit.** Adding a mechanism almost always moves the AI 2040
   calibration (Plans A–C p(alignment)) or the status-quo lock-in share. First commit the mechanism
