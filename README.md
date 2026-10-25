@@ -46,13 +46,14 @@ people without economic leverage or a say even when humans keep control of AI.
 
 | File | What it is |
 | --- | --- |
-| `model.js` | The world model: state, levers, yearly dynamics, hazard equations, Monte Carlo |
+| `model.js` | The world model: state, levers, yearly dynamics (every update reads the start-of-year state, so their order does not matter), hazard equations, Monte Carlo, and its 163 named constants |
 | `events.js` | The decision cards and how each choice moves levers and state |
 | `landmask.js` | Land/sea bitmap for the globe, rasterized from Natural Earth 1:50m coastlines (public domain) |
 | `trees.js` | Memtree links for the sessions that built the game |
 | `scripts/build_artifact.py` | Builds a copy for a claude.ai Artifact |
 | `index.html` | Three.js scene, HUD, campaign loop, Futures Lab |
 | `test-model.js` | `node test-model.js` prints outcome distributions for policy presets |
+| `scripts/sweep_constants.js` | Moves each named constant on its own and writes `docs/constant-sensitivity.md` (by topic) and `docs/constant-sensitivity-full.md` (every number) |
 
 ## Caveat
 
