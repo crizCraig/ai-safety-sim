@@ -54,7 +54,7 @@
     barBase: 45, barDiff: 32, barInternal: 0.2, barDeleg: 0.15, barBci: 10, barW: 6,
     // Locked-in power. Pressure (1 + 0.5 r)(1 - (0.6/1.3) T/100) is the old (0.8 + 0.4 r)(1.3 - 0.6 T/100)
     // divided by 0.8 × 1.3 = 1.04, which lockK absorbs (4.0 × 1.04 = 4.16)
-    lockK: 4.16, lockWhistle: 0.6, lockValue: 0.8, lockConcFloor: 0.45, lockConcMid: 64, lockConcW: 6, lockPhysYears: 6,
+    lockK: 4.16, lockWhistle: 0.6, lockValue: 1, lockConcFloor: 0.45, lockConcMid: 64, lockConcW: 6, lockPhysYears: 6,
     lockAutoFloor: 0.6, lockRaceSlope: 0.5, lockTrustSlope: 0.6 / 1.3,
     lockPluralW: 15, lockFund: 0.7, lockOversight: 0.45, lockTransp: 0.35, lockPlural: 0.15, lockOpen: 0.1, lockDip: 0.2,
     // Capability growth
@@ -207,7 +207,7 @@
     // its controllers intend). Labs aim for it, e.g. constitutions telling models to refuse
     // illegitimate power grabs, but nothing shows it holds when the weights' owners push.
     valueAlign: { label: 'Aligned AI fights corruption', mean: 0.25, sd: 0.20, min: 0, max: 1, fmt: 'pct',
-      help: 'Value alignment: the chance an aligned superintelligence cares about humanity broadly and would decline to help a few seize power, even when its controllers ask. Labs aim for this (e.g. constitutions that tell models to refuse illegitimate power grabs), but it\'s unproven under pressure from whoever controls the weights. At the default it cuts status-quo lock-in from about 70% to about 57% of futures where humans keep control.',
+      help: 'Value alignment: the chance an aligned superintelligence cares about humanity broadly and would decline to help a few seize power, even when its controllers ask. Labs aim for this (e.g. constitutions that tell models to refuse illegitimate power grabs), but it\'s unproven under pressure from whoever controls the weights. An AI that surely refuses stops lock-in entirely. At the default it cuts status-quo lock-in from about 70% to about 54% of futures where humans keep control.',
       world: (A, valueAlign) => ({ valueAlign, valueNodes: clippedNodes(A.valueAlign, 0, 1).nodes }),
       revealOrder: 70, roll: ['Whether aligned AI fights corruption', (r) => `${Math.round(r * 70)}%`],
       secret: ['Aligned AI fights corruption', (w, c) => `A <b>${c.pct(w.valueAlign, 0)}</b> chance an aligned AI would refuse to help a few seize power, even if its controllers asked.`] },
@@ -678,9 +678,10 @@
   // `whistle`, `share` and `value` default to this world's hidden draws; belief callers pass node
   // values. The baseline pressure scales with 1 - share: how unlikely the few are to share the
   // gains when nothing forces them. `value` is value alignment: the chance the (intent-)aligned
-  // AI cares about humanity broadly and refuses to help a few seize power. Even a sure refusal
-  // removes only K.lockValue (0.8) of the uncapped pressure (less once the 0.95 cap binds): the owners can retrain or swap the model, and
-  // part of lock-in is drift (value moving to AI owners) that no one asks the AI to help with.
+  // AI cares about humanity broadly and refuses to help a few seize power. A value-aligned AI always
+  // counters lock-in (Craig: "A value-aligned AI always counters lock-in."), so (1 - K.lockValue nu),
+  // with K.lockValue = 1, multiplies the uncapped pressure before the 0.95 cap: at nu = 1 the odds
+  // are exactly 0 however high the pressure; below that the cap can still bind.
   function lockinOdds(s, L, whistle = s.world.whistle, share = s.world.share, value = s.world.valueAlign) {
     return clamp(lockinScale(share) * lockinBase(s, L) * (1 - K.lockWhistle * whistle) * (1 - K.lockValue * (value || 0)), 0, 0.95);
   }
@@ -700,7 +701,7 @@
       * (1 - K.lockDip * L.diplomacy * clamp((s.trust - 50) / 30, 0, 1));   // coordination, only with public pressure
   }
   // Calibrated so about 70% of status-quo futures where humans keep control lock in before
-  // value alignment (nu = 0); the default nu (mean 0.25) brings that to about 57%.
+  // value alignment (nu = 0); the default nu (mean 0.25) brings that to about 54%.
   const LOCK_K = K_DEFAULTS.lockK; // the default; formulas use K.lockK
   const lockinScale = (share) => K.lockK * (1 - share);
   // Endings that count as catastrophes (a kind takeover does not).

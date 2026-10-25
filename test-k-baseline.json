@@ -1,12 +1,12 @@
 {
  "Safest mix": {
   "counts": {
-   "flourish": 5,
+   "flourish": 6,
    "bio": 7,
    "misalign": 3,
    "war": 17,
    "benevolent": 0,
-   "lockin": 1,
+   "lockin": 0,
    "pause": 1461,
    "muddle": 6
   },
@@ -31,12 +31,12 @@
  },
  "Status quo": {
   "counts": {
-   "flourish": 123,
+   "flourish": 134,
    "bio": 8,
    "misalign": 963,
    "war": 55,
    "benevolent": 178,
-   "lockin": 173,
+   "lockin": 162,
    "pause": 0,
    "muddle": 0
   },
@@ -46,12 +46,12 @@
  },
  "Plan A: Verified slowdown": {
   "counts": {
-   "flourish": 232,
+   "flourish": 235,
    "bio": 31,
    "misalign": 201,
    "war": 26,
    "benevolent": 33,
-   "lockin": 53,
+   "lockin": 50,
    "pause": 868,
    "muddle": 56
   },
@@ -61,12 +61,12 @@
  },
  "Plan B: Fight China": {
   "counts": {
-   "flourish": 76,
+   "flourish": 106,
    "bio": 5,
    "misalign": 585,
    "war": 261,
    "benevolent": 117,
-   "lockin": 456,
+   "lockin": 426,
    "pause": 0,
    "muddle": 0
   },
@@ -76,12 +76,12 @@
  },
  "Plan C: Burn the lead": {
   "counts": {
-   "flourish": 252,
+   "flourish": 268,
    "bio": 9,
    "misalign": 720,
    "war": 71,
    "benevolent": 151,
-   "lockin": 297,
+   "lockin": 281,
    "pause": 0,
    "muddle": 0
   },
@@ -91,12 +91,12 @@
  },
  "Plan D: Race to ASI": {
   "counts": {
-   "flourish": 36,
+   "flourish": 43,
    "bio": 8,
    "misalign": 1015,
    "war": 47,
    "benevolent": 196,
-   "lockin": 198,
+   "lockin": 191,
    "pause": 0,
    "muddle": 0
   },
@@ -121,12 +121,12 @@
  },
  "Open everything": {
   "counts": {
-   "flourish": 219,
+   "flourish": 225,
    "bio": 19,
    "misalign": 913,
    "war": 59,
    "benevolent": 176,
-   "lockin": 114,
+   "lockin": 108,
    "pause": 0,
    "muddle": 0
   },
@@ -136,12 +136,12 @@
  },
  "Open + biodefense": {
   "counts": {
-   "flourish": 273,
+   "flourish": 283,
    "bio": 22,
    "misalign": 850,
    "war": 65,
    "benevolent": 152,
-   "lockin": 138,
+   "lockin": 128,
    "pause": 0,
    "muddle": 0
   },
@@ -151,12 +151,12 @@
  },
  "IAEA for AI": {
   "counts": {
-   "flourish": 474,
+   "flourish": 483,
    "bio": 6,
    "misalign": 672,
    "war": 50,
    "benevolent": 143,
-   "lockin": 155,
+   "lockin": 146,
    "pause": 0,
    "muddle": 0
   },
@@ -166,12 +166,12 @@
  },
  "Neuralink bet": {
   "counts": {
-   "flourish": 152,
+   "flourish": 167,
    "bio": 8,
    "misalign": 855,
    "war": 69,
    "benevolent": 174,
-   "lockin": 242,
+   "lockin": 227,
    "pause": 0,
    "muddle": 0
   },
@@ -181,12 +181,12 @@
  },
  "BCI-first": {
   "counts": {
-   "flourish": 321,
+   "flourish": 330,
    "bio": 35,
    "misalign": 191,
    "war": 75,
    "benevolent": 36,
-   "lockin": 105,
+   "lockin": 96,
    "pause": 675,
    "muddle": 62
   },
@@ -196,12 +196,12 @@
  },
  "All compute on safety": {
   "counts": {
-   "flourish": 295,
+   "flourish": 316,
    "bio": 16,
    "misalign": 584,
    "war": 69,
    "benevolent": 129,
-   "lockin": 404,
+   "lockin": 383,
    "pause": 0,
    "muddle": 3
   },

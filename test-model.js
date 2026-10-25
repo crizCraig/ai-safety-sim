@@ -346,11 +346,11 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const share = sq.counts.lockin / ctl(sq);
   // Craig's ~70% judgment is lock-in *before* value alignment: with no aligned AI that refuses
   // to help (valueAlign 0) about 70% of controlled status-quo futures lock in. The default chance
-  // that aligned AI declines to help a few seize power (mean 0.25) brings that to about 57%
+  // that aligned AI declines to help a few seize power (mean 0.25) brings that to about 54% (a value-aligned AI always counters lock-in)
   // (Craig chose this over recalibrating: "This is my hope. That AI will do what's right.").
-  check('Status quo: Locked-In Power in about 57% of futures where humans keep control (52-62%)', near(share, 0.57, 0.05), (100 * share).toFixed(1) + '%');
+  check('Status quo: Locked-In Power in about 54% of futures where humans keep control (49-59%)', near(share, 0.54, 0.05), (100 * share).toFixed(1) + '%');
   const sq7 = M.summarize(M.defaultLevers(), A0, 20000, 7), share7 = sq7.counts.lockin / ctl(sq7);
-  check('…and about 57% (±5) at 20,000 futures, seed 7', near(share7, 0.57, 0.05), (100 * share7).toFixed(1) + '%');
+  check('…and about 54% (±5) at 20,000 futures, seed 7', near(share7, 0.54, 0.05), (100 * share7).toFixed(1) + '%');
   const sq0 = M.summarize(M.defaultLevers(), { ...A0, valueAlign: { mean: 0, sd: 0 } }, 20000, 7), share0 = sq0.counts.lockin / ctl(sq0);
   check('…and about 70% (±5) with no aligned AI that refuses (value alignment 0), seed 7', near(share0, 0.7, 0.05), (100 * share0).toFixed(1) + '%');
   // Strong countermeasures (full fund, oversight and transparency, sure whistleblowers) still
@@ -393,10 +393,12 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   // Belief vs truth: the shown odds ignore this world's hidden draws; the dice use them.
   const twin = (share, whistle, valueAlign = 0) => Object.assign({}, st, { world: Object.assign({}, st.world, { share, whistle, valueAlign }) });
   check('Shown lock-in odds do not depend on the hidden draws', M.lockinBelief(twin(0, 0, 0), L) === M.lockinBelief(twin(1, 1, 1), L) && M.lockinOdds(twin(0, 0), L) > M.lockinOdds(twin(0.9, 0), L));
-  // Value alignment: an aligned AI that refuses to help a few seize power cuts the odds, by at
-  // most K.lockValue (a sure refusal leaves 20% where the cap does not bind); the dice use the draw.
+  // Value alignment: a value-aligned AI always counters lock-in. (1 - nu) multiplies the uncapped
+  // pressure, so a sure refusal leaves exactly 0, even where the 0.95 cap binds; the dice use the draw.
   const low = Object.assign({}, st, { conc: 40, trust: 80 }), lo = (v) => M.lockinOdds(low, L, 0.25, 0.3, v);
-  check('Lock-in odds fall with value alignment, by 80% when an aligned AI surely refuses', lo(0) < 0.95 && lo(0) > lo(0.5) && lo(0.5) > lo(1) && Math.abs(lo(1) - (1 - M.K.lockValue) * lo(0)) < 1e-12 && M.K.lockValue === 0.8,
+  const capped = Object.assign({}, st, { conc: 95, trust: 5 }), hi = (v) => M.lockinOdds(capped, L, 0, 0, v);
+  check('Lock-in odds fall with value alignment, to zero when an aligned AI surely refuses (even at the 0.95 cap)', lo(0) < 0.95 && lo(0) > lo(0.5) && lo(0.5) > lo(1) && lo(1) === 0 && M.K.lockValue === 1
+    && hi(0) === 0.95 && hi(1) === 0 && M.lockinBelief(Object.assign({}, capped, { world: Object.assign({}, capped.world, { valueNodes: [[1, 1]] }) }), L) === 0,
     `${(100 * lo(0)).toFixed(1)}% -> ${(100 * lo(1)).toFixed(1)}%`);
   check('The dice use the world\'s value-alignment draw', M.lockinOdds(twin(0, 0, 0), L) > M.lockinOdds(twin(0, 0, 1), L) && M.lockinOdds(twin(0, 0, 0.6), L) === M.lockinOdds(st, L, 0, 0, 0.6));
   // Belief over value alignment: raising its mean lowers the shown odds; the default world carries its nodes.
