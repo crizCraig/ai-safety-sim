@@ -53,7 +53,7 @@
     // Superintelligence handoff bar
     barBase: 45, barDiff: 32, barInternal: 0.2, barDeleg: 0.15, barBci: 10, barW: 6,
     // Locked-in power
-    lockK: 4.0, lockWhistle: 0.6, lockConcFloor: 0.45, lockConcMid: 64, lockConcW: 6, lockPhysYears: 6,
+    lockK: 4.0, lockWhistle: 0.6, lockValue: 0.8, lockConcFloor: 0.45, lockConcMid: 64, lockConcW: 6, lockPhysYears: 6,
     lockAutoFloor: 0.6, lockRaceBase: 0.8, lockRaceSlope: 0.4, lockTrustBase: 1.3, lockTrustSlope: 0.6,
     lockPluralW: 15, lockFund: 0.7, lockOversight: 0.45, lockTransp: 0.35, lockPlural: 0.15, lockOpen: 0.1, lockDip: 0.2,
     // Capability growth
@@ -155,6 +155,11 @@
     // states; voluntary pledges exist but nothing enforces them.
     share: { label: 'The powerful share the gains', mean: 0.30, sd: 0.20, min: 0, max: 1, fmt: 'pct',
       help: 'If a few control AI and nothing forces them, the chance they share its gains broadly anyway. Low means the powerful keep AI and its gains once most people\'s work is no longer needed. The wealth fund, oversight, transparency and whistleblowers can still force sharing.' },
+    // Value alignment, as opposed to intent alignment ("aligned" elsewhere means the AI does what
+    // its controllers intend). Labs aim for it, e.g. constitutions telling models to refuse
+    // illegitimate power grabs, but nothing shows it holds when the weights' owners push.
+    valueAlign: { label: 'Aligned AI fights corruption', mean: 0.25, sd: 0.20, min: 0, max: 1, fmt: 'pct',
+      help: 'Value alignment: the chance an aligned superintelligence cares about humanity broadly and would decline to help a few seize power, even when its controllers ask. Labs aim for this (e.g. constitutions that tell models to refuse illegitimate power grabs), but it\'s unproven under pressure from whoever controls the weights.' },
     // Lognormal, set in log10 units. Calibrated to a separate factored Monte Carlo
     // decomposition: decade median 1.2e-4, 95% interval ~5e-7 to ~3e-2,
     // P(>1%) ≈ 5.5%, P(>10%) ≈ 0.7%. That is median 10^-3.92 with a log10 sd of about 1.2.
@@ -223,6 +228,8 @@
     w.capNow = A.capNow.sd > 0 ? draw('capNow') : A.capNow.mean;
     // Appended after every earlier draw, so adding it kept their order.
     Object.assign(w, shareWorld(A, draw('share')));
+    // Value alignment, appended after sharing for the same reason.
+    Object.assign(w, valueWorld(A, draw('valueAlign')));
     if (skipBio) return w;
     return Object.assign(w, bioWorld(bioDecade, A.bioDecade));
   }
@@ -239,7 +246,7 @@
     return Object.assign({ difficulty: d, speed: Math.pow(10, A.speed.mean), capNow: A.capNow.mean, whistle: clippedMean(A.whistle), whistleNodes: clippedNodes(A.whistle, 0, 1).nodes,
       pBenevolent: clippedMean(A.benevolent), benevolent: false }, difficultyWorld(d, dd),
       chinaWorld(A, clippedMean(A.cnAlign), clippedMean(A.cnCaution)),
-      evalWorld(A, clippedMean(A.evalGap)), shareWorld(A, clippedMean(A.share)),
+      evalWorld(A, clippedMean(A.evalGap)), shareWorld(A, clippedMean(A.share)), valueWorld(A, clippedMean(A.valueAlign)),
       bioWorld(Math.pow(10, A.bioDecade.mean), A.bioDecade));
   }
 
@@ -271,6 +278,10 @@
   // Whether the powerful share AI's gains unforced, plus belief nodes over it (the dice use the draw).
   function shareWorld(A, share) {
     return { share, shareNodes: clippedNodes(A.share, 0, 1).nodes };
+  }
+  // Whether an aligned AI would refuse to help a few seize power, plus belief nodes (dice use the draw).
+  function valueWorld(A, valueAlign) {
+    return { valueAlign, valueNodes: clippedNodes(A.valueAlign, 0, 1).nodes };
   }
   function evalWorld(A, evalGap) {
     const c = clippedNodes(A.evalGap, 0, 0.6);
@@ -610,13 +621,16 @@
   // and most people lose their say: seized outright, or drifted there as automation moves
   // value from labor to whoever owns AI (nationalsecurityresponse.ai). Exponential growth
   // pulls the frontier away from the pack, so a close rival or open weights protect little.
-  // `whistle` and `share` default to this world's hidden draws; belief callers pass node values.
-  // The baseline pressure scales with 1 - share: how unlikely the few are to share the gains
-  // when nothing forces them.
-  function lockinOdds(s, L, whistle = s.world.whistle, share = s.world.share) {
-    return clamp(lockinScale(share) * lockinBase(s, L) * (1 - K.lockWhistle * whistle), 0, 0.95);
+  // `whistle`, `share` and `value` default to this world's hidden draws; belief callers pass node
+  // values. The baseline pressure scales with 1 - share: how unlikely the few are to share the
+  // gains when nothing forces them. `value` is value alignment: the chance the (intent-)aligned
+  // AI cares about humanity broadly and refuses to help a few seize power. Even a sure refusal
+  // removes only K.lockValue (0.8) of the odds: the owners can retrain or swap the model, and
+  // part of lock-in is drift (value moving to AI owners) that no one asks the AI to help with.
+  function lockinOdds(s, L, whistle = s.world.whistle, share = s.world.share, value = s.world.valueAlign) {
+    return clamp(lockinScale(share) * lockinBase(s, L) * (1 - K.lockWhistle * whistle) * (1 - K.lockValue * (value || 0)), 0, 0.95);
   }
-  // Everything in the lock-in odds except the hidden draws (whistleblowers, sharing).
+  // Everything in the lock-in odds except the hidden draws (whistleblowers, sharing, values).
   function lockinBase(s, L) {
     const mc = maxCap(s);
     const conc = K.lockConcFloor + (1 - K.lockConcFloor) * sig((s.conc - K.lockConcMid) / K.lockConcW); // power already concentrated
@@ -637,15 +651,21 @@
   // Endings that count as catastrophes (a kind takeover does not).
   const CATASTROPHES = ['bio', 'misalign', 'war', 'lockin'];
   // Shown (belief) lock-in odds: the capped probability averaged over the joint distribution
-  // of whistleblower odds and sharing (independent draws), not evaluated at their means.
-  // The dice use the hidden draws.
+  // of whistleblower odds, sharing and value alignment (independent draws), not evaluated at
+  // their means. The dice use the hidden draws. Where the cap cannot bind for a sharing node,
+  // the product factorizes and the inner average is exact without the double loop.
   function lockinBelief(s, L) {
     const wn = s.world.whistleNodes || [[1, s.world.whistle]], sn = s.world.shareNodes || [[1, s.world.share]];
+    const vn = s.world.valueNodes || [[1, s.world.valueAlign || 0]];
     const base = lockinBase(s, L);
+    const wm = wn.map(([w, v]) => [w, 1 - K.lockWhistle * v]), vm = vn.map(([w, v]) => [w, 1 - K.lockValue * v]);
+    const mean = (nodes) => nodes.reduce((a, [w, f]) => a + w * f, 0), Ew = mean(wm), Ev = mean(vm);
+    const maxW = Math.max(...wm.map(([, f]) => f)), maxV = Math.max(...vm.map(([, f]) => f));
     let p = 0;
     for (const [ws, sv] of sn) {
       const k = lockinScale(sv) * base;
-      for (const [w, v] of wn) p += ws * w * clamp(k * (1 - K.lockWhistle * v), 0, 0.95);
+      if (k * maxW * maxV <= 0.95) { p += ws * Math.max(0, k * Ew * Ev); continue; }
+      for (const [w, fw] of wm) for (const [u, fv] of vm) p += ws * w * u * clamp(k * fw * fv, 0, 0.95);
     }
     return p;
   }

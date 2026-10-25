@@ -1,211 +1,211 @@
 {
  "Safest mix": {
   "counts": {
-   "flourish": 7,
-   "bio": 4,
-   "misalign": 0,
-   "war": 8,
-   "benevolent": 1,
-   "lockin": 1,
-   "pause": 1463,
-   "muddle": 16
+   "flourish": 3,
+   "bio": 1,
+   "misalign": 1,
+   "war": 14,
+   "benevolent": 0,
+   "lockin": 0,
+   "pause": 1471,
+   "muddle": 10
   },
-  "pAlignment": 0.8343280881728378,
-  "acMedian": 2039,
-  "asiMedian": 2038
+  "pAlignment": 0.837636059524099,
+  "acMedian": 2038,
+  "asiMedian": 2039
  },
  "Under 2% risk": {
   "counts": {
-   "flourish": 9,
-   "bio": 6,
-   "misalign": 1,
-   "war": 8,
+   "flourish": 4,
+   "bio": 2,
+   "misalign": 2,
+   "war": 18,
    "benevolent": 0,
-   "lockin": 2,
-   "pause": 1452,
-   "muddle": 22
+   "lockin": 4,
+   "pause": 1450,
+   "muddle": 20
   },
-  "pAlignment": 0.8143109304717648,
-  "acMedian": 2038,
-  "asiMedian": 2040
+  "pAlignment": 0.831561673410152,
+  "acMedian": 2039,
+  "asiMedian": 2039
  },
  "Status quo": {
   "counts": {
-   "flourish": 80,
-   "bio": 9,
-   "misalign": 944,
-   "war": 87,
-   "benevolent": 155,
-   "lockin": 225,
+   "flourish": 125,
+   "bio": 8,
+   "misalign": 962,
+   "war": 54,
+   "benevolent": 176,
+   "lockin": 175,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.21723646723646722,
+  "pAlignment": 0.2086230876216968,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "Plan A: Verified slowdown": {
   "counts": {
-   "flourish": 241,
-   "bio": 20,
-   "misalign": 196,
-   "war": 24,
-   "benevolent": 28,
-   "lockin": 83,
-   "pause": 865,
-   "muddle": 43
+   "flourish": 209,
+   "bio": 18,
+   "misalign": 181,
+   "war": 37,
+   "benevolent": 44,
+   "lockin": 57,
+   "pause": 890,
+   "muddle": 64
   },
-  "pAlignment": 0.7551956897462488,
+  "pAlignment": 0.7374537271215812,
   "acMedian": 2032,
-  "asiMedian": 2034
+  "asiMedian": 2035
  },
  "Plan B: Fight China": {
   "counts": {
-   "flourish": 48,
-   "bio": 0,
-   "misalign": 554,
-   "war": 316,
-   "benevolent": 95,
-   "lockin": 487,
+   "flourish": 75,
+   "bio": 4,
+   "misalign": 552,
+   "war": 257,
+   "benevolent": 136,
+   "lockin": 476,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.4518581081081081,
+  "pAlignment": 0.4447134786117837,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "Plan C: Burn the lead": {
   "counts": {
-   "flourish": 175,
-   "bio": 6,
-   "misalign": 748,
-   "war": 84,
-   "benevolent": 118,
-   "lockin": 369,
+   "flourish": 251,
+   "bio": 4,
+   "misalign": 720,
+   "war": 72,
+   "benevolent": 125,
+   "lockin": 328,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.38581560283687943,
+  "pAlignment": 0.4066011235955056,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "Plan D: Race to ASI": {
   "counts": {
-   "flourish": 17,
-   "bio": 8,
-   "misalign": 993,
-   "war": 57,
-   "benevolent": 197,
-   "lockin": 228,
+   "flourish": 36,
+   "bio": 7,
+   "misalign": 994,
+   "war": 47,
+   "benevolent": 218,
+   "lockin": 198,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.17073170731707318,
+  "pAlignment": 0.16182572614107885,
   "acMedian": 2029,
   "asiMedian": 2030
  },
  "Plan S: Shut it down": {
   "counts": {
-   "flourish": 9,
-   "bio": 0,
-   "misalign": 2,
-   "war": 17,
+   "flourish": 6,
+   "bio": 1,
+   "misalign": 3,
+   "war": 15,
    "benevolent": 0,
-   "lockin": 2,
-   "pause": 1356,
-   "muddle": 114
+   "lockin": 0,
+   "pause": 1351,
+   "muddle": 124
   },
-  "pAlignment": 0.7760001717536132,
+  "pAlignment": 0.7607767583349389,
   "acMedian": 2038,
   "asiMedian": 2039
  },
  "Open everything": {
   "counts": {
-   "flourish": 208,
-   "bio": 14,
-   "misalign": 897,
-   "war": 69,
-   "benevolent": 157,
-   "lockin": 155,
+   "flourish": 226,
+   "bio": 23,
+   "misalign": 889,
+   "war": 63,
+   "benevolent": 173,
+   "lockin": 126,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.25617501764290757,
+  "pAlignment": 0.24893917963224893,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "Open + biodefense": {
   "counts": {
-   "flourish": 234,
-   "bio": 6,
-   "misalign": 852,
-   "war": 73,
+   "flourish": 305,
+   "bio": 8,
+   "misalign": 827,
+   "war": 70,
    "benevolent": 156,
-   "lockin": 179,
+   "lockin": 134,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.29064039408866993,
+  "pAlignment": 0.30872011251758086,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "IAEA for AI": {
   "counts": {
-   "flourish": 467,
-   "bio": 7,
-   "misalign": 648,
-   "war": 57,
-   "benevolent": 128,
-   "lockin": 193,
+   "flourish": 470,
+   "bio": 4,
+   "misalign": 677,
+   "war": 54,
+   "benevolent": 136,
+   "lockin": 159,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.4596100278551532,
+  "pAlignment": 0.43619972260748957,
   "acMedian": 2031,
   "asiMedian": 2032
  },
  "Neuralink bet": {
   "counts": {
-   "flourish": 93,
-   "bio": 4,
-   "misalign": 872,
-   "war": 66,
-   "benevolent": 159,
-   "lockin": 306,
+   "flourish": 158,
+   "bio": 2,
+   "misalign": 855,
+   "war": 67,
+   "benevolent": 172,
+   "lockin": 246,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.279020979020979,
+  "pAlignment": 0.28232005590496156,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "BCI-first": {
   "counts": {
-   "flourish": 303,
-   "bio": 18,
-   "misalign": 214,
-   "war": 67,
-   "benevolent": 33,
-   "lockin": 165,
-   "pause": 645,
-   "muddle": 55
+   "flourish": 350,
+   "bio": 24,
+   "misalign": 188,
+   "war": 64,
+   "benevolent": 43,
+   "lockin": 121,
+   "pause": 652,
+   "muddle": 58
   },
-  "pAlignment": 0.7595302806824823,
+  "pAlignment": 0.7696066032563732,
   "acMedian": 2033,
   "asiMedian": 2033
  },
  "All compute on safety": {
   "counts": {
-   "flourish": 197,
-   "bio": 6,
-   "misalign": 604,
-   "war": 60,
-   "benevolent": 121,
-   "lockin": 509,
+   "flourish": 297,
+   "bio": 15,
+   "misalign": 589,
+   "war": 67,
+   "benevolent": 126,
+   "lockin": 403,
    "pause": 0,
    "muddle": 3
   },
-  "pAlignment": 0.4939582676243681,
+  "pAlignment": 0.49390492527934854,
   "acMedian": 2032,
   "asiMedian": 2033
  }

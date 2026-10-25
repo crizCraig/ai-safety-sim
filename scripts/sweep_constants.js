@@ -166,6 +166,7 @@ const META = {
   barW: ['J', 'Width of the handoff sigmoid'],
   lockK: ['F', 'Lock-in scale (about 70% of status-quo controlled futures lock in)'],
   lockWhistle: ['J', 'Lock-in removed by certain whistleblowers'],
+  lockValue: ['J', 'Lock-in removed by a sure value-aligned refusal'],
   lockConcFloor: ['J', 'Lock-in factor with power not concentrated'],
   lockConcMid: ['J', 'Concentration where its lock-in factor is halfway'],
   lockConcW: ['J', 'Width of the concentration sigmoid'],

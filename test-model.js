@@ -341,7 +341,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const pk = (st, o) => M.lockinOdds(st, { ...M.defaultLevers(), ...o });
   check('Diplomacy helps only with public pressure (trust above 50)', pk(at(70), { diplomacy: 1 }) < pk(at(70), { diplomacy: 0 }) && pk(at(40), { diplomacy: 1 }) === pk(at(40), { diplomacy: 0 }));
   // Survival: a successful handoff that locks in power is not survival.
-  const w = Object.assign({}, M.initialState().world, { safe: true, difficulty: 0.1, pBenevolent: 0, hazard: 0, hazardBelief: 0, whistle: 0.25, whistleNodes: [[1, 0.25]], share: 0.5, shareNodes: [[1, 0.5]] });
+  const w = Object.assign({}, M.initialState().world, { safe: true, difficulty: 0.1, pBenevolent: 0, hazard: 0, hazardBelief: 0, whistle: 0.25, whistleNodes: [[1, 0.25]], share: 0.5, shareNodes: [[1, 0.5]], valueAlign: 0.25, valueNodes: [[1, 0.25]] });
   const sh = Object.assign(M.initialState(w), { capUS: 99.9, capCN: 70, align: 100, conc: 55, trust: 60, coord: 100, acYear: 2029, year: 2034 });
   const Ls = { ...M.defaultLevers(), openness: 0 }, r0 = M.risks(sh, Ls);
   M.step(sh, Ls, () => 0.99, false);
@@ -349,19 +349,28 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('A sure handoff that may lock in power counts lock-in against survival', Math.abs(sh.survival - want) < 1e-9 && lk > 0.1, `survival ${sh.survival.toFixed(3)}, lock ${lk.toFixed(3)}`);
 }
 
-// --- Shown lock-in odds average the capped probability over whistleblowers and sharing (Codex C11-1) ---
+// --- Shown lock-in odds average the capped probability over whistleblowers, sharing and value alignment (Codex C11-1) ---
 {
   const A = M.defaultAssumptions(), L = M.defaultLevers();
   const st = Object.assign(M.initialState(M.sampleWorld(A, M.mulberry32(2))), { capUS: 100, capCN: 60, conc: 65, trust: 60, acYear: 2028, year: 2036 });
   const shown = M.lockinBelief(st, L);
   const rng = M.mulberry32(17); let sum = 0; const n = 200000;
-  for (let i = 0; i < n; i++) { const w = M.sampleWorld(A, rng); sum += M.lockinOdds(st, L, w.whistle, w.share); }
+  for (let i = 0; i < n; i++) { const w = M.sampleWorld(A, rng); sum += M.lockinOdds(st, L, w.whistle, w.share, w.valueAlign); }
   const mean = (nodes) => nodes.reduce((a, [w, v]) => a + w * v, 0);
-  check('Shown lock-in odds = average over whistleblower and sharing odds with the cap binding (±0.2 pts)', Math.abs(shown - sum / n) < 0.002 && M.lockinOdds(st, L, mean(st.world.whistleNodes), mean(st.world.shareNodes)) > shown + 0.005,
+  check('Shown lock-in odds = average over whistleblower, sharing and value-alignment odds with the cap binding (±0.2 pts)', Math.abs(shown - sum / n) < 0.002 && M.lockinOdds(st, L, mean(st.world.whistleNodes), mean(st.world.shareNodes), mean(st.world.valueNodes)) > shown + 0.005,
     `${(100 * shown).toFixed(2)}% vs ${(100 * sum / n).toFixed(2)}%`);
   // Belief vs truth: the shown odds ignore this world's hidden draws; the dice use them.
-  const twin = (share, whistle) => Object.assign({}, st, { world: Object.assign({}, st.world, { share, whistle }) });
-  check('Shown lock-in odds do not depend on the hidden draws', M.lockinBelief(twin(0, 0), L) === M.lockinBelief(twin(1, 1), L) && M.lockinOdds(twin(0, 0), L) > M.lockinOdds(twin(0.9, 0), L));
+  const twin = (share, whistle, valueAlign = 0) => Object.assign({}, st, { world: Object.assign({}, st.world, { share, whistle, valueAlign }) });
+  check('Shown lock-in odds do not depend on the hidden draws', M.lockinBelief(twin(0, 0, 0), L) === M.lockinBelief(twin(1, 1, 1), L) && M.lockinOdds(twin(0, 0), L) > M.lockinOdds(twin(0.9, 0), L));
+  // Value alignment: an aligned AI that refuses to help a few seize power cuts the odds, by at
+  // most K.lockValue (a sure refusal leaves 20% where the cap does not bind); the dice use the draw.
+  const low = Object.assign({}, st, { conc: 40, trust: 80 }), lo = (v) => M.lockinOdds(low, L, 0.25, 0.3, v);
+  check('Lock-in odds fall with value alignment, by 80% when an aligned AI surely refuses', lo(0) < 0.95 && lo(0) > lo(0.5) && lo(0.5) > lo(1) && Math.abs(lo(1) - (1 - M.K.lockValue) * lo(0)) < 1e-12 && M.K.lockValue === 0.8,
+    `${(100 * lo(0)).toFixed(1)}% -> ${(100 * lo(1)).toFixed(1)}%`);
+  check('The dice use the world\'s value-alignment draw', M.lockinOdds(twin(0, 0, 0), L) > M.lockinOdds(twin(0, 0, 1), L) && M.lockinOdds(twin(0, 0, 0.6), L) === M.lockinOdds(st, L, 0, 0, 0.6));
+  // Belief over value alignment: raising its mean lowers the shown odds; the default world carries its nodes.
+  const vw = (m) => Object.assign({}, low, { world: Object.assign({}, low.world, M.sampleWorld({ ...A, valueAlign: { mean: m, sd: 0.2 } }, M.mulberry32(2)), { valueAlign: 0 }) });
+  check('Shown lock-in odds fall as value alignment becomes more likely', M.lockinBelief(vw(0.1), L) > M.lockinBelief(vw(0.6), L) && Array.isArray(st.world.valueNodes) && st.world.valueAlign >= 0 && st.world.valueAlign <= 1);
   // Determinism: the sharing draw is appended last, so a seed gives the same world and the
   // earlier draws are unchanged from a world drawn without it.
   const a = M.sampleWorld(A, M.mulberry32(42)), b = M.sampleWorld(A, M.mulberry32(42));
@@ -372,7 +381,10 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   M.sampleWorld(A, probe); const used = pos;
   const last = M.mulberry32(42); for (let i = 0; i < used - 2; i++) last();
   const z = Math.sqrt(-2 * Math.log(1 - last())) * Math.cos(2 * Math.PI * last());
-  check('The sharing draw is the last draw of a world', Math.abs(a.share - Math.max(0, Math.min(1, A.share.mean + A.share.sd * z))) < 1e-12);
+  check('The value-alignment draw is the last draw of a world', Math.abs(a.valueAlign - Math.max(0, Math.min(1, A.valueAlign.mean + A.valueAlign.sd * z))) < 1e-12);
+  const prev = M.mulberry32(42); for (let i = 0; i < used - 4; i++) prev();
+  const z2 = Math.sqrt(-2 * Math.log(1 - prev())) * Math.cos(2 * Math.PI * prev());
+  check('The sharing draw comes just before it', Math.abs(a.share - Math.max(0, Math.min(1, A.share.mean + A.share.sd * z2))) < 1e-12);
 }
 
 // --- China's own AI speeds up alignment in proportion to its own effort ---
@@ -427,7 +439,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Safest mix / Under 2% promises say they assume the defaults', /under 2% under the default \(AI 2040\) assumptions/.test(PR.PRESET_INFO['Under 2% risk']) && /Under the default \(AI 2040\) assumptions, about 1%/.test(PR.PRESET_INFO['Safest mix']) && html.includes('Your hidden assumptions differ from the defaults'));
   // C14-4: the reference and README document Current capability.
   const readme = require('fs').readFileSync(__dirname + '/README.md', 'utf8');
-  check('Reference documents Current capability and README counts ten assumptions', html.includes('Current capability: the US bloc') && Object.keys(M.ASSUMPTION_INFO).length === 10 && readme.includes('ten uncertain'));
+  check('Reference documents Current capability and README counts eleven assumptions', html.includes('Current capability: the US bloc') && Object.keys(M.ASSUMPTION_INFO).length === 11 && readme.includes('eleven uncertain'));
 }
 
 // --- Codex cycles 16 and 17 ---
