@@ -10,9 +10,11 @@
 // scale constants run at ×0.5 and ×1.5; midpoints, thresholds and starting levels on the
 // 0–100 scale run at ±10 points, and lever thresholds and share midpoints at ±0.1 (see SHIFT).
 // Every run uses common random numbers: future i always draws from its own seed, so the
-// same worlds and dice are compared across runs and differences are not sampling noise.
+// same worlds and dice are compared across runs. That makes comparisons between settings much
+// less noisy, but differences are still sample estimates, so small ones near a cutoff are uncertain.
 // The bio hazard scale is recalibrated in each run (bioRefExposure is recomputed), as it is
-// for the published model, so a bio constant moves pandemic risk only away from the default path.
+// for the published model. That holds the default path's reference normalization near its target,
+// but a bio constant can still change the realized default-path risk distribution and incidence.
 // Work is split across worker threads; results are gathered by index, so the output is deterministic.
 'use strict';
 const path = require('path');
@@ -98,7 +100,7 @@ const GROUPS = [
   ['war', 'War',
     'Great-power war is likelier when the race is close, coordination is low and the stakes are high; sabotaging China\'s program adds to it. War is a small share of catastrophe in the swept results, so these constants move them little. Note that Plan B, the plan that sabotages China, is measured here only by its alignment odds, not by its war risk.'],
   ['bio', 'Pandemic and open weights',
-    'Pandemic risk depends on how capable open-weights models are and how much biodefense is missing. The hazard scale is recalibrated in every run so the default path keeps its target decade risk, so these constants change pandemic risk only away from the default path. Pandemics are rare in the model, so none of them moves a headline number much.'],
+    'Pandemic risk depends on how capable open-weights models are and how much biodefense is missing. The hazard scale is recalibrated in every run so the average exposure on the default path maps to its target decade risk. That keeps the default calibration close, but not exact: these constants can still shift the pandemic risk that default-path futures actually face. Pandemics are rare in the model, so none of them moves a headline number much.'],
   ['deal', 'Deals and diplomacy',
     'Diplomacy builds international coordination. Once coordination and diplomacy both pass thresholds, a verified US–China deal stops frontier AI at top-expert level, until it weakens or dissolves at AI 2040\'s yearly rates. Plan A depends on this deal, so the constants that decide whether it forms move Plan A\'s risk a lot.'],
   ['china', 'China',
@@ -389,7 +391,7 @@ function renderReadable(rows, base, n, nK) {
   L.push('');
   L.push('## Summary');
   L.push('');
-  L.push(`Most of the model's ${nK} constants are judgment calls, so we tested how much each one matters. We moved each constant on its own, with every other constant left alone: rates and weights to half and to one and a half times their value, and midpoints, thresholds and 2027 starting levels down and up by 10 points. For each setting we ran ${n.toLocaleString('en-US')} simulated futures (the same futures every time, so differences are not luck) and watched seven headline numbers: the chance of catastrophe on today's path, under Plan A and under the Safest mix, and the odds of getting alignment right under AI 2040's Plans A–D.`);
+  L.push(`Most of the model's ${nK} constants are judgment calls, so we tested how much each one matters. We moved each constant on its own, with every other constant left alone: rates and weights to half and to one and a half times their value, and midpoints, thresholds and 2027 starting levels down and up by 10 points. For each setting we ran ${n.toLocaleString('en-US')} simulated futures (the same futures every time, which makes comparisons between settings much less noisy, though small differences are still sample estimates) and watched seven headline numbers: the chance of catastrophe on today's path, under Plan A and under the Safest mix, and the odds of getting alignment right under AI 2040's Plans A–D.`);
   L.push('');
   L.push(`**Today's path is robust.** No constant moves today's-path catastrophe (${base.catSQ.toFixed(0)}%) by more than ${Math.ceil(sqTop.sq)} points; the biggest is ${lc(sqTop.name)}. Only ${count((r) => r.sq, 3)} constants move it by more than 3 points${rows.filter((r) => r.sq > 3).every((r) => r.group === 'power') ? ', all of them about how power locks in' : ''}.`);
   L.push('');

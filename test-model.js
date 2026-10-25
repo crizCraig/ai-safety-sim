@@ -314,6 +314,28 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('A US-only margin while China leads is not the Careful Path', M.effAlign(s3, Lc) < 78 && M.step(s3, Lc, () => 0.99, true).event !== 'pause', `effective ${M.effAlign(s3, Lc).toFixed(1)}`);
 }
 
+// --- Without superintelligence, power can lock in by 2040 when public trust has collapsed (Codex C24-2) ---
+{
+  // Constructed 2039 state: no superintelligence, trust far below the threshold. Dice are
+  // 0.99 (no hazard fires) except d[15], the 2040 lock-in roll.
+  const w = Object.assign({}, M.initialState().world, { hazard: 0, hazardBelief: 0 });
+  const mk = (trust) => Object.assign(M.initialState(w), { year: 2039, capUS: 60, capCN: 55, trust, conc: 90 });
+  const dice = () => { let i = 0; return () => (i++ % 17 === 15 ? 0 : 0.99); };
+  const low = M.step(mk(5), M.defaultLevers(), dice(), true);
+  check('Low trust in 2040 without superintelligence ends in Locked-In Power', low.event === 'lockin' && low.stage === 'end', `${low.event} (${low.stage})`);
+  const high = M.step(mk(90), M.defaultLevers(), dice(), true);
+  check('…but not when trust is high (same dice)', high.event !== 'lockin', String(high.event));
+  // Reachable in ordinary play: Status quo with full diplomacy, 5,000 futures at seed 11.
+  const L = { ...M.defaultLevers(), diplomacy: 1 }, rng = M.mulberry32(11);
+  let n = 0;
+  for (let i = 0; i < 5000; i++) {
+    const s = M.initialState(M.sampleWorld(A0, rng)); s.fast = true;
+    let o = null; while (!o || !o.event) o = M.step(s, L, rng, true);
+    if (o.event === 'lockin' && o.stage === 'end') n++;
+  }
+  check('Status quo + full diplomacy reaches the low-trust 2040 lock-in (seed 11)', n >= 1, `${n} of 5,000 futures`);
+}
+
 // --- Locked-In Power: a few hold AI and its gains even with humans in control; a catastrophe ---
 {
   const ctl = (r) => r.counts.flourish + r.counts.lockin;

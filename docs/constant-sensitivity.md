@@ -4,7 +4,7 @@
 
 ## Summary
 
-Most of the model's 169 constants are judgment calls, so we tested how much each one matters. We moved each constant on its own, with every other constant left alone: rates and weights to half and to one and a half times their value, and midpoints, thresholds and 2027 starting levels down and up by 10 points. For each setting we ran 4,000 simulated futures (the same futures every time, so differences are not luck) and watched seven headline numbers: the chance of catastrophe on today's path, under Plan A and under the Safest mix, and the odds of getting alignment right under AI 2040's Plans A–D.
+Most of the model's 169 constants are judgment calls, so we tested how much each one matters. We moved each constant on its own, with every other constant left alone: rates and weights to half and to one and a half times their value, and midpoints, thresholds and 2027 starting levels down and up by 10 points. For each setting we ran 4,000 simulated futures (the same futures every time, which makes comparisons between settings much less noisy, though small differences are still sample estimates) and watched seven headline numbers: the chance of catastrophe on today's path, under Plan A and under the Safest mix, and the odds of getting alignment right under AI 2040's Plans A–D.
 
 **Today's path is robust.** No constant moves today's-path catastrophe (82%) by more than 10 points; the biggest is lock-in pressure with no public trust. Only 5 constants move it by more than 3 points, all of them about how power locks in.
 
@@ -105,7 +105,7 @@ Great-power war is likelier when the race is close, coordination is low and the 
 
 ### Pandemic and open weights
 
-Pandemic risk depends on how capable open-weights models are and how much biodefense is missing. The hazard scale is recalibrated in every run so the default path keeps its target decade risk, so these constants change pandemic risk only away from the default path. Pandemics are rare in the model, so none of them moves a headline number much.
+Pandemic risk depends on how capable open-weights models are and how much biodefense is missing. The hazard scale is recalibrated in every run so the average exposure on the default path maps to its target decade risk. That keeps the default calibration close, but not exact: these constants can still shift the pandemic risk that default-path futures actually face. Pandemics are rare in the model, so none of them moves a headline number much.
 
 All 12, each under 1 point: open frontier, closed policy; open catch-up speed; biodefense from investment; weight on missing biodefense; best open model in 2027; open frontier from the openness lever; biodefense decay; bio uplift sharpness; open frontier from transparency; biodefense in 2027; open model level where bio uplift is half; biodefense from open tools.
 
