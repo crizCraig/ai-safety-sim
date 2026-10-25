@@ -432,7 +432,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const g = M.bioRefExposure();
   // About 0.06 since every yearly update reads the start-of-year state (it was 0.19 when open
   // weights chased the end-of-year frontier). Any change to how open models grow moves it, and
-  // with it the pandemic hazard scale k on every path except the default.
+  // with it the pandemic hazard scale k, which is the same on every path.
   check('G_ref is computed and plausible (0.04–0.10)', g > 0.04 && g < 0.10, g.toFixed(4));
   check('Model reference fills G_ref from the code', html.includes('{{GREF}}') && /replace\('\{\{GREF\}\}', M\.bioRefExposure\(\)/.test(html));
 }

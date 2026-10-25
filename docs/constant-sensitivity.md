@@ -83,7 +83,7 @@ Before the handoff, a yearly loss-of-control hazard grows once AI does most of i
 | Hidden AI from racing | Yearly growth of hidden internal AI under an all-out race | 4 | at 2: Plan B alignment odds +3.5 points | Plans B, C alignment odds | Judgment call |
 | Test gap hidden by internal AI | Extra hidden share from hidden internal AI | 0.8 | at 1.2: Plan B alignment odds −2.4 points | Plans B, C alignment odds | Judgment call |
 | Gap where loss-of-control risk is half | How far capability must outrun alignment for half the peak hazard | 36 | at 26: Plan A catastrophe +2.2 points | Plan A risk; Plan A alignment odds | Judgment call |
-| Peak loss-of-control hazard | Largest yearly chance of losing control with no hidden AI (0.25 × 0.4, unchanged); fitted with Plans A–C | 0.1 | at 0.15: Plan A catastrophe +1.8 points | Plan A risk; Plans A, B alignment odds | Fitted to a target |
+| Loss-of-control scale | Yearly loss-of-control scale before the onset, hidden-AI (up to ×3.25) and delegation (up to ×1.44) factors (0.25 × 0.4, unchanged); fitted with Plans A–C | 0.1 | at 0.15: Plan A catastrophe +1.8 points | Plan A risk; Plans A, B alignment odds | Fitted to a target |
 | Handoff bar raised by hidden AI | Extra alignment the handoff needs per point of hidden AI | 0.2 | at 0.1: Plan A alignment odds −1.5 points | Plans A, B alignment odds | Judgment call |
 | Test gap exposed by safety work | Hidden share removed by safety spending at the knee | 0.3 | at 0.45: Plan B alignment odds +1.3 points | Plan B alignment odds | Judgment call |
 | Hidden internal AI in 2027 | Where hidden internal AI starts (also the handoff bar's reference) | 30 | at 20: Plan B alignment odds +1.2 points | Plans A, B alignment odds | 2027 baseline |

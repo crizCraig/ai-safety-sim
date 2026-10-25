@@ -9,7 +9,7 @@
   const AI2040_PLANS = 'https://ai-2040.com/supplements/comparing-possible-plans';
   // Short descriptions for the non-AI-2040 presets.
   const PRESET_INFO = {
-    'Under 2% risk': 'The smallest change from the status quo that keeps catastrophe under 2% under the default (AI 2040) assumptions, found by searching all levers. Only five levers move: stop the race, put half of AI compute on safety, triple biodefense, cooperate fully with China, and set up strong oversight. Everything else stays at today\'s settings.',
+    'Under 2% risk': 'A small change from the status quo that keeps catastrophe under 2% under the default (AI 2040) assumptions, with a buffer. Only five levers move: stop the race, put half of AI compute on safety, triple biodefense, cooperate fully with China, and set up strong oversight. Everything else stays at today\'s settings.',
     'Safest mix': 'The safest settings a search over every lever could find: stop racing, put a third of AI compute on safety, publish all research, and max out biodefense, diplomacy and oversight. With racing stopped, open weights and neural interfaces can stay at today\'s settings at only a small added risk. Under the default (AI 2040) assumptions, about 1% of futures still end badly, mostly in war, because China only partly slows down. Most futures reach 2040 on the careful path, with superintelligence still ahead.',
     'Status quo': 'Today\'s trajectory: an intense race, an illustrative 5% of AI compute on safety (no lab publishes this figure; OpenAI\'s 2023 pledge of 20% was reportedly never met), partly open weights and little diplomacy.',
     'Open everything': 'Release frontier weights and most research. Power spreads out, but capable models reach anyone, including would-be bioterrorists. Pandemic risk only bites on paths that last long enough for open models to reach expert level.',
@@ -35,8 +35,8 @@
     // outcomes across 40,000 held-out futures). A 35% safety share adds no risk and leaves
     // alignment ahead in 2040 (98% careful path instead of 84%).
     'Safest mix': P({ race: 0, safety: 0.35, transparency: 1, biodef: 1, diplomacy: 1, oversight: 1, aggression: 0 }),
-    // Smallest weighted change from the status quo that keeps catastrophe under 2%
-    // (about 1.8% at 40,000 futures, seeds 101–104). Harder-to-move levers weigh more.
+    // A small weighted change from the status quo that keeps catastrophe under 2% with a buffer
+    // (about 1.8% at 40,000 futures, seeds 101–104; biodefense 0.5 also passes, at about 1.9%). Harder-to-move levers weigh more.
     // Biodefense 0.6 was added when yearly updates began reading the start-of-year state: open
     // models then lag a year, the bio reference exposure falls and long paths face more
     // pandemic risk (2.1–2.3% catastrophe without it).

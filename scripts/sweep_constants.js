@@ -153,7 +153,7 @@ const META = {
   alBci: ['J', 'align', 'Alignment boost from neural interfaces', 'Multiplier on alignment progress at full adoption'],
   barBci: ['J', 'align', 'Handoff bar lowered by neural interfaces', 'How much full adoption lowers the handoff bar'],
   // Loss of control and hidden AI
-  locScale: ['F', 'loc', 'Peak loss-of-control hazard', 'Largest yearly chance of losing control with no hidden AI (0.25 × 0.4, unchanged); fitted with Plans A–C'],
+  locScale: ['F', 'loc', 'Loss-of-control scale', 'Yearly loss-of-control scale before the onset, hidden-AI (up to ×3.25) and delegation (up to ×1.44) factors (0.25 × 0.4, unchanged); fitted with Plans A–C'],
   locOffset: ['J', 'loc', 'Gap where loss-of-control risk is half', 'How far capability must outrun alignment for half the peak hazard'],
   locWidth: ['J', 'loc', 'Loss-of-control sharpness', 'Width of the hazard curve around that gap'],
   diffRamp: ['J', 'loc', 'Difficulty ramp', 'Difficulty range over which loss-of-control exposure goes from none to full'],
