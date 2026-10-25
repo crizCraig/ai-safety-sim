@@ -659,7 +659,26 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
       && cards.includes('automate') && cards.includes('agents'), cards.join(', '));
   check('Model reference documents Λ: state row, update equation, rubber-stamp oversight, gradual disempowerment',
     html.includes('<span class="mi">\\Lambda</span></td><td>Decisions delegated to AI') && html.includes('\\Delta\\Lambda =') && /rubber-stamp oversight/i.test(html) && /Gradual Disempowerment/.test(html)
-      && html.includes('0.15\\,(\\Lambda-12)'));
+      && M.fillConstants(html.slice(0, html.indexOf('<script type="module">'))).includes('0.15\\,(\\Lambda-12)'));
+}
+
+// --- The model page's equations take their constants from K ---
+{
+  const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+  const page = html.slice(0, html.indexOf('<script type="module">'));
+  const math = [...page.matchAll(/<div class="math">([\s\S]*?)<\/div>/g)].map((m) => m[1]);
+  let filled = '', err = '';
+  try { filled = M.fillConstants(page); } catch (e) { err = e.message; }
+  check('Every placeholder on the model page names a model constant and fills', !err && !filled.includes('\u27e6'), err);
+  // Numbers still typed into the equations are structure, not model constants: scale bounds,
+  // milestones, years and clamps that are literals in model.js too. A new hand-typed constant fails here.
+  const ALLOWED = new Set(['0', '0.01', '0.03', '0.05', '0.3', '0.5', '0.52', '0.95', '1', '2', '20', '30', '40', '50', '55', '60', '70', '80', '100', '2027', '2036']);
+  const literal = [...new Set(math.join(' ').replace(/\u27e6[^\u27e7]+\u27e7|\{\{GREF\}\}/g, ' ').replace(/\\[a-zA-Z]+/g, ' ').match(/\d+(\.\d+)?/g))];
+  check('The equations type no model constant by hand (only structural numbers stay literal)', math.length === 24 && literal.every((x) => ALLOWED.has(x)), literal.filter((x) => !ALLOWED.has(x)).join(' '));
+  M.setConstants({ locScale: 0.31, barDiff: 33 });
+  const moved = M.fillConstants(page);
+  M.setConstants();
+  check('Changing a constant changes the page', moved.includes('h(\\delta)\\cdot 0.31\\,') && moved.includes('33\\,\\delta') && M.fillConstants(page) === filled);
 }
 
 // --- Named constants (K): the defaults reproduce the stored seeded baseline ---

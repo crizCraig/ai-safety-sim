@@ -59,9 +59,12 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
   `node scripts/sweep_constants.js` rewrites `docs/constant-sensitivity.md` and
   `docs/constant-sensitivity-full.md`. Then update the sweep's numbers quoted on the model page
   (§7 "Which numbers matter": the constant count and the "None of the other N" sentence).
-- **Every number on the model page is typed by hand** (except `{{GREF}}`, filled by
-  `fillModelNumbers()` in index.html). When a constant or formula changes, fix the LaTeX in
-  index.html too.
+- **The model page fills its constants from `K`.** In the equations (`.math`), inline math
+  (`.mi`) and the notation table's 2027 values (`.kv`), write a constant as `⟦name⟧`, `⟦name:1⟧`
+  (one decimal) or `⟦1-name⟧` (one `+ - * /` between two constants or numbers);
+  `fillModelNumbers()` fills them through `M.fillConstants` before Temml renders and before Copy
+  for LLMs reads the page. A test fails if an equation types a constant by hand. Numbers in the
+  prose (and the unknowns' distributions in the notation table) are still typed by hand.
 
 ### A hidden unknown
 
@@ -87,7 +90,7 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
 5. `model.js` exports, if tests or the page call new helpers.
 6. `index.html` model page §2 Notation: a row in the "Hidden unknowns" table (symbol, meaning
    with sources, distribution).
-7. `index.html` the equation(s) in §3/§4 that use it, with constants typed by hand.
+7. `index.html` the equation(s) in §3/§4 that use it (constants as `⟦name⟧`).
 8. `index.html` the Lab path tooltip ("Secret facts in this future", `tip-world`) only if it is
    one of the headline unknowns (today: ease, speed, bio).
 9. `index.html` §6 calibration table if it moves a calibration target.
@@ -116,8 +119,8 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
    unless the same-year read is intended and commented.
 5. `model.js` every consumer (hazards in `risks`, `transitionOdds`'s bar, `lockinBase`, other
    updates), each neutral at the 2027 level.
-6. `index.html` model page: §2 Notation state row with its 2027 value, its §5 update equation,
-   and each consumer's equation.
+6. `index.html` model page: §2 Notation state row with its 2027 value as `<td class="kv">⟦x0⟧</td>`,
+   its §5 update equation, and each consumer's equation (constants as `⟦name⟧`).
 7. `events.js`: card effects `st: { x: ±n }` where cards should move it.
 8. `index.html` the `why` texts in `renderRisks` if it drives a hazard; globe visuals optional.
 9. `test-model.js`: starting value, direction across presets, determinism per seed, the page
@@ -148,7 +151,8 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
 2. `scripts/sweep_constants.js` `META[name] = [type, group, plain name, what it does]` (the sweep
    refuses to run without it); `SHIFT` if it is a level or threshold, `BOUNDED` if it is a
    fraction that must stay in [0, 1].
-3. `index.html` the number in the model page equation.
+3. `index.html` `⟦name⟧` where the model page's equations use it (a test rejects a hand-typed
+   constant in an equation); fix any prose that quotes its value.
 4. If the default reproduces the old inline value, results are unchanged
    (`test-k-baseline.json` still matches). Otherwise regenerate it.
 5. Rerun the sweep and update the counts on the model page §7 ("each of the model's N named

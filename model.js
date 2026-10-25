@@ -93,6 +93,23 @@
     BIO_REF = null; BIO_NODE_CACHE.clear();
   }
 
+  // The model page ("How the model works") writes each constant as ⟦name⟧, ⟦name:d⟧ (d decimals)
+  // or ⟦a op b⟧ (one + - * / between two constants or numbers, for a derived number such as
+  // 1 - lockConcFloor). This fills them from K, so the page's equations cannot drift from the code.
+  const OPS = { '+': (a, b) => a + b, '-': (a, b) => a - b, '*': (a, b) => a * b, '/': (a, b) => a / b };
+  function fillConstants(text) {
+    const term = (t) => {
+      if (Object.prototype.hasOwnProperty.call(K_DEFAULTS, t)) return K[t];
+      if (/^\d+(\.\d+)?$/.test(t)) return +t;
+      throw new Error('Unknown model constant on the model page: ' + t);
+    };
+    return text.replace(/⟦([^⟧:]+)(?::(\d))?⟧/g, (m, expr, d) => {
+      const op = expr.match(/^\s*([\w.]+)\s*([-+*/])\s*([\w.]+)\s*$/);
+      const v = op ? OPS[op[2]](term(op[1]), term(op[3])) : term(expr.trim());
+      return d === undefined ? String(+v.toFixed(10)) : v.toFixed(+d);
+    });
+  }
+
   const START_YEAR = 2027;
   const END_YEAR = 2040;
 
@@ -989,7 +1006,7 @@
   }
 
   root.SimModel = {
-    K, K_DEFAULTS, setConstants,
+    K, K_DEFAULTS, setConstants, fillConstants,
     START_YEAR, END_YEAR, LEVER_INFO, STAT_INFO, OUTCOMES, ASSUMPTION_INFO, DRAW_ORDER, rollRows, secretRows,
     AC, TOP_EXPERT, TEDAI, DELEG0, oversightBite, delegHazard, uplift, rdShare, locGate, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,

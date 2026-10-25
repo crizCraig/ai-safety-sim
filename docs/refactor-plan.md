@@ -215,6 +215,6 @@ Updated as steps land.
 | R1 | done: hidden-unknown checklist 17 → 15 |
 | R2 | done: hidden-unknown checklist 15 → 13 |
 | R3 | done: state-variable checklist 12 → 10, lever 8 → 7 |
-| R4 | planned |
+| R4 | done: 175 placeholders fill 152 of the 170 constants; the equations hold no hand-typed constant (tested). Left by hand: prose numbers, the unknowns' distributions in the notation table |
 | R5 | planned |
 | R6 | planned |
