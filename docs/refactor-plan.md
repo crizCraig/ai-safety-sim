@@ -171,6 +171,11 @@ the unknowns' belief nodes, so "belief equals the average of the truth" holds by
   `world.safe` (one `alignedByDefault(d)`), and `chinaRace`/`chinaSlowdown`'s US pressure (one
   `usPush(L)`).
 
+R5 lands in two commits. **R5a** (no change to any arithmetic) names the shared pieces once:
+`chinaShare`, `chinaLeads`, `usPush` and `alignedByDefault`; the fingerprint is exactly equal.
+**R5b** introduces `expect` and rewrites the three belief functions on it; it is the step that
+changes the summation order, so it is proven with the 1e-12 tolerance below.
+
 **Files.** `model.js` (`risks`, `transitionOdds`, `lockinOdds`/`lockinBelief`, `effAlign`,
 `cnBelief`/`alignBelief`), `test-model.js` (the "belief = average of truth" checks become a
 generic check over every hazard).
@@ -216,5 +221,6 @@ Updated as steps land.
 | R2 | done: hidden-unknown checklist 15 → 13 |
 | R3 | done: state-variable checklist 12 → 10, lever 8 → 7 |
 | R4 | done: 175 placeholders fill 152 of the 170 constants; the equations hold no hand-typed constant (tested). Left by hand: prose numbers, the unknowns' distributions in the notation table |
-| R5 | planned |
+| R5a | done: copies 1, 3 and 4 named once (`chinaShare`, `chinaLeads`, `usPush`, `alignedByDefault`); fingerprint exactly equal |
+| R5b | remaining: `expect` over the registry's belief nodes, truth functions taking `h`, the three belief functions rewritten on it (copy 2 goes with it) |
 | R6 | planned |

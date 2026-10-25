@@ -366,6 +366,8 @@
   // Internally the model works with difficulty δ = 1 / ease (log10 δ = -log10 ease).
   const diffDistOf = (A) => ({ mean: -A.ease.mean, sd: A.ease.sd });
   const lossHazard = (d) => clamp((d - K.diffSafe) / K.diffRamp, 0, 1);
+  // Aligned by default: fixing problems as they come up is enough, so the handoff is certain.
+  const alignedByDefault = (d) => d <= K.diffSafe;
   const DZ = 0.05;
   const DIFF_Z = Array.from({ length: 161 }, (_, i) => -4 + i * DZ);
   const zWeight = (z) => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI) * DZ;
@@ -378,8 +380,8 @@
   function difficultyWorld(d, dist) {
     let hb = 0;
     for (const z of DIFF_Z) hb += zWeight(z) * lossHazard(Math.pow(10, dist.mean + dist.sd * z));
-    const pSafe = dist.sd > 0 ? normCdf((Math.log10(K.diffSafe) - dist.mean) / dist.sd) : (Math.pow(10, dist.mean) <= K.diffSafe ? 1 : 0);
-    return { hazard: lossHazard(d), safe: d <= K.diffSafe, hazardBelief: hb, pSafe, diffDist: { mean: dist.mean, sd: dist.sd } };
+    const pSafe = dist.sd > 0 ? normCdf((Math.log10(K.diffSafe) - dist.mean) / dist.sd) : (alignedByDefault(Math.pow(10, dist.mean)) ? 1 : 0);
+    return { hazard: lossHazard(d), safe: alignedByDefault(d), hazardBelief: hb, pSafe, diffDist: { mean: dist.mean, sd: dist.sd } };
   }
 
   // Turn a decade bio risk into a hazard scale k = -ln(1 - R) / G_ref, where G_ref is
@@ -540,9 +542,10 @@
 
   // China's effective race intensity responds to the US posture and to trust.
   // A US pause (race down, or all compute on safety) eases it only partly.
+  // US pressure on China: race intensity, eased by the share of compute on safety.
+  const usPush = (L) => L.race * (1 - K.usPushSafety * L.safety);
   function chinaRace(s, L) {
-    const usPush = L.race * (1 - K.usPushSafety * L.safety);
-    const base = clamp(K.cnRaceBase + K.cnRaceResp * (usPush - 0.5) - K.cnRaceCoord * (s.coord / 100), 0.05, 1);
+    const base = clamp(K.cnRaceBase + K.cnRaceResp * (usPush(L) - 0.5) - K.cnRaceCoord * (s.coord / 100), 0.05, 1);
     return clamp(base * (1 - chinaSlowdown(s, L)), 0.05, 1);
   }
 
@@ -555,7 +558,7 @@
     if (!caution) return 0;
     const mc = maxCap(s);
     const warning = sig((mc - K.cnWarnCap) / K.cnWarnW) * sig((mc - s.align - K.cnWarnGap) / K.cnWarnW);
-    const usSlow = clamp(1 - L.race * (1 - K.usPushSafety * L.safety) / K.cnSlowRace, 0, 1);
+    const usSlow = clamp(1 - usPush(L) / K.cnSlowRace, 0, 1);
     const recip = K.cnRecip * (1 + Math.max(usSlow, dealActive(s, L) ? 1 : 0));
     return clamp(caution * warning * recip, 0, K.cnSlowMax);
   }
@@ -569,11 +572,13 @@
   // `over` is how much tests overstate alignment; the part still hidden this year
   // (hiddenShare) is subtracted, so this is real alignment, not the measured s.align.
   function effAlign(s, L, own = s.world.cnAlign || 0, over = s.world.evalGap || 0) {
-    const share = Math.min(1, K.shareBase + K.shareCoord * (s.coord / 100) + K.shareTransp * (L ? L.transparency : 0));
-    const cover = 1 - (1 - share) * (1 - own);
-    const chinaLeads = sig((s.capCN - s.capUS) / K.leadW);
-    return s.align * (1 - over * hiddenShare(s, L)) * (1 - chinaLeads * (1 - cover));
+    const cover = 1 - (1 - chinaShare(s, L)) * (1 - own);
+    return s.align * (1 - over * hiddenShare(s, L)) * (1 - chinaLeads(s) * (1 - cover));
   }
+  // The share of US alignment work China's lab can use (coordination and published research).
+  const chinaShare = (s, L) => Math.min(1, K.shareBase + K.shareCoord * (s.coord / 100) + K.shareTransp * (L ? L.transparency : 0));
+  // How far China leads: half when the blocs are even.
+  const chinaLeads = (s) => sig((s.capCN - s.capUS) / K.leadW);
   // How much of the test overstatement stays hidden: more with secret internal AI, less with
   // independent oversight, published research and safety work (interpretability, evals).
   // About 0.7 on today's settings, about 0.3 with full oversight and transparency.
@@ -596,8 +601,7 @@
   function cnBelief(s, L) {
     const w = s.world;
     if (!w.cnNodes) return [[1, w.cnAlign || 0]];
-    const share = Math.min(1, K.shareBase + K.shareCoord * (s.coord / 100) + K.shareTransp * (L ? L.transparency : 0));
-    const reach = s.align * sig((s.capCN - s.capUS) / K.leadW) * (1 - share);
+    const reach = s.align * chinaLeads(s) * (1 - chinaShare(s, L));
     return reach < 0.05 ? [[1, w.cnMean]] : w.cnNodes;
   }
   // Difficulty nodes [weight, difficulty], cached per distribution.
@@ -662,7 +666,7 @@
     let p = 0;
     for (const [wc, own, over] of alignBelief(s, L)) {
       const a = effAlign(s, L, own, over);
-      for (let i = 0; i < dn.length; i++) p += wc * dn[i][0] * (dn[i][1] <= K.diffSafe ? 1 : sig((a - bars[i]) / K.barW));
+      for (let i = 0; i < dn.length; i++) p += wc * dn[i][0] * (alignedByDefault(dn[i][1]) ? 1 : sig((a - bars[i]) / K.barW));
     }
     return p;
   }
