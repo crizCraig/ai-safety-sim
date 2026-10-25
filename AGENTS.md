@@ -54,6 +54,11 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
   (a failing calibration check may be committed only as an explicit WIP that is never pushed, as
   565558e was); then recalibrate one fitted constant in its own revertible commit, update the
   calibration table on the model page (§6) and say so in the commit message.
+- **Bio is calibrated to the default path's exposure.** `G_ref` (`bioRefExposure()`, cached in
+  `BIO_REF`) is recomputed from 3,000 fixed-seed default-path futures, so any change to `step()`
+  or to what the default path goes through moves it and rescales the bio hazard
+  `k = -ln(1 - R_bio) / G_ref` (the start-of-year update moved it 0.19 -> 0.06). Never hard-code
+  it; check the bio calibration test and the model page's quoted bio numbers (§3).
 - **Regenerate the seeded baseline and rerun the sweep** after any deliberate change to results:
   `node scripts/sweep_constants.js --baseline` rewrites `test-k-baseline.json`;
   `node scripts/sweep_constants.js` rewrites `docs/constant-sensitivity.md` and
@@ -114,9 +119,11 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
    `name` in the year-change summary, `up: 'good' | 'bad'` (or absent) colours both. Drives the
    campaign's World state panel (`#stats`), the chips, the year-change summary, Copy for LLMs'
    starting state, and the card test's valid `st` keys.
-4. `model.js` its yearly update in `step()`. Its position in the update order decides which
-   inputs are same-year values (see `docs/model-structure.md` §3); read start-of-year values
-   unless the same-year read is intended and commented.
+4. `model.js` its yearly update in `step()`. Every update reads the start-of-year state from
+   `s0` (a frozen copy made at the top of `step()`) and writes `s`, so line order does not
+   matter. Read `s0.x`, never `s.x`, in an update; a deliberate same-year read must be named and
+   commented, as `coordShocked` (the deal shock cuts coordination this year) is. Only the
+   milestone, handoff and 2040 checks after the updates read the end-of-year `s`.
 5. `model.js` every consumer (hazards in `risks`, `transitionOdds`'s bar, `lockinBase`, other
    updates), each neutral at the 2027 level.
 6. `index.html` model page: §2 Notation state row with its 2027 value as `<td class="kv">⟦x0⟧</td>`,
@@ -148,6 +155,10 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
 1. `model.js` `K_DEFAULTS`, in its group; formulas read `K.name`, never an inline number. If a
    cache depends on it (`CN_LABOR`, `BIO_REF`, `BIO_NODE_CACHE`), clear or recompute it in
    `setConstants`.
+   A pure normalization that fixes a unit (e.g. `COMPUTE_NORM`, race 0.55 = 1× compute) is a
+   named code constant, not in `K`, and is not swept; if an equation shows it, add its number to
+   the test's `ALLOWED` literals. Prefer folding a base term into a scale constant (as the cuts
+   of `intBase`, `alBase`, `lockRaceBase` and `lockTrustBase` did) over adding a new constant.
 2. `scripts/sweep_constants.js` `META[name] = [type, group, plain name, what it does]` (the sweep
    refuses to run without it); `SHIFT` if it is a level or threshold, `BOUNDED` if it is a
    fraction that must stay in [0, 1].
