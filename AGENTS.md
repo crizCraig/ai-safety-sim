@@ -37,10 +37,11 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
 
 ### Rules that apply to every change
 
-- **Never disturb existing draws.** `sampleWorld` (model.js) consumes the RNG in a fixed order.
-  Append a new draw at the end (after `valueAlign`), never in the middle, so every existing seed
-  keeps its world. The per-year dice in `step()` are a fixed array `d` of 17 draws; add a die at
-  the end (`d[17]`) and lengthen the array. Update the "draw is the last draw of a world" test.
+- **Never disturb existing draws.** `sampleWorld` (model.js) consumes the RNG in the order of
+  `DRAW_ORDER`. Append a new unknown's key at the end of it, never in the middle, so every
+  existing seed keeps its world (the test's `FIXED` list pins the existing order). The per-year
+  dice in `step()` are a fixed array `d` of 17 draws; add a die at the end (`d[17]`) and lengthen
+  the array.
 - **Belief must equal the average of the truth.** Every hazard has a truth version (the hidden
   draw, used by the dice) and a belief version (shown to players, averaged over the unknown's
   distribution). Test both: belief equals the Monte Carlo average of truth over sampled worlds,
@@ -64,41 +65,41 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
 
 ### A hidden unknown
 
-1. `model.js` `ASSUMPTION_INFO`: `{ label, mean, sd, min, max, fmt, help }` and a source comment.
-   This alone drives the Futures Lab sliders, unknown-preset matching, share links
-   (`shareURL`/`loadShared` in index.html) and Copy for LLMs (`scenarioText`). Append it after the
-   existing keys. If its link units differ from `mean:sd`, add a `urlCodec` entry (as `speed`).
-2. `model.js` a `xxxWorld(A, value)` helper that returns the hidden value and its belief nodes
-   (`clippedNodes(A.x, lo, hi).nodes`), like `shareWorld` and `valueWorld`.
-3. `model.js` `sampleWorld`: `Object.assign(w, xxxWorld(A, draw('x')))` at the end, after
-   `valueWorld` and before the `skipBio` return.
-4. `model.js` `meanWorld`: the same helper with `clippedMean(A.x)` (the mean world used by
-   `initialState()` and the Lab's start-of-run display).
-5. `model.js` the truth formula reads `s.world.x` (take it as a defaulted parameter, as
+1. `model.js` `ASSUMPTION_INFO`: `{ label, mean, sd, min, max, fmt, help }` and a source comment,
+   plus `world(A, v)`: the fields a world carries for value `v`, belief nodes included (e.g.
+   `({ x, xNodes: clippedNodes(A.x, 0, 1).nodes })`). Add `sample(A, rng, draw)` and `atMean(A)`
+   only if it is not a clipped normal (see `ease`, `speed`, `benevolent`, `bioDecade`). This one
+   entry drives the draw (`sampleWorld`), the mean world (`meanWorld`), the Futures Lab sliders,
+   unknown-preset matching, share links (`shareURL`/`loadShared` in index.html) and Copy for LLMs
+   (`scenarioText`). Append it after the existing keys. If its link units differ from `mean:sd`,
+   add a `urlCodec` entry (as `speed`).
+2. `model.js` `DRAW_ORDER`: append the key at the end.
+3. `model.js` the truth formula reads `s.world.x` (take it as a defaulted parameter, as
    `lockinOdds(s, L, whistle, share, value)` does, so belief callers can pass node values).
-6. `model.js` the belief formula averages the truth over `s.world.xNodes` (e.g. the loops in
+4. `model.js` the belief formula averages the truth over `s.world.xNodes` (e.g. the loops in
    `lockinBelief`, `alignBelief`/`cnBelief`, `transitionOdds`'s difficulty loop). Fall back to the
    point value when nodes are missing (`s.world.xNodes || [[1, s.world.x]]`). Keep any cap or
    clamp inside the average, not outside it.
-7. `model.js` exports, if tests or the page call new helpers.
-8. `index.html` model page §2 Notation: a row in the "Hidden unknowns" table (symbol, meaning
+5. `model.js` exports, if tests or the page call new helpers.
+6. `index.html` model page §2 Notation: a row in the "Hidden unknowns" table (symbol, meaning
    with sources, distribution).
-9. `index.html` the equation(s) in §3/§4 that use it, with constants typed by hand.
-10. `index.html` `secretList(s, L)`: a row for the campaign's "Show secret facts" and the
-    ending reveal.
-11. `index.html` `UNKNOWNS`: a row for the roll screen (label and a sample-value formatter),
-    in the same order as `secretList`.
-12. `index.html` the Lab path tooltip ("Secret facts in this future", `tip-world`) only if it is
+7. `index.html` the equation(s) in §3/§4 that use it, with constants typed by hand.
+8. `index.html` `secretList(s, L)`: a row for the campaign's "Show secret facts" and the
+   ending reveal.
+9. `index.html` `UNKNOWNS`: a row for the roll screen (label and a sample-value formatter),
+   in the same order as `secretList`.
+10. `index.html` the Lab path tooltip ("Secret facts in this future", `tip-world`) only if it is
     one of the headline unknowns (today: ease, speed, bio).
-13. `index.html` §6 calibration table if it moves a calibration target.
-14. `README.md` the count of uncertain assumptions ("eleven"), and the test that checks it
+11. `index.html` §6 calibration table if it moves a calibration target.
+12. `README.md` the count of uncertain assumptions ("eleven"), and the test that checks it
     (`Object.keys(M.ASSUMPTION_INFO).length === 11 && readme.includes('eleven uncertain')`).
-15. `test-model.js`: calibration of whatever it feeds; belief = average of truth; belief does not
-    depend on the hidden draw; the dice use the draw; the draw-order test ("... is the last draw
-    of a world", and move the previous last draw to "comes just before it").
-16. `test-k-baseline.json`: regenerate (a new draw shifts every seeded future), then rerun the
+13. `test-model.js`: calibration of whatever it feeds; belief = average of truth; belief does not
+    depend on the hidden draw; the dice use the draw; the draw-order tests (append the key to
+    `FIXED`; "... is the last draw of a world", and move the previous last draw to "comes just
+    before it").
+14. `test-k-baseline.json`: regenerate (a new draw shifts every seeded future), then rerun the
     sweep (see rules).
-17. Optional: `presets.js` `UNKNOWN_PRESETS` scenarios; an `events.js` card that gives players a
+15. Optional: `presets.js` `UNKNOWN_PRESETS` scenarios; an `events.js` card that gives players a
     handle on it.
 
 ### A state variable

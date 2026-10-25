@@ -118,13 +118,17 @@
     // 10^mean, spread ×10^sd. Calibrated to AI 2040's p(alignment) estimates (0.10 before
     // delegation was added; 0.13 restores Plan B's p(alignment) to where it was).
     ease: { label: 'Ease of alignment', mean: 0.13, sd: 0.4, min: -0.6, max: 0.7, fmt: 'logx',
-      help: 'How hard the problem really is: how much real alignment the superintelligence handoff needs. Policy cannot change it. Easy enough (above 3.3×), fixing safety problems as they come up leads to long-term alignment and loss of control cannot happen; at 0.5×, progress comes at half the speed. Compare "Tests overstate alignment", which is about measuring progress, not the problem itself.' },
+      help: 'How hard the problem really is: how much real alignment the superintelligence handoff needs. Policy cannot change it. Easy enough (above 3.3×), fixing safety problems as they come up leads to long-term alignment and loss of control cannot happen; at 0.5×, progress comes at half the speed. Compare "Tests overstate alignment", which is about measuring progress, not the problem itself.',
+      sample: (A, rng) => { const dd = diffDistOf(A); return Math.min(5, Math.max(0.1, Math.pow(10, dd.mean + dd.sd * gauss(rng)))); },
+      atMean: (A) => Math.pow(10, diffDistOf(A).mean), world: (A, d) => Object.assign({ difficulty: d }, difficultyWorld(d, diffDistOf(A))) },
     // Where the frontier stands at the start of 2027. AI 2040's starting point is 44; Gladstone
     // AI's lab insiders expect recursive self-improvement (AI substantially speeding up AI R&D,
     // which begins at 50 here) within 3-12 months of Oct 2026, i.e. during 2027.
     capNow: { label: 'Current capability', mean: 44, sd: 0, min: 30, max: 62, fmt: 'num',
       marks: [[44, 'AI 2040'], [50, 'RSI 2027']],
-      help: 'How capable the best AI is at the start of 2027 (US bloc; China starts 7 points behind). AI starts speeding up its own research at 50, and 70 is an Automated Coder. AI 2040 starts at 44; lab insiders quoted by Gladstone AI expect recursive self-improvement during 2027, which is about 50.' },
+      help: 'How capable the best AI is at the start of 2027 (US bloc; China starts 7 points behind). AI starts speeding up its own research at 50, and 70 is an Automated Coder. AI 2040 starts at 44; lab insiders quoted by Gladstone AI expect recursive self-improvement during 2027, which is about 50.',
+      sample: (A, rng, draw) => (A.capNow.sd > 0 ? draw('capNow') : A.capNow.mean), // only drawn when it has a spread
+      atMean: (A) => A.capNow.mean, world: (A, capNow) => ({ capNow }) },
     // Progress speed, lognormal in log10 units like ease: median 10^mean, spread ×10^sd. The median
     // 1× is AI 2040's pace. The ln-sd 0.35 (central 90% about 0.56–1.78×) is an assumption informed
     // by measured trends: Epoch's frontier training compute (~4–6×/yr) and algorithmic efficiency
@@ -133,39 +137,50 @@
     // a ratio of 1.63. Physical limits (HBM, CoWoS packaging, US power) make the slow worlds, though
     // historically such walls have been stalls that get worked around more than ceilings.
     speed: { label: 'AI progress speed', mean: 0, sd: 0.35 / Math.LN10, min: Math.log10(0.3), max: Math.log10(2.5), fmt: 'logx',
-      help: 'How fast AI improves for a given amount of compute. The median 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2031 and superintelligence to about 2033. 90% of worlds fall between about 0.56× and 1.78×, a spread informed by measured trends: frontier training compute growing 4–6× a year and algorithms about 3× a year (Epoch AI), and AI task horizons doubling every 4–7 months (METR). Slow worlds are ones where memory chips, chip packaging or US power hold AI back.' },
+      help: 'How fast AI improves for a given amount of compute. The median 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2031 and superintelligence to about 2033. 90% of worlds fall between about 0.56× and 1.78×, a spread informed by measured trends: frontier training compute growing 4–6× a year and algorithms about 3× a year (Epoch AI), and AI task horizons doubling every 4–7 months (METR). Slow worlds are ones where memory chips, chip packaging or US power hold AI back.',
+      sample: (A, rng, draw) => Math.pow(10, draw('speed')), atMean: (A) => Math.pow(10, A.speed.mean), world: (A, speed) => ({ speed }) },
     benevolent: { label: 'Kind even if uncontrolled', mean: 0.1, sd: 0.25, min: 0, max: 1, fmt: 'pct',
-      help: 'If humans lose control of AI, the chance it still cares for humanity. The future is then steered by AI, kindly, instead of by people (Benevolent Takeover).' },
+      help: 'If humans lose control of AI, the chance it still cares for humanity. The future is then steered by AI, kindly, instead of by people (Benevolent Takeover).',
+      sample: (A, rng, draw) => { const p = draw('benevolent'); return rng() < p; }, atMean: () => false,
+      world: (A, benevolent) => ({ pBenevolent: clippedMean(A.benevolent), benevolent }) },
     // China's own work and caution are judgments informed by published work (Concordia AI's
     // safety-paper counts, SemiAnalysis's count of releases with safety results), official
     // "human control" language and current racing; none of these measures effort, and there is
     // no case of Beijing slowing frontier AI for safety. Hence the wide spreads.
     cnAlign: { label: 'China\'s own alignment work', mean: 0.35, sd: 0.25, min: 0, max: 1, fmt: 'pct',
-      help: 'How much alignment research China\'s labs do themselves, relative to the US bloc. It fills part of the gap that published US research and coordination do not reach, and China\'s AI speeds this research up as it improves (100% is a serious program, like a US bloc putting 30% of compute on safety). Work on keeping AI loyal to the Party\'s line does not count.' },
+      help: 'How much alignment research China\'s labs do themselves, relative to the US bloc. It fills part of the gap that published US research and coordination do not reach, and China\'s AI speeds this research up as it improves (100% is a serious program, like a US bloc putting 30% of compute on safety). Work on keeping AI loyal to the Party\'s line does not count.',
+      world: (A, cnAlign) => Object.assign({ cnAlign }, chinaNodes(A.cnAlign)) },
     cnCaution: { label: 'China slows near the brink', mean: 0.25, sd: 0.25, min: 0, max: 1, fmt: 'pct',
-      help: 'How far China cuts its AI race once there are signs of losing control. It notices later than the US would, slows more if the US slows or a deal is in force, and never slows for fear of concentrated power: an AI that obeys the Party counts as aligned in Beijing.' },
+      help: 'How far China cuts its AI race once there are signs of losing control. It notices later than the US would, slows more if the US slows or a deal is in force, and never slows for fear of concentrated power: an AI that obeys the Party counts as aligned in Beijing.',
+      world: (A, cnCaution) => ({ cnCaution }) },
     // Evaluation awareness: current AIs can often tell when they are being tested and behave
     // better then, so measured alignment may overstate the real thing.
     evalGap: { label: 'Tests overstate alignment', mean: 0.15, sd: 0.1, min: 0, max: 0.6, fmt: 'pct',
-      help: 'How wrong the measurements are: how far the alignment you see sits above the real level, because AIs can tell when they are being tested and behave better. Policy can change it: independent oversight, published research and safety work expose more of the gap, and secret internal AI hides more. This is why your estimate and the real risk can differ. Compare "Ease of alignment", which is how hard the problem itself is.' },
+      help: 'How wrong the measurements are: how far the alignment you see sits above the real level, because AIs can tell when they are being tested and behave better. Policy can change it: independent oversight, published research and safety work expose more of the gap, and secret internal AI hides more. This is why your estimate and the real risk can differ. Compare "Ease of alignment", which is how hard the problem itself is.',
+      world: (A, evalGap) => { const c = clippedNodes(A.evalGap, 0, 0.6); return { evalGap, egNodes: c.nodes, egMean: c.mean }; } },
     whistle: { label: 'Whistleblower odds', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
-      help: 'Chance that insiders expose or refuse to carry out a power grab by whoever controls AGI.' },
+      help: 'Chance that insiders expose or refuse to carry out a power grab by whoever controls AGI.',
+      world: (A, whistle) => ({ whistle, whistleNodes: clippedNodes(A.whistle, 0, 1).nodes }) },
     // Whether those who hold AI share its gains when nothing forces them. Arguments that they
     // will not: once most people's work is no longer needed, they lose their leverage (Drago and
     // Laine, The Intelligence Curse; Kulveit et al., Gradual Disempowerment), as in rentier
     // states; voluntary pledges exist but nothing enforces them.
     share: { label: 'The powerful share the gains', mean: 0.30, sd: 0.20, min: 0, max: 1, fmt: 'pct',
-      help: 'If a few control AI and nothing forces them, the chance they share its gains broadly anyway. Low means the powerful keep AI and its gains once most people\'s work is no longer needed. The wealth fund, oversight, transparency and whistleblowers can still force sharing.' },
+      help: 'If a few control AI and nothing forces them, the chance they share its gains broadly anyway. Low means the powerful keep AI and its gains once most people\'s work is no longer needed. The wealth fund, oversight, transparency and whistleblowers can still force sharing.',
+      world: (A, share) => ({ share, shareNodes: clippedNodes(A.share, 0, 1).nodes }) },
     // Value alignment, as opposed to intent alignment ("aligned" elsewhere means the AI does what
     // its controllers intend). Labs aim for it, e.g. constitutions telling models to refuse
     // illegitimate power grabs, but nothing shows it holds when the weights' owners push.
     valueAlign: { label: 'Aligned AI fights corruption', mean: 0.25, sd: 0.20, min: 0, max: 1, fmt: 'pct',
-      help: 'Value alignment: the chance an aligned superintelligence cares about humanity broadly and would decline to help a few seize power, even when its controllers ask. Labs aim for this (e.g. constitutions that tell models to refuse illegitimate power grabs), but it\'s unproven under pressure from whoever controls the weights. At the default it cuts status-quo lock-in from about 70% to about 57% of futures where humans keep control.' },
+      help: 'Value alignment: the chance an aligned superintelligence cares about humanity broadly and would decline to help a few seize power, even when its controllers ask. Labs aim for this (e.g. constitutions that tell models to refuse illegitimate power grabs), but it\'s unproven under pressure from whoever controls the weights. At the default it cuts status-quo lock-in from about 70% to about 57% of futures where humans keep control.',
+      world: (A, valueAlign) => ({ valueAlign, valueNodes: clippedNodes(A.valueAlign, 0, 1).nodes }) },
     // Lognormal, set in log10 units. Calibrated to a separate factored Monte Carlo
     // decomposition: decade median 1.2e-4, 95% interval ~5e-7 to ~3e-2,
     // P(>1%) ≈ 5.5%, P(>10%) ≈ 0.7%. That is median 10^-3.92 with a log10 sd of about 1.2.
     bioDecade: { label: 'Open-weights bio risk per decade', mean: -3.92, sd: 1.2, min: -7, max: -1, fmt: 'log',
-      help: 'Chance that open-weights models enable a pandemic killing 100M+ people within ten years, on the default path for open models and biodefense under the default assumptions. Policy scales it up or down from there.' },
+      help: 'Chance that open-weights models enable a pandemic killing 100M+ people within ten years, on the default path for open models and biodefense under the default assumptions. Policy scales it up or down from there.',
+      sample: (A, rng) => Math.min(0.99, Math.pow(10, A.bioDecade.mean + A.bioDecade.sd * gauss(rng))), // unclamped in log space: the tails are the point
+      atMean: (A) => Math.pow(10, A.bioDecade.mean), world: (A, d) => bioWorld(d, A.bioDecade), notInBase: true },
   };
 
   function defaultAssumptions() {
@@ -211,28 +226,30 @@
     return Math.sqrt(-2 * Math.log(1 - rng())) * Math.cos(2 * Math.PI * rng());
   }
 
+  // Each unknown in ASSUMPTION_INFO carries, besides its slider metadata:
+  //   sample(A, rng, draw)  its value in one future (default: draw(key), N(mean, sd) clipped to [min, max]);
+  //   atMean(A)             its value in the mean world (default: clippedMean(A[key]));
+  //   world(A, v)           the fields a world carries for value v, belief nodes included;
+  //   notInBase             left out of the base world that measures bio exposure.
+  // The RNG order. Append-only: a new unknown goes at the end, so every existing seed keeps its world.
+  const DRAW_ORDER = Object.freeze(['ease', 'speed', 'whistle', 'benevolent', 'bioDecade', 'cnAlign', 'cnCaution', 'evalGap', 'capNow', 'share', 'valueAlign']);
+
   // Draw one world. `pSafe` is what everyone believes up front; `safe` is the truth.
   function sampleWorld(A, rng, skipBio = false) {
     const draw = (k) => {
       const info = ASSUMPTION_INFO[k];
       return Math.max(info.min, Math.min(info.max, A[k].mean + A[k].sd * gauss(rng)));
     };
-    const dd = diffDistOf(A);
-    const difficulty = Math.min(5, Math.max(0.1, Math.pow(10, dd.mean + dd.sd * gauss(rng))));
-    const w = Object.assign({ difficulty, speed: Math.pow(10, draw('speed')), whistle: draw('whistle'), whistleNodes: clippedNodes(A.whistle, 0, 1).nodes }, difficultyWorld(difficulty, dd));
-    const pBen = draw('benevolent');
-    Object.assign(w, { pBenevolent: clippedMean(A.benevolent), benevolent: rng() < pBen });
-    // Bio: the decade risk is unclamped in log space (the tails are the point), capped below 1.
-    const bioDecade = Math.min(0.99, Math.pow(10, A.bioDecade.mean + A.bioDecade.sd * gauss(rng)));
-    Object.assign(w, chinaWorld(A, draw('cnAlign'), draw('cnCaution')), evalWorld(A, draw('evalGap')));
-    // Drawn last, and only when it has a spread, so the default draws stay identical.
-    w.capNow = A.capNow.sd > 0 ? draw('capNow') : A.capNow.mean;
-    // Appended after every earlier draw, so adding it kept their order.
-    Object.assign(w, shareWorld(A, draw('share')));
-    // Value alignment, appended after sharing for the same reason.
-    Object.assign(w, valueWorld(A, draw('valueAlign')));
-    if (skipBio) return w;
-    return Object.assign(w, bioWorld(bioDecade, A.bioDecade));
+    const v = {};
+    for (const k of DRAW_ORDER) v[k] = ASSUMPTION_INFO[k].sample ? ASSUMPTION_INFO[k].sample(A, rng, draw) : draw(k);
+    return buildWorld(A, v, skipBio);
+  }
+  // The world's fields from one value per unknown; the bio fields go last (and are skipped for the base world).
+  function buildWorld(A, v, skipBio = false) {
+    const w = {};
+    for (const k of DRAW_ORDER) if (!ASSUMPTION_INFO[k].notInBase) Object.assign(w, ASSUMPTION_INFO[k].world(A, v[k]));
+    if (!skipBio) for (const k of DRAW_ORDER) if (ASSUMPTION_INFO[k].notInBase) Object.assign(w, ASSUMPTION_INFO[k].world(A, v[k]));
+    return w;
   }
 
   // The same world without its bio draw (bio hazard off): used to measure exposure.
@@ -241,18 +258,13 @@
     return Object.assign(w, { bioDecade: 0, bioScale: 0, bioNodes: null });
   }
 
+  // Every unknown at its mean (the kind-AI coin at false), for the default starting state.
   function meanWorld() {
-    const A = defaultAssumptions();
-    const dd = diffDistOf(A), d = Math.pow(10, dd.mean);
-    return Object.assign({ difficulty: d, speed: Math.pow(10, A.speed.mean), capNow: A.capNow.mean, whistle: clippedMean(A.whistle), whistleNodes: clippedNodes(A.whistle, 0, 1).nodes,
-      pBenevolent: clippedMean(A.benevolent), benevolent: false }, difficultyWorld(d, dd),
-      chinaWorld(A, clippedMean(A.cnAlign), clippedMean(A.cnCaution)),
-      evalWorld(A, clippedMean(A.evalGap)), shareWorld(A, clippedMean(A.share)), valueWorld(A, clippedMean(A.valueAlign)),
-      bioWorld(Math.pow(10, A.bioDecade.mean), A.bioDecade));
+    const A = defaultAssumptions(), v = {};
+    for (const k of DRAW_ORDER) v[k] = ASSUMPTION_INFO[k].atMean ? ASSUMPTION_INFO[k].atMean(A) : clippedMean(A[k]);
+    return buildWorld(A, v);
   }
 
-  // How much tests overstate alignment, plus belief nodes over it (the clipped bell curve,
-  // with its endpoint masses kept exactly; cached per distribution). The dice use the hidden draw.
   // Belief nodes [weight, value] over N(mean, sd) clipped to [lo, hi]: the clipping's point
   // masses at the ends kept exactly, 40 midpoint nodes inside. Cached per distribution.
   const CLIP_CACHE = new Map();
@@ -276,33 +288,20 @@
     }
     return CLIP_CACHE.get(key);
   }
-  // Whether the powerful share AI's gains unforced, plus belief nodes over it (the dice use the draw).
-  function shareWorld(A, share) {
-    return { share, shareNodes: clippedNodes(A.share, 0, 1).nodes };
-  }
-  // Whether an aligned AI would refuse to help a few seize power, plus belief nodes (dice use the draw).
-  function valueWorld(A, valueAlign) {
-    return { valueAlign, valueNodes: clippedNodes(A.valueAlign, 0, 1).nodes };
-  }
-  function evalWorld(A, evalGap) {
-    const c = clippedNodes(A.evalGap, 0, 0.6);
-    return { evalGap, egNodes: c.nodes, egMean: c.mean };
-  }
-
-  // China's hidden caution, plus nodes over its own-alignment effort for the belief shown to
-  // players (an expectation over the clipped bell curve; the dice use the hidden draw).
-  // Nodes span ±4 sd so the clipped tails are represented (cached per distribution).
+  // Nodes over China's own-alignment effort for the belief shown to players (an expectation
+  // over the clipped bell curve; the dice use the hidden draw). Nodes span ±4 sd so the clipped
+  // tails are represented (cached per distribution).
   const CN_Z = Array.from({ length: 33 }, (_, i) => -4 + i * 0.25);
   const CN_W = (() => { const w = CN_Z.map((z) => Math.exp(-z * z / 2)), t = w.reduce((a, b) => a + b); return w.map((x) => x / t); })();
   const CN_CACHE = new Map();
-  function chinaWorld(A, cnAlign, cnCaution) {
-    const p = A.cnAlign, key = p.mean + '|' + p.sd;
+  function chinaNodes(p) {
+    const key = p.mean + '|' + p.sd;
     if (!CN_CACHE.has(key)) {
       const nodes = p.sd > 0 ? CN_Z.map((z, i) => [CN_W[i], clamp(p.mean + p.sd * z, 0, 1)]) : [[1, clamp(p.mean, 0, 1)]];
       CN_CACHE.set(key, { nodes, mean: nodes.reduce((a, [w, v]) => a + w * v, 0) });
     }
     const c = CN_CACHE.get(key);
-    return { cnAlign, cnCaution, cnNodes: c.nodes, cnMean: c.mean };
+    return { cnNodes: c.nodes, cnMean: c.mean };
   }
 
   // Expected value of a probability drawn from N(mean, sd) and clipped to [0, 1], which is
@@ -959,7 +958,7 @@
 
   root.SimModel = {
     K, K_DEFAULTS, setConstants,
-    START_YEAR, END_YEAR, LEVER_INFO, STAT_INFO, OUTCOMES, ASSUMPTION_INFO,
+    START_YEAR, END_YEAR, LEVER_INFO, STAT_INFO, OUTCOMES, ASSUMPTION_INFO, DRAW_ORDER,
     AC, TOP_EXPERT, TEDAI, DELEG0, oversightBite, delegHazard, uplift, rdShare, locGate, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, assumptionToURL, assumptionFromURL, sampleWorld, meanWorld, initialState, maxCap, chinaRace,

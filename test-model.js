@@ -413,6 +413,12 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const prev = M.mulberry32(42); for (let i = 0; i < used - 4; i++) prev();
   const z2 = Math.sqrt(-2 * Math.log(1 - prev())) * Math.cos(2 * Math.PI * prev());
   check('The sharing draw comes just before it', Math.abs(a.share - Math.max(0, Math.min(1, A.share.mean + A.share.sd * z2))) < 1e-12);
+  // One registry: every unknown is drawn exactly once, in a fixed append-only order, and each
+  // entry builds its own world fields.
+  const FIXED = ['ease', 'speed', 'whistle', 'benevolent', 'bioDecade', 'cnAlign', 'cnCaution', 'evalGap', 'capNow', 'share', 'valueAlign'];
+  check('DRAW_ORDER keeps the existing draws first and covers every unknown once',
+    FIXED.every((k, i) => M.DRAW_ORDER[i] === k) && M.DRAW_ORDER.length === Object.keys(M.ASSUMPTION_INFO).length
+      && new Set(M.DRAW_ORDER).size === M.DRAW_ORDER.length && M.DRAW_ORDER.every((k) => typeof M.ASSUMPTION_INFO[k].world === 'function') && Object.isFrozen(M.DRAW_ORDER));
 }
 
 // --- China's own AI speeds up alignment in proportion to its own effort ---
