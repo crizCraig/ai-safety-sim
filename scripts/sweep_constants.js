@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Sensitivity sweep of the model's named constants (SimModel.K).
 //
-//   node scripts/sweep_constants.js            run the sweep, write docs/constant-sensitivity.md
+//   node scripts/sweep_constants.js            run the sweep, write docs/constant-sensitivity.md (readable,
+//                                              grouped by topic) and docs/constant-sensitivity-full.md (every number)
 //   node scripts/sweep_constants.js --n 1000   fewer futures per run (quick look)
 //   node scripts/sweep_constants.js --baseline rewrite test-k-baseline.json (after a deliberate model change)
 //
@@ -79,187 +80,227 @@ const SHIFT = {
   dealDip: [0.1, '±0.1 on the diplomacy lever'],
 };
 
-// Classes: S = source (taken from a cited forecast or measurement), F = fitted to a calibration
-// target (per model.js comments, the model page and commit history: timeline, lock-in share, the
-// loss-of-control recalibration, and the original Plans A–C p(alignment) fit), B = baseline offset (2027 starting level or drift that sets the status-quo trend),
-// J = judgment call.
-const CLS = { S: 'source', F: 'fitted', B: 'baseline offset', J: 'judgment' };
+// Types: S = from a source (a cited forecast or measurement), F = fitted to a calibration target
+// (per model.js comments, the model page and commit history: timeline, lock-in share, the
+// loss-of-control recalibration, and the original Plans A–C p(alignment) fit), B = 2027 baseline
+// (a starting level, or a drift that sets the status-quo trend), J = judgment call.
+const CLS = { S: 'source', F: 'fitted', B: 'baseline', J: 'judgment' };
+const CLS_PLAIN = { S: 'From a source', F: 'Fitted to a target', B: '2027 baseline', J: 'Judgment call' };
+
+// Topic groups for the readable doc, in reading order: [key, heading, what the group does].
+const GROUPS = [
+  ['speed', 'How fast AI improves',
+    'Each year frontier capability grows by a base pace, scaled by compute (set by the race lever), the world\'s hidden progress speed, and the speed-up AI gives its own research once it is good enough. Most of these come from AI 2040 or are fitted to its timeline (an Automated Coder around 2030). Moving them mostly moves *when* superintelligence arrives: a slower pace leaves more years for alignment research, so the plans that rely on it gain.'],
+  ['align', 'Alignment research and the handoff',
+    'Alignment grows each year with safety spending, oversight, shared research and help from AI, divided by how hard the problem really is. When capability reaches superintelligence, the handoff succeeds if real alignment clears a bar that rises with that difficulty. These constants set the plans\' odds of getting alignment right (Plans A–C are fitted to AI 2040\'s 72%, 50% and 40%), so they move those odds far more than they move today\'s path, which spends little on safety.'],
+  ['loc', 'Loss of control and hidden AI',
+    'Before the handoff, a yearly loss-of-control hazard grows once AI does most of its own research and capability outruns real alignment. AI used inside labs, out of view, raises that hazard, raises the handoff bar and hides more of the gap between tested and real alignment. Oversight and transparency pull it back into view.'],
+  ['war', 'War',
+    'Great-power war is likelier when the race is close, coordination is low and the stakes are high; sabotaging China\'s program adds to it. War is a small share of catastrophe in the swept results, so these constants move them little. Note that Plan B, the plan that sabotages China, is measured here only by its alignment odds, not by its war risk.'],
+  ['bio', 'Pandemic and open weights',
+    'Pandemic risk depends on how capable open-weights models are and how much biodefense is missing. The hazard scale is recalibrated in every run so the default path keeps its target decade risk, so these constants change pandemic risk only away from the default path. Pandemics are rare in the model, so none of them moves a headline number much.'],
+  ['deal', 'Deals and diplomacy',
+    'Diplomacy builds international coordination. Once coordination and diplomacy both pass thresholds, a verified US–China deal stops frontier AI at top-expert level, until it weakens or dissolves at AI 2040\'s yearly rates. Plan A depends on this deal, so the constants that decide whether it forms move Plan A\'s risk a lot.'],
+  ['china', 'China',
+    'China\'s race intensity responds to how hard the US pushes and to coordination. It may slow near the brink (its hidden caution), and when it leads it can use US alignment work only partly. A hotter Chinese race makes the deal harder and raises risk under Plan A and the Safest mix.'],
+  ['power', 'Power and lock-in',
+    'If humans keep control at the handoff, power can still lock in with a few. The lock-in odds multiply how concentrated power already is, how automated the economy is, and pressure from racing and low public trust, then subtract what the wealth fund, oversight, transparency, rivals, open weights, diplomacy, whistleblowers and value-aligned AI (the hidden chance that an aligned AI refuses to help a few seize power) take away. On today\'s path about 57% of the futures that keep control lock in (about 70% before value alignment), so these are the constants that move today\'s path the most.'],
+  ['deleg', 'Delegation',
+    'Decisions handed to AI with little human checking grow with automation and racing; oversight, transparency and safety work take some back. More delegation blunts oversight, raises the loss-of-control hazard and raises the handoff bar. All three effects are neutral at the 2027 level, so they move the headline numbers only a little.'],
+];
+
+// Per constant: [type, group, plain name, what it does].
 const META = {
-  align0: ['B', 'Alignment maturity in 2027'],
-  cnGap0: ['B', 'China starts this many capability points behind'],
-  openCap0: ['B', 'Best open-weights model in 2027'],
-  bio0: ['B', 'Biodefense level in 2027'],
-  coord0: ['B', 'International coordination in 2027'],
-  bci0: ['B', 'Neural-interface adoption in 2027'],
-  conc0: ['B', 'Power concentration in 2027'],
-  trust0: ['B', 'Public trust in 2027'],
-  internal0: ['B', 'Hidden internal AI in 2027 (also the handoff bar\'s reference)'],
-  fund0: ['B', 'Public stake in AI returns in 2027'],
-  deleg0: ['B', 'Delegation Λ in 2027, where its effects are neutral'],
-  diffSafe: ['J', 'Difficulty below which alignment is easy by default (ease 3.3×)'],
-  diffRamp: ['J', 'Difficulty range over which loss-of-control exposure ramps to full'],
-  delegBite: ['J', 'Share of oversight lost when everything is delegated'],
-  delegHaz: ['J', 'Extra loss-of-control hazard when everything is delegated'],
-  upliftStart: ['S', 'Capability where AI starts speeding up AI R&D (AI 2040)'],
-  upliftAC: ['S', 'R&D speed-up at an Automated Coder (AI 2040: 3×)'],
-  upliftTED: ['S', 'R&D speed-up at TED-AI (AI 2040: ~40×)'],
-  rdShareMid: ['J', 'Share of AI research done by AI where the loss-of-control gate is half open'],
-  rdShareW: ['J', 'Width of the loss-of-control onset gate'],
-  computeNorm: ['F', 'Compute normalization denominator: 1× compute at race 0.03 + this (0.55); sets the AI 2040 pace'],
-  computeExp: ['S', 'Speed ∝ compute^0.74 (AI 2040: 10× compute ≈ 5.5× speed)'],
-  safetyKnee: ['J', 'Safety share where returns start to diminish'],
-  safetyTail: ['J', 'Extra safety effect from the knee to 100%'],
-  laborBase: ['J', 'Share of AI labor on safety at 0% safety compute'],
-  laborSafety: ['J', 'Extra AI labor share on safety up to the knee'],
-  laborPause: ['J', 'Extra AI labor share on safety past the knee'],
-  dealCoord: ['J', 'Coordination needed for a verified deal'],
-  dealDip: ['J', 'Diplomacy lever needed for a verified deal'],
-  dealCap: ['S', 'Deal ceiling: top-human-expert capability (AI 2040)'],
-  dealSlack: ['J', 'Extra ceiling once a deal is impaired'],
-  dealHaz0: ['S', 'Deal dissolution/impairment rate, years 0–2 (AI 2040)'],
-  dealHaz1: ['S', 'Deal dissolution/impairment rate, years 2–5 (AI 2040)'],
-  dealHaz2: ['S', 'Deal dissolution/impairment rate after year 5 (AI 2040)'],
-  dealCollapseCut: ['J', 'Coordination lost when a deal dissolves'],
-  dealImpairCut: ['J', 'Coordination lost when a deal is impaired'],
-  usPushSafety: ['J', 'How much US safety spending reads as slowing to China'],
-  cnRaceBase: ['J', 'China\'s race intensity against a middling US push'],
-  cnRaceResp: ['J', 'How strongly China\'s race tracks the US push'],
-  cnRaceCoord: ['J', 'How much coordination calms China\'s race'],
-  cnWarnCap: ['J', 'Capability where China sees warning signs'],
-  cnWarnW: ['J', 'Width of China\'s capability warning'],
-  cnWarnGap: ['J', 'Capability–alignment gap that alarms China'],
-  cnWarnGapW: ['J', 'Width of China\'s gap warning'],
-  cnSlowRace: ['J', 'US race level below which China reads the US as slowing'],
-  cnRecip: ['J', 'China\'s reciprocity factor (doubles if the US slows or a deal holds)'],
-  cnSlowMax: ['J', 'Most China ever cuts its race'],
-  shareBase: ['J', 'Share of US alignment work China\'s lab can use by default'],
-  shareCoord: ['J', 'Extra share from coordination'],
-  shareTransp: ['J', 'Extra share from published research'],
-  leadW: ['J', 'Width of the "China leads" switch (capability points)'],
-  hidBase: ['J', 'Hidden share of the test overstatement, base'],
-  hidInternal: ['J', 'Hidden share added by internal AI'],
-  hidOversight: ['J', 'Hidden share removed by oversight'],
-  hidTransp: ['J', 'Hidden share removed by transparency'],
-  hidSafety: ['J', 'Hidden share removed by safety work'],
-  locScale: ['F', 'Peak yearly loss-of-control hazard (with Plans A–C)'],
-  locOffset: ['J', 'Capability-over-alignment gap where the hazard is half its peak'],
-  locWidth: ['J', 'Width of the loss-of-control sigmoid'],
-  intBase: ['J', 'Loss-of-control factor with no hidden internal AI'],
-  intSlope: ['J', 'Extra loss-of-control factor per hidden internal AI'],
-  warBase: ['J', 'Peak yearly war hazard with no coordination'],
-  warCloseW: ['J', 'Capability gap at which the race stops counting as close'],
-  warCloseFloor: ['J', 'War hazard share that remains when the race is not close'],
-  warStakesMid: ['J', 'Capability where strategic stakes are half'],
-  warStakesW: ['J', 'Width of the stakes sigmoid'],
-  warAggr: ['J', 'Extra war hazard from sabotage'],
-  warSabot: ['J', 'War hazard from a China falling behind under attack'],
-  warBehindW: ['J', 'US lead at which China is fully behind'],
-  warBehindFloor: ['J', 'Share of sabotage war risk even when China is not behind'],
-  bioOpenMid: ['J', 'Open-weights capability where bio uplift is half (expert level)'],
-  bioOpenW: ['J', 'Width of the bio uplift sigmoid'],
-  bioDefExp: ['J', 'Exponent on missing biodefense'],
-  barBase: ['F', 'Alignment the handoff needs at difficulty 0'],
-  barDiff: ['F', 'Extra alignment the handoff needs per unit difficulty'],
-  barInternal: ['J', 'Bar raised per point of hidden internal AI'],
-  barDeleg: ['J', 'Bar raised per point of delegation'],
-  barBci: ['J', 'Bar lowered by full neural-interface adoption'],
-  barW: ['J', 'Width of the handoff sigmoid'],
-  lockK: ['F', 'Lock-in scale (about 70% of status-quo controlled futures lock in)'],
-  lockWhistle: ['J', 'Lock-in removed by certain whistleblowers'],
-  lockValue: ['J', 'Lock-in removed by a sure value-aligned refusal'],
-  lockConcFloor: ['J', 'Lock-in factor with power not concentrated'],
-  lockConcMid: ['J', 'Concentration where its lock-in factor is halfway'],
-  lockConcW: ['J', 'Width of the concentration sigmoid'],
-  lockPhysYears: ['J', 'Years after an Automated Coder for robots to follow'],
-  lockAutoFloor: ['J', 'Lock-in factor before physical automation'],
-  lockRaceBase: ['J', 'Lock-in pressure at race 0'],
-  lockRaceSlope: ['J', 'Extra lock-in pressure from racing'],
-  lockTrustBase: ['J', 'Lock-in pressure with no public trust'],
-  lockTrustSlope: ['J', 'Lock-in pressure removed by full trust'],
-  lockPluralW: ['J', 'Capability gap at which rivals stop counting'],
-  lockFund: ['J', 'Lock-in removed by full public ownership'],
-  lockOversight: ['J', 'Lock-in removed by full oversight'],
-  lockTransp: ['J', 'Lock-in removed by full transparency'],
-  lockPlural: ['J', 'Lock-in removed by a close rival or open frontier'],
-  lockOpen: ['J', 'Lock-in removed by open weights'],
-  lockDip: ['J', 'Lock-in removed by diplomacy with public pressure'],
-  capBase: ['F', 'Base yearly capability gain (AC around 2030)'],
-  ovsTax: ['J', 'Capability compute taken by oversight'],
-  fundDrag: ['J', 'Reinvestment drag from a full wealth fund'],
-  sabotSlow: ['J', 'Share of China\'s progress lost to full sabotage'],
-  leak: ['J', 'Share of the US lead China closes yearly through published research'],
-  jumpP: ['J', 'Yearly chance of a capability breakthrough'],
-  jumpUS: ['J', 'Minimum US breakthrough size'],
-  jumpUSRand: ['J', 'Random extra US breakthrough size'],
-  jumpCN: ['J', 'Minimum China breakthrough size'],
-  jumpCNRand: ['J', 'Random extra China breakthrough size'],
-  alRate: ['F', 'Overall alignment progress rate (Plans A–C p(alignment))'],
-  alBase: ['J', 'Alignment progress with no safety compute'],
-  alSafety: ['J', 'Alignment progress from safety compute up to the knee'],
-  alOversight: ['J', 'Alignment progress from oversight'],
-  alShCoord: ['J', 'Alignment boost from coordination'],
-  alShTransp: ['J', 'Alignment boost from published research'],
-  alBci: ['J', 'Alignment boost from neural interfaces'],
-  alNoise: ['J', 'Yearly alignment noise'],
-  alJumpP: ['J', 'Yearly chance of an alignment breakthrough'],
-  alJumpBase: ['J', 'Minimum alignment breakthrough size'],
-  alJumpRand: ['J', 'Random extra alignment breakthrough size'],
-  intRace: ['J', 'Hidden internal AI added by racing'],
-  intTransp: ['J', 'Hidden internal AI removed by transparency'],
-  intOversight: ['J', 'Hidden internal AI removed by oversight'],
-  intBci: ['J', 'Hidden internal AI removed by neural interfaces'],
-  intDecay: ['B', 'Yearly drift of hidden internal AI'],
-  delBase: ['J', 'Yearly delegation growth, base'],
-  delCap: ['J', 'Delegation growth per capability point above 40'],
-  delRd: ['J', 'Delegation growth from AI doing AI research'],
-  delRaceBase: ['J', 'Delegation growth at race 0'],
-  delOversight: ['J', 'Delegation taken back by oversight'],
-  delTransp: ['J', 'Delegation taken back by transparency'],
-  delSafety: ['J', 'Delegation taken back by safety work'],
-  coDip: ['J', 'Coordination gained from diplomacy'],
-  coOversight: ['J', 'Coordination gained from oversight'],
-  coTransp: ['J', 'Coordination gained from transparency'],
-  coRace: ['J', 'Coordination lost to racing'],
-  coAggr: ['J', 'Coordination lost to sabotage'],
-  coDecay: ['B', 'Yearly coordination drift'],
-  coNoise: ['J', 'Yearly coordination noise'],
-  openBase: ['J', 'Open frontier as a share of the closed frontier with closed weights'],
-  openLever: ['J', 'Extra open share from the openness lever'],
-  openTransp: ['J', 'Extra open share from transparency'],
-  openRate: ['J', 'Yearly catch-up rate of open weights'],
-  bioDef: ['J', 'Biodefense gained from full investment'],
-  bioOpen: ['J', 'Biodefense gained from open tools'],
-  bioDecay: ['B', 'Yearly biodefense decay'],
-  bciCap: ['J', 'Most neural-interface adoption per year'],
-  bciLever: ['J', 'Adoption gained from the neural-interface push'],
-  bciBase: ['B', 'Adoption gained at market pace'],
-  bciUplift: ['J', 'AI R&D speed-up applied to neurotech'],
-  concRace: ['J', 'Concentration added by racing'],
-  concRaceOpen: ['J', 'Racing concentration offset by openness'],
-  concRaceTransp: ['J', 'Racing concentration offset by transparency'],
-  concCap: ['J', 'Concentration per capability point above 60'],
-  concOpen: ['J', 'Concentration removed by openness'],
-  concTransp: ['J', 'Concentration removed by transparency'],
-  concBci: ['J', 'Concentration added by a neural-interface push without diplomacy'],
-  concOversight: ['J', 'Concentration removed by oversight'],
-  concAggr: ['J', 'Concentration added by sabotage'],
-  concDecay: ['B', 'Yearly concentration drift'],
-  trCap: ['J', 'Trust lost per capability point above 55'],
-  trSafety: ['J', 'Trust gained from safety work'],
-  trOversight: ['J', 'Trust gained from oversight'],
-  trTransp: ['J', 'Trust gained from transparency'],
-  trRaceConc: ['J', 'Trust lost to racing with concentrated power'],
-  trDrift: ['B', 'Yearly trust drift'],
-  fundBuy: ['J', 'Yearly buy-in rate toward the fund target'],
-  fundExpensive: ['J', 'How much harder buying in gets past expert level'],
-  fundSell: ['J', 'Yearly rate of selling down to the fund target'],
-  endTrust: ['J', 'Trust below which power can lock in by 2040 without ASI'],
-  pauseCoord: ['J', 'Coordination needed for the careful-path ending'],
+  // How fast AI improves
+  capBase: ['F', 'speed', 'Base pace of AI progress', 'Capability points gained per year before compute, speed and uplift; fitted so an Automated Coder arrives around 2030'],
+  computeNorm: ['F', 'speed', 'Compute normalization', 'Sets how much compute each race level buys (1× at race 0.55); fitted to AI 2040\'s pace'],
+  computeExp: ['S', 'speed', 'Returns to compute', 'Progress speed grows as compute to this power (AI 2040: 10× compute ≈ 5.5× speed)'],
+  upliftStart: ['S', 'speed', 'Where AI starts speeding up AI research', 'Capability at which AI begins to speed up its own R&D (AI 2040)'],
+  upliftAC: ['S', 'speed', 'Speed-up at an Automated Coder', 'How much faster AI research goes at capability 70 (AI 2040: 3×)'],
+  upliftTED: ['S', 'speed', 'Speed-up at top-expert-dominating AI', 'How much faster AI research goes at capability 90 (AI 2040: about 40×)'],
+  ovsTax: ['J', 'speed', 'Compute taken by oversight', 'Share of capability compute that full oversight uses up'],
+  jumpP: ['J', 'speed', 'Chance of a capability breakthrough', 'Yearly chance of a surprise jump in capability'],
+  jumpUS: ['J', 'speed', 'US breakthrough size', 'Smallest US capability jump in a breakthrough year'],
+  jumpUSRand: ['J', 'speed', 'US breakthrough spread', 'Random extra size of a US breakthrough'],
+  jumpCN: ['J', 'speed', 'China breakthrough size', 'Smallest Chinese capability jump in a breakthrough year'],
+  jumpCNRand: ['J', 'speed', 'China breakthrough spread', 'Random extra size of a Chinese breakthrough'],
+  // Alignment research and the handoff
+  align0: ['B', 'align', 'Alignment in 2027', 'Where alignment maturity starts'],
+  alRate: ['F', 'align', 'Overall alignment progress rate', 'Scales all yearly alignment progress; fitted to Plans A–C'],
+  alBase: ['J', 'align', 'Alignment progress without safety spending', 'Yearly progress that happens anyway'],
+  alSafety: ['J', 'align', 'Alignment progress from safety spending', 'Extra yearly progress at the safety knee'],
+  alOversight: ['J', 'align', 'Alignment progress from oversight', 'Extra yearly progress with full independent oversight'],
+  alShCoord: ['J', 'align', 'Alignment boost from coordination', 'Multiplier on progress from shared international research'],
+  alShTransp: ['J', 'align', 'Alignment boost from published research', 'Multiplier on progress from research transparency'],
+  alNoise: ['J', 'align', 'Alignment noise', 'Random yearly wobble in alignment'],
+  alJumpP: ['J', 'align', 'Chance of an alignment breakthrough', 'Yearly chance of a surprise jump in alignment'],
+  alJumpBase: ['J', 'align', 'Alignment breakthrough size', 'Smallest alignment jump in a breakthrough year'],
+  alJumpRand: ['J', 'align', 'Alignment breakthrough spread', 'Random extra size of an alignment breakthrough'],
+  safetyKnee: ['J', 'align', 'Where safety spending stops paying fully', 'Safety share of compute up to which each extra point buys full progress; past it, returns shrink'],
+  safetyTail: ['J', 'align', 'Safety effect past the knee', 'Extra effect from the knee up to 100% safety'],
+  laborBase: ['J', 'align', 'AI labor on safety, baseline', 'Share of AI research help that goes to safety with no safety spending'],
+  laborSafety: ['J', 'align', 'AI labor on safety from spending', 'Extra share of AI help on safety, up to the knee'],
+  laborPause: ['J', 'align', 'AI labor on safety past the knee', 'Extra share of AI help on safety beyond the knee'],
+  diffSafe: ['J', 'align', 'Easy-by-default difficulty', 'Below this difficulty (above 3.3× ease) alignment works out without a general solution'],
+  barBase: ['F', 'align', 'Handoff bar at zero difficulty', 'Alignment the handoff needs before difficulty is added; fitted to Plans A–C'],
+  barDiff: ['F', 'align', 'Handoff bar per unit difficulty', 'How much more alignment a harder world needs at the handoff; fitted to Plans A–C'],
+  barW: ['J', 'align', 'Handoff sharpness', 'Width of the handoff\'s success curve'],
+  bci0: ['B', 'align', 'Neural-interface adoption in 2027', 'Where neural-interface adoption starts'],
+  bciLever: ['J', 'align', 'Neural-interface push', 'Yearly adoption gained from the neural-interface lever'],
+  bciBase: ['B', 'align', 'Neural-interface market pace', 'Yearly adoption gained without the lever'],
+  bciCap: ['J', 'align', 'Neural-interface speed limit', 'Most adoption possible in one year (surgery and approval)'],
+  bciUplift: ['J', 'align', 'AI help for neurotech', 'How much AI research speed-up carries over to neural interfaces'],
+  alBci: ['J', 'align', 'Alignment boost from neural interfaces', 'Multiplier on alignment progress at full adoption'],
+  barBci: ['J', 'align', 'Handoff bar lowered by neural interfaces', 'How much full adoption lowers the handoff bar'],
+  // Loss of control and hidden AI
+  locScale: ['F', 'loc', 'Peak loss-of-control hazard', 'Largest yearly chance of losing control; fitted with Plans A–C'],
+  locOffset: ['J', 'loc', 'Gap where loss-of-control risk is half', 'How far capability must outrun alignment for half the peak hazard'],
+  locWidth: ['J', 'loc', 'Loss-of-control sharpness', 'Width of the hazard curve around that gap'],
+  diffRamp: ['J', 'loc', 'Difficulty ramp', 'Difficulty range over which loss-of-control exposure goes from none to full'],
+  rdShareMid: ['J', 'loc', 'Onset of loss-of-control risk', 'Share of AI research done by AI where the hazard is half switched on'],
+  rdShareW: ['J', 'loc', 'Onset sharpness', 'Width of that switch'],
+  internal0: ['B', 'loc', 'Hidden internal AI in 2027', 'Where hidden internal AI starts (also the handoff bar\'s reference)'],
+  intBase: ['J', 'loc', 'Hazard with no hidden AI', 'Loss-of-control multiplier when no AI is hidden inside labs'],
+  intSlope: ['J', 'loc', 'Hazard from hidden AI', 'Extra loss-of-control multiplier when hidden AI is at its maximum'],
+  barInternal: ['J', 'loc', 'Handoff bar raised by hidden AI', 'Extra alignment the handoff needs per point of hidden AI'],
+  intRace: ['J', 'loc', 'Hidden AI from racing', 'Yearly growth of hidden internal AI under an all-out race'],
+  intTransp: ['J', 'loc', 'Hidden AI exposed by transparency', 'Yearly reduction with all research public'],
+  intOversight: ['J', 'loc', 'Hidden AI exposed by oversight', 'Yearly reduction with full oversight'],
+  intBci: ['J', 'loc', 'Hidden AI exposed by neural interfaces', 'Yearly reduction at full adoption'],
+  intDecay: ['B', 'loc', 'Hidden AI drift', 'Yearly drift of hidden internal AI'],
+  hidBase: ['J', 'loc', 'Hidden share of the test gap', 'Base share of the tested-vs-real alignment gap that stays hidden'],
+  hidInternal: ['J', 'loc', 'Test gap hidden by internal AI', 'Extra hidden share from hidden internal AI'],
+  hidOversight: ['J', 'loc', 'Test gap exposed by oversight', 'Hidden share removed by full oversight'],
+  hidTransp: ['J', 'loc', 'Test gap exposed by transparency', 'Hidden share removed by full transparency'],
+  hidSafety: ['J', 'loc', 'Test gap exposed by safety work', 'Hidden share removed by safety spending at the knee'],
+  // War
+  warBase: ['J', 'war', 'Peak war hazard', 'Largest yearly war risk with no coordination'],
+  warCloseW: ['J', 'war', 'What counts as a close race', 'Capability gap at which the race stops counting as close'],
+  warCloseFloor: ['J', 'war', 'War risk when not close', 'Share of war risk that remains when one side is far ahead'],
+  warStakesMid: ['J', 'war', 'Where the stakes are half', 'Capability at which strategic stakes are half their peak'],
+  warStakesW: ['J', 'war', 'Stakes sharpness', 'Width of the stakes curve'],
+  warAggr: ['J', 'war', 'War risk from sabotage', 'Multiplier on war risk from full sabotage of China'],
+  warSabot: ['J', 'war', 'Strike risk from a China falling behind', 'Extra war risk when sabotage leaves China behind'],
+  warBehindW: ['J', 'war', 'What counts as behind', 'US lead at which China counts as fully behind'],
+  warBehindFloor: ['J', 'war', 'Strike risk when not behind', 'Share of that risk even when China keeps up'],
+  // Pandemic and open weights
+  bio0: ['B', 'bio', 'Biodefense in 2027', 'Where biodefense starts'],
+  openCap0: ['B', 'bio', 'Best open model in 2027', 'Where open-weights capability starts'],
+  bioOpenMid: ['J', 'bio', 'Open model level where bio uplift is half', 'Open-weights capability at about expert level'],
+  bioOpenW: ['J', 'bio', 'Bio uplift sharpness', 'Width of the bio uplift curve'],
+  bioDefExp: ['J', 'bio', 'Weight on missing biodefense', 'Power on the share of biodefense that is missing'],
+  bioDef: ['J', 'bio', 'Biodefense from investment', 'Yearly biodefense gained at full investment'],
+  bioOpen: ['J', 'bio', 'Biodefense from open tools', 'Yearly biodefense gained from open weights'],
+  bioDecay: ['B', 'bio', 'Biodefense decay', 'Yearly biodefense lost without investment'],
+  openBase: ['J', 'bio', 'Open frontier, closed policy', 'Open models\' share of the closed frontier with weights kept closed'],
+  openLever: ['J', 'bio', 'Open frontier from the openness lever', 'Extra share when frontier weights are released'],
+  openTransp: ['J', 'bio', 'Open frontier from transparency', 'Extra share when all research is public'],
+  openRate: ['J', 'bio', 'Open catch-up speed', 'Share of the gap to their target open models close each year'],
+  // Deals and diplomacy
+  coord0: ['B', 'deal', 'Coordination in 2027', 'Where international coordination starts'],
+  coDip: ['J', 'deal', 'Coordination from diplomacy', 'Yearly coordination gained at full diplomacy'],
+  coOversight: ['J', 'deal', 'Coordination from oversight', 'Yearly coordination gained at full oversight'],
+  coTransp: ['J', 'deal', 'Coordination from transparency', 'Yearly coordination gained with all research public'],
+  coRace: ['J', 'deal', 'Coordination lost to racing', 'Yearly coordination lost under an all-out race'],
+  coAggr: ['J', 'deal', 'Coordination lost to sabotage', 'Yearly coordination lost under full sabotage'],
+  coDecay: ['B', 'deal', 'Coordination drift', 'Yearly coordination lost anyway'],
+  coNoise: ['J', 'deal', 'Coordination noise', 'Random yearly wobble in coordination'],
+  dealCoord: ['J', 'deal', 'Coordination a deal needs', 'Coordination level needed for a verified US–China deal'],
+  dealDip: ['J', 'deal', 'Diplomacy a deal needs', 'Diplomacy lever setting needed for a deal'],
+  dealCap: ['S', 'deal', 'Deal ceiling', 'Capability a deal stops at: top-human-expert level (AI 2040)'],
+  dealSlack: ['J', 'deal', 'Ceiling rise when a deal weakens', 'Extra capability allowed once a deal is impaired'],
+  dealHaz0: ['S', 'deal', 'Deal failure rate, years 0–2', 'Yearly chance a deal dissolves, and separately that it is impaired (AI 2040)'],
+  dealHaz1: ['S', 'deal', 'Deal failure rate, years 2–5', 'The same yearly chances in years 2–5 (AI 2040)'],
+  dealHaz2: ['S', 'deal', 'Deal failure rate after year 5', 'The same yearly chances after year 5 (AI 2040)'],
+  dealCollapseCut: ['J', 'deal', 'Coordination lost when a deal dissolves', 'One-off cut to coordination'],
+  dealImpairCut: ['J', 'deal', 'Coordination lost when a deal weakens', 'One-off cut to coordination'],
+  pauseCoord: ['J', 'deal', 'Coordination for the careful-path ending', 'Coordination needed in 2040 to count as the careful path'],
+  // China
+  cnGap0: ['B', 'china', 'China\'s starting gap', 'Capability points China starts behind the US'],
+  usPushSafety: ['J', 'china', 'Safety spending read as slowing', 'How much US safety spending China reads as the US easing off'],
+  cnRaceBase: ['J', 'china', 'China\'s race intensity', 'How hard China races against a middling US push'],
+  cnRaceResp: ['J', 'china', 'China\'s response to the US push', 'How strongly China\'s race tracks the US push'],
+  cnRaceCoord: ['J', 'china', 'China calmed by coordination', 'How much coordination cools China\'s race'],
+  cnWarnCap: ['J', 'china', 'Where China sees warning signs', 'Capability at which China notices loss-of-control risk'],
+  cnWarnW: ['J', 'china', 'Warning sharpness', 'Width of that capability warning'],
+  cnWarnGap: ['J', 'china', 'Alignment gap that alarms China', 'Capability-over-alignment gap China reacts to'],
+  cnWarnGapW: ['J', 'china', 'Gap warning sharpness', 'Width of the gap warning'],
+  cnSlowRace: ['J', 'china', 'What reads as the US slowing', 'US race level below which China sees the US slowing'],
+  cnRecip: ['J', 'china', 'China\'s reciprocity', 'How much China\'s slowdown grows if the US slows or a deal holds'],
+  cnSlowMax: ['J', 'china', 'Most China slows', 'Cap on how far China ever cuts its race'],
+  shareBase: ['J', 'china', 'US alignment work China can use', 'Default share of US alignment work a leading Chinese lab can use'],
+  shareCoord: ['J', 'china', 'Extra sharing from coordination', 'Extra share at full coordination'],
+  shareTransp: ['J', 'china', 'Extra sharing from published research', 'Extra share with all research public'],
+  leadW: ['J', 'china', 'What counts as China leading', 'Width of the "China leads" switch, in capability points'],
+  leak: ['J', 'china', 'Catch-up from published research', 'Share of the US lead China closes each year when all research is public'],
+  sabotSlow: ['J', 'china', 'China slowed by sabotage', 'Share of China\'s progress lost to full sabotage'],
+  // Power and lock-in
+  conc0: ['B', 'power', 'Power concentration in 2027', 'Where power concentration starts'],
+  trust0: ['B', 'power', 'Public trust in 2027', 'Where public trust starts'],
+  fund0: ['B', 'power', 'Public stake in AI in 2027', 'Where the public\'s ownership of AI returns starts'],
+  lockK: ['F', 'power', 'Lock-in scale', 'Overall scale of the lock-in odds; fitted so about 70% of today\'s controlled futures lock in before value alignment (about 57% with it)'],
+  lockWhistle: ['J', 'power', 'Lock-in stopped by whistleblowers', 'Share of lock-in removed when insiders surely speak up'],
+  lockValue: ['J', 'power', 'Lock-in stopped by value-aligned AI', 'Share of lock-in removed when an aligned AI surely refuses to help a few seize power (owners can still retrain it, and drift needs no help)'],
+  lockConcFloor: ['J', 'power', 'Lock-in with power spread out', 'Lock-in factor when power is not concentrated'],
+  lockConcMid: ['J', 'power', 'Concentration that tips lock-in', 'Concentration where its lock-in factor is halfway up'],
+  lockConcW: ['J', 'power', 'Concentration sharpness', 'Width of that curve'],
+  lockPhysYears: ['J', 'power', 'Years for robots to follow', 'Years after an Automated Coder until physical work is automated'],
+  lockAutoFloor: ['J', 'power', 'Lock-in before robots', 'Lock-in factor before physical work is automated'],
+  lockRaceBase: ['J', 'power', 'Lock-in pressure without racing', 'Pressure toward lock-in at race 0'],
+  lockRaceSlope: ['J', 'power', 'Lock-in pressure from racing', 'Extra pressure under an all-out race'],
+  lockTrustBase: ['J', 'power', 'Lock-in pressure with no public trust', 'Pressure toward lock-in when the public has no voice'],
+  lockTrustSlope: ['J', 'power', 'Lock-in pressure removed by trust', 'Pressure removed when public trust is full'],
+  lockPluralW: ['J', 'power', 'What counts as a close rival', 'Capability gap at which a rival stops counting'],
+  lockFund: ['J', 'power', 'Lock-in removed by the wealth fund', 'Share removed when the public owns all AI returns'],
+  lockOversight: ['J', 'power', 'Lock-in removed by oversight', 'Share removed by full oversight'],
+  lockTransp: ['J', 'power', 'Lock-in removed by transparency', 'Share removed by full transparency'],
+  lockPlural: ['J', 'power', 'Lock-in removed by rivals', 'Share removed by a close rival or an open frontier'],
+  lockOpen: ['J', 'power', 'Lock-in removed by open weights', 'Share removed when frontier weights are released'],
+  lockDip: ['J', 'power', 'Lock-in removed by diplomacy', 'Share removed by full diplomacy, when public trust is high'],
+  concRace: ['J', 'power', 'Concentration from racing', 'Yearly concentration added by an all-out race'],
+  concRaceOpen: ['J', 'power', 'Racing concentration offset by openness', 'Share of that offset by releasing weights'],
+  concRaceTransp: ['J', 'power', 'Racing concentration offset by transparency', 'Share of that offset by public research'],
+  concCap: ['J', 'power', 'Concentration from capability', 'Yearly concentration per capability point above 60'],
+  concOpen: ['J', 'power', 'Concentration removed by openness', 'Yearly reduction when weights are released'],
+  concTransp: ['J', 'power', 'Concentration removed by transparency', 'Yearly reduction with all research public'],
+  concOversight: ['J', 'power', 'Concentration removed by oversight', 'Yearly reduction with full oversight'],
+  concBci: ['J', 'power', 'Concentration from neural interfaces', 'Yearly concentration added by a neural-interface push without diplomacy'],
+  concAggr: ['J', 'power', 'Concentration from sabotage', 'Yearly concentration added by full sabotage'],
+  concDecay: ['B', 'power', 'Concentration drift', 'Yearly concentration lost anyway'],
+  trCap: ['J', 'power', 'Trust lost to capability', 'Yearly trust lost per capability point above 55'],
+  trSafety: ['J', 'power', 'Trust from safety work', 'Yearly trust gained from safety spending at the knee'],
+  trOversight: ['J', 'power', 'Trust from oversight', 'Yearly trust gained at full oversight'],
+  trTransp: ['J', 'power', 'Trust from transparency', 'Yearly trust gained with all research public'],
+  trRaceConc: ['J', 'power', 'Trust lost to racing with concentrated power', 'Yearly trust lost under an all-out race with power concentrated'],
+  trDrift: ['B', 'power', 'Trust drift', 'Yearly trust gained anyway'],
+  fundBuy: ['J', 'power', 'Wealth fund buy-in speed', 'Share of the gap to the fund target bought each year'],
+  fundExpensive: ['J', 'power', 'Buying in gets expensive', 'How much slower buy-in gets once AI passes expert level'],
+  fundSell: ['J', 'power', 'Wealth fund sell-down speed', 'Share of the excess sold each year when the target is lowered'],
+  fundDrag: ['J', 'power', 'Drag from the wealth fund', 'Capability slowdown from a full fund taking AI returns'],
+  endTrust: ['J', 'power', 'Trust below which power locks in by 2040', 'Without superintelligence, power can lock in by 2040 only below this trust'],
+  // Delegation
+  deleg0: ['B', 'deleg', 'Delegation in 2027', 'Where delegation starts; its effects are neutral here'],
+  delegBite: ['J', 'deleg', 'Oversight lost to rubber-stamping', 'Share of oversight\'s bite lost when everything is delegated'],
+  delegHaz: ['J', 'deleg', 'Hazard from delegation', 'Extra loss-of-control hazard when everything is delegated'],
+  barDeleg: ['J', 'deleg', 'Handoff bar raised by delegation', 'Extra alignment the handoff needs per point of delegation'],
+  delBase: ['J', 'deleg', 'Delegation growth, base', 'Yearly growth before automation'],
+  delCap: ['J', 'deleg', 'Delegation from capability', 'Yearly growth per capability point above 40'],
+  delRd: ['J', 'deleg', 'Delegation from AI doing AI research', 'Yearly growth as AI does more of its own research'],
+  delRaceBase: ['J', 'deleg', 'Delegation growth without racing', 'Growth multiplier at race 0 (racing adds to it)'],
+  delOversight: ['J', 'deleg', 'Delegation taken back by oversight', 'Yearly share taken back at full oversight'],
+  delTransp: ['J', 'deleg', 'Delegation taken back by transparency', 'Yearly share taken back with all research public'],
+  delSafety: ['J', 'deleg', 'Delegation taken back by safety work', 'Yearly share taken back by safety spending at the knee'],
 };
 
+// Headline numbers: [key, label in the full table, plain label, short label for "which result it moves"].
 const METRICS = [
-  ['catSQ', 'Status quo catastrophe'], ['catA', 'Plan A catastrophe'], ['catSafe', 'Safest mix catastrophe'],
-  ['paA', 'Plan A p(alignment)'], ['paB', 'Plan B p(alignment)'], ['paC', 'Plan C p(alignment)'], ['paD', 'Plan D p(alignment)'],
+  ['catSQ', 'Status quo catastrophe', 'today\'s-path catastrophe', 'today\'s-path risk'],
+  ['catA', 'Plan A catastrophe', 'Plan A catastrophe', 'Plan A risk'],
+  ['catSafe', 'Safest mix catastrophe', 'Safest mix catastrophe', 'Safest mix risk'],
+  ['paA', 'Plan A p(alignment)', 'Plan A alignment odds', 'A'],
+  ['paB', 'Plan B p(alignment)', 'Plan B alignment odds', 'B'],
+  ['paC', 'Plan C p(alignment)', 'Plan C alignment odds', 'C'],
+  ['paD', 'Plan D p(alignment)', 'Plan D alignment odds', 'D'],
 ];
 
 const BOUNDED = new Set(['fundExpensive', 'lockValue', 'lockWhistle']); // fractions that must stay within [0, 1]
@@ -293,6 +334,112 @@ async function runAll(jobs) {
 }
 
 const fmt = (x) => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(1);
+// A constant's value as written in prose: at most 3 significant figures, no trailing zeros.
+const num = (v) => String(+(+v).toPrecision(3)).replace('-', '−');
+const pts = (x) => `${fmt(x)} point${Math.abs(+x.toFixed(1)) === 1 ? '' : 's'}`;
+// A plain name inside a sentence: lower-case its first letter unless it starts a proper noun or acronym.
+const lc = (t) => /^(China|US|AI)\b/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1);
+const MINOR = 1; // constants whose largest move is under this many points are listed in one line per group
+
+// The headline numbers a row moves by at least MINOR points, in plain words.
+function movesWhat(r) {
+  const hit = METRICS.filter(([m]) => Math.max(Math.abs(r.dlo[m]), Math.abs(r.dhi[m])) >= MINOR);
+  const out = hit.filter(([m]) => m.startsWith('cat')).map((x) => x[3]);
+  const plans = hit.filter(([m]) => m.startsWith('pa')).map((x) => x[3]);
+  const run = plans.map((x) => x).join('');
+  if (plans.length) out.push(plans.length > 2 && 'ABCD'.includes(run) ? `Plans ${plans[0]}–${plans[plans.length - 1]} alignment odds` : `Plan${plans.length > 1 ? 's' : ''} ${plans.join(', ')} alignment odds`);
+  return out.join('; ') || '—';
+}
+
+// Every row in one ranked table, as in earlier versions of this doc.
+function renderFull(rows, base, n, nK) {
+  const L = [];
+  L.push('# Constant sensitivity: full table');
+  L.push('');
+  L.push(`Generated by \`node scripts/sweep_constants.js\` (${n.toLocaleString('en-US')} futures per run, default assumptions, common random numbers). Do not edit by hand. The readable version, grouped by topic, is [constant-sensitivity.md](constant-sensitivity.md).`);
+  L.push('');
+  L.push(`Each of the ${nK} named constants in \`model.js\` (the \`K\` object) was moved low and high while all others stayed at their defaults. Scale constants (rates, weights, widths) run at ×0.5 and ×1.5 (bounded shares stop at 1). Midpoints, thresholds and starting levels on the 0–100 scale run at ±10 points; the deal's diplomacy threshold and the onset gate's midpoint (a 0–1 share) run at ±0.1. The bio hazard scale is recalibrated in every run, as in the model itself.`);
+  L.push('');
+  L.push('Baseline (default constants, this sampling): ' + METRICS.map(([m, label]) => `${label} ${base[m].toFixed(1)}%`).join(', ') + '.');
+  L.push('');
+  L.push('Δ columns: change in percentage points at the low / high setting. SQ, A, Safe = catastrophe under Status quo, Plan A and the Safest mix; pA–pD = p(alignment) under Plans A–D. Type: source, fitted (to a calibration target), baseline (a 2027 level or drift) or judgment.');
+  L.push('');
+  L.push('| # | Constant | Default | Low / high | Max \\|Δ\\| | Where | SQ | A | Safe | pA | pB | pC | pD | Type | Role |');
+  L.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+  rows.forEach((r, i) => {
+    const pair = (m) => `${fmt(r.dlo[m])} / ${fmt(r.dhi[m])}`;
+    L.push(`| ${i + 1} | \`${r.k}\` | ${r.v} | ${r.vs[0][1]} / ${r.vs[1][1]} | ${r.max.toFixed(1)} | ${r.maxWhere} | ${pair('catSQ')} | ${pair('catA')} | ${pair('catSafe')} | ${pair('paA')} | ${pair('paB')} | ${pair('paC')} | ${pair('paD')} | ${CLS[META[r.k][0]]} | ${META[r.k][2]}: ${META[r.k][3]} |`);
+  });
+  L.push('');
+  return L.join('\n');
+}
+
+// The readable doc: summary, the biggest ten, then one section per topic.
+function renderReadable(rows, base, n, nK) {
+  const L = [];
+  const count = (f, t) => rows.filter((r) => f(r) > t).length;
+  const effect = (r) => `at ${num(r.atValue)}: ${r.maxPlain} ${pts(r.maxDelta)}`;
+  const sqTop = rows.slice().sort((a, b) => b.sq - a.sq)[0];
+  const planMax = (r) => Math.max(...METRICS.filter(([m]) => m !== 'catSQ').map(([m]) => Math.max(Math.abs(r.dlo[m]), Math.abs(r.dhi[m]))));
+  const planTop = rows.slice().sort((a, b) => planMax(b) - planMax(a))[0];
+
+  L.push('# Which numbers matter');
+  L.push('');
+  L.push(`*Generated by \`node scripts/sweep_constants.js\`; do not edit by hand. Every number is in the [full table](constant-sensitivity-full.md).*`);
+  L.push('');
+  L.push('## Summary');
+  L.push('');
+  L.push(`Most of the model's ${nK} constants are judgment calls, so we tested how much each one matters. We moved each constant on its own, with every other constant left alone: rates and weights to half and to one and a half times their value, and midpoints, thresholds and 2027 starting levels down and up by 10 points. For each setting we ran ${n.toLocaleString('en-US')} simulated futures (the same futures every time, so differences are not luck) and watched seven headline numbers: the chance of catastrophe on today's path, under Plan A and under the Safest mix, and the odds of getting alignment right under AI 2040's Plans A–D.`);
+  L.push('');
+  L.push(`**Today's path is robust.** No constant moves today's-path catastrophe (${base.catSQ.toFixed(0)}%) by more than ${Math.ceil(sqTop.sq)} points; the biggest is ${lc(sqTop.name)}. Only ${count((r) => r.sq, 3)} constants move it by more than 3 points${rows.filter((r) => r.sq > 3).every((r) => r.group === 'power') ? ', all of them about how power locks in' : ''}.`);
+  L.push('');
+  L.push(`**The plan comparisons are more sensitive.** ${count((r) => r.max, 10)} constants move a plan's risk or alignment odds by more than 10 points, up to ${planMax(planTop).toFixed(1)} points (${lc(planTop.name)}). Most are about how fast AI improves, how alignment research pays off, and whether a US–China deal forms. Several of them are fitted to AI 2040's timeline or plan odds, so their swings say how much hitting that target matters rather than adding uncertainty of their own.`);
+  L.push('');
+  const nBig = rows.filter((r) => r.max >= MINOR).length;
+  L.push(`**Most constants barely matter.** ${nBig} of ${nK} move some headline number by ${MINOR} point or more and ${count((r) => r.max, 3)} by more than 3; the other ${nK - nBig} move none by even ${MINOR} point.`);
+  L.push('');
+  L.push('Baseline, with every constant at its default: ' + METRICS.map(([m, , plain]) => `${plain} ${base[m].toFixed(0)}%`).join(', ') + '.');
+  L.push('');
+  L.push('Two limits: each constant moves alone, so interactions are not explored, and only these seven numbers are watched (for example Plan B\'s war risk and the lesser presets are not).');
+  L.push('');
+  L.push('## The ten that matter most');
+  L.push('');
+  L.push('| Constant | Value | Biggest effect | Topic | Type |');
+  L.push('|---|---|---|---|---|');
+  const gname = Object.fromEntries(GROUPS.map(([g, h]) => [g, h]));
+  for (const r of rows.slice(0, 10)) L.push(`| ${r.name} | ${num(r.v)} | ${effect(r)} | ${gname[r.group]} | ${CLS_PLAIN[r.cls]} |`);
+  L.push('');
+  L.push('Types: **from a source** = taken from a cited forecast, mostly AI 2040; **fitted to a target** = tuned so the model hits AI 2040\'s timeline, its Plans A–C alignment odds or the lock-in share; **2027 baseline** = a starting level in 2027, or a yearly drift that sets today\'s trend; **judgment call** = a modelling choice.');
+  L.push('');
+  L.push('## By topic');
+  L.push('');
+  L.push(`In each table, *biggest effect* is the largest change in any headline number, at the setting that caused it, and *moves* lists every headline number that changes by ${MINOR} point or more. Constants that move nothing by ${MINOR} point are listed in one line under each table.`);
+  for (const [g, head, intro] of GROUPS) {
+    const gr = rows.filter((r) => r.group === g);
+    const big = gr.filter((r) => r.max >= MINOR), small = gr.filter((r) => r.max < MINOR);
+    L.push('');
+    L.push(`### ${head}`);
+    L.push('');
+    L.push(intro);
+    L.push('');
+    if (big.length) {
+      L.push('| Constant | What it does | Value | Biggest effect | Moves | Type |');
+      L.push('|---|---|---|---|---|---|');
+      for (const r of big) L.push(`| ${r.name} | ${r.does} | ${num(r.v)} | ${effect(r)} | ${movesWhat(r)} | ${CLS_PLAIN[r.cls]} |`);
+      L.push('');
+    }
+    if (small.length) {
+      const names = small.map((r) => lc(r.name)).join('; ');
+      L.push(`${big.length ? `${small.length} other${small.length > 1 ? 's' : ''}` : `All ${small.length}`}, each under ${MINOR} point: ${names}.`);
+    }
+  }
+  L.push('');
+  L.push('## How to reproduce');
+  L.push('');
+  L.push('`node scripts/sweep_constants.js` reruns the sweep and rewrites this file and [the full table](constant-sensitivity-full.md), which lists every constant\'s code name, both settings and all seven changes. `--n 1000` gives a quicker, noisier look.');
+  L.push('');
+  return L.join('\n');
+}
 
 async function main() {
   const args = process.argv.slice(2);
@@ -312,6 +459,8 @@ async function main() {
   const K0 = M.K_DEFAULTS, keys = Object.keys(K0);
   const missing = keys.filter((k) => !META[k]), extra = Object.keys(META).filter((k) => !(k in K0));
   if (missing.length || extra.length) throw new Error(`META out of sync: missing ${missing} extra ${extra}`);
+  const badGroup = keys.filter((k) => !GROUPS.some(([g]) => g === META[k][1]));
+  if (badGroup.length) throw new Error(`META has unknown groups for ${badGroup}`);
 
   const jobs = [{ over: {}, n }];
   for (const k of keys) for (const [v] of variants(K0, k)) jobs.push({ over: { [k]: v }, n });
@@ -322,53 +471,24 @@ async function main() {
     const vs = variants(K0, k), lo = res[1 + 2 * j], hi = res[2 + 2 * j];
     const d = (r) => Object.fromEntries(METRICS.map(([m]) => [m, r[m] - base[m]]));
     const dlo = d(lo), dhi = d(hi);
-    let max = 0, maxWhere = '';
-    for (const [m, label] of METRICS) for (const [dd, tag] of [[dlo, vs[0][1]], [dhi, vs[1][1]]]) {
-      if (Math.abs(dd[m]) > max) { max = Math.abs(dd[m]); maxWhere = `${label} at ${tag}`; }
+    let max = 0, maxWhere = '', maxPlain = '', maxDelta = 0, atValue = vs[0][0];
+    for (const [m, label, plain] of METRICS) for (const [dd, [val, tag]] of [[dlo, vs[0]], [dhi, vs[1]]]) {
+      if (Math.abs(dd[m]) > max) { max = Math.abs(dd[m]); maxWhere = `${label} at ${tag}`; maxPlain = plain; maxDelta = dd[m]; atValue = val; }
     }
-    return { k, v: K0[k], vs, dlo, dhi, max, maxWhere, sq: Math.max(Math.abs(dlo.catSQ), Math.abs(dhi.catSQ)) };
+    const [cls, group, name, does] = META[k];
+    return { k, v: K0[k], vs, dlo, dhi, max, maxWhere, maxPlain, maxDelta, atValue, cls, group, name, does,
+      sq: Math.max(Math.abs(dlo.catSQ), Math.abs(dhi.catSQ)) };
   });
   rows.sort((a, b) => b.max - a.max || (a.k < b.k ? -1 : 1));
-  const count = (f, t) => rows.filter((r) => f(r) > t).length;
 
-  const L = [];
-  L.push('# Which constants matter: a sensitivity sweep');
-  L.push('');
-  L.push(`Generated by \`node scripts/sweep_constants.js\` (${n.toLocaleString('en-US')} futures per run, default assumptions, common random numbers). Do not edit by hand.`);
-  L.push('');
-  L.push(`Every named constant in \`model.js\` (the \`K\` object, ${keys.length} constants) was moved low and high while all others stayed at their defaults. Scale constants (rates, weights, widths) run at ×0.5 and ×1.5. Midpoints, thresholds and starting levels on the 0–100 scale run at ±10 points; the deal's diplomacy threshold and the onset gate's midpoint (a 0–1 share) run at ±0.1. Each run reports the change, in percentage points, of seven headline numbers: catastrophe under Status quo, Plan A and the Safest mix, and p(alignment) under AI 2040's Plans A–D. The bio hazard scale is recalibrated in every run, as in the model itself, so bio constants change pandemic risk only off the default path.`);
-  L.push('');
-  L.push('Baseline (default constants, this sampling): ' + METRICS.map(([m, label]) => `${label} ${base[m].toFixed(1)}%`).join(', ') + '.');
-  L.push('');
-  L.push('## Summary');
-  L.push('');
-  L.push('| Largest move of any headline number | Constants | Status quo catastrophe alone |');
-  L.push('|---|---|---|');
-  for (const t of [1, 3, 10]) L.push(`| more than ${t} point${t > 1 ? 's' : ''} | ${count((r) => r.max, t)} of ${keys.length} | ${count((r) => r.sq, t)} |`);
-  L.push('');
-  const byCls = {};
-  for (const r of rows) { const c = CLS[META[r.k][0]]; (byCls[c] = byCls[c] || []).push(r); }
-  L.push('By class: ' + Object.entries(CLS).map(([, c]) => `${c} ${(byCls[c] || []).length}`).join(', ') + '. Classes: **source** = taken from a cited forecast (mostly AI 2040); **fitted** = tuned so the model hits a calibration target (Plans A–C p(alignment), the AI 2040 timeline, the lock-in share); **baseline offset** = a 2027 starting level or a drift term that sets the status-quo trend; **judgment** = an illustrative modelling choice.');
-  L.push('');
-  L.push('Fitted constants are not free: moving one moves the calibration target it was fitted to (for example the AI 2040 timeline or Plans A–C p(alignment)), so their swings show how much that target matters rather than an independent uncertainty. Each row moves one constant at a time; interactions between constants are not explored.');
-  L.push('');
-  L.push('## All constants, ranked by largest |Δ|');
-  L.push('');
-  L.push('Δ columns: change in percentage points at the low / high setting. SQ, A, Safe = catastrophe; pA–pD = p(alignment).');
-  L.push('');
-  L.push('| # | Constant | Default | Low / high | Max \\|Δ\\| | Where | SQ | A | Safe | pA | pB | pC | pD | Class | Role |');
-  L.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
-  rows.forEach((r, i) => {
-    const pair = (m) => `${fmt(r.dlo[m])} / ${fmt(r.dhi[m])}`;
-    L.push(`| ${i + 1} | \`${r.k}\` | ${r.v} | ${r.vs[0][1]} / ${r.vs[1][1]} | ${r.max.toFixed(1)} | ${r.maxWhere} | ${pair('catSQ')} | ${pair('catA')} | ${pair('catSafe')} | ${pair('paA')} | ${pair('paB')} | ${pair('paC')} | ${pair('paD')} | ${CLS[META[r.k][0]]} | ${META[r.k][1]} |`);
-  });
-  L.push('');
-  const outPath = path.join(ROOT, 'docs', 'constant-sensitivity.md');
-  fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(outPath, L.join('\n'));
-  console.log(`wrote ${path.relative(ROOT, outPath)}`);
+  const dir = path.join(ROOT, 'docs');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'constant-sensitivity.md'), renderReadable(rows, base, n, keys.length));
+  fs.writeFileSync(path.join(dir, 'constant-sensitivity-full.md'), renderFull(rows, base, n, keys.length));
+  console.log('wrote docs/constant-sensitivity.md and docs/constant-sensitivity-full.md');
+  const count = (f, t) => rows.filter((r) => f(r) > t).length;
   console.log(`>1: ${count((r) => r.max, 1)}  >3: ${count((r) => r.max, 3)}  >10: ${count((r) => r.max, 10)} of ${keys.length}`);
-  for (const r of rows.slice(0, 15)) console.log(r.k.padEnd(16), r.max.toFixed(1).padStart(5), CLS[META[r.k][0]].padEnd(16), r.maxWhere);
+  for (const r of rows.slice(0, 15)) console.log(r.k.padEnd(16), r.max.toFixed(1).padStart(5), CLS[r.cls].padEnd(10), r.maxWhere);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
