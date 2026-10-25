@@ -1549,19 +1549,18 @@ function fillCard(c) {
   $('card').classList.remove('hidden');
 }
 
-const SHORT = { race: 'racing', safety: 'safety work', openness: 'free AI', biodef: 'pandemic prep', diplomacy: 'diplomacy', bci: 'brain implants', oversight: 'oversight', aggression: 'sabotage', fund: 'public AI fund', transparency: 'open research', internal: 'secret AI', deleg: 'decisions left to AI',
-  capUS: 'US AI', capCN: 'China AI', align: 'AI safety', openCap: 'free AI power', bio: 'pandemic defense', coord: 'US–China trust', conc: 'power in few hands', trust: 'public trust', cnMult: 'China speed' };
-const GOOD_UP = new Set(['safety', 'biodef', 'diplomacy', 'oversight', 'transparency', 'fund', 'align', 'bio', 'coord', 'trust']);
-const BAD_UP = new Set(['conc', 'openCap', 'capCN', 'cnMult', 'race', 'internal', 'deleg', 'aggression']);
+// Chip names and colours come from LEVER_INFO and STAT_INFO (`short`, `up`); the export-controls
+// China multiplier is the one card effect that is not a state variable.
+const CHIP_EXTRA = { cnMult: { short: 'China speed', up: 'bad' } };
 function chips(ch) {
   const out = [];
   const add = (k, v, isLev) => {
     if (!v) return;
-    const up = v > 0;
-    const good = GOOD_UP.has(k) ? up : BAD_UP.has(k) ? !up : null;
+    const up = v > 0, info = isLev ? M.LEVER_INFO[k] : M.STAT_INFO[k] || CHIP_EXTRA[k];
+    const good = info.up === 'good' ? up : info.up === 'bad' ? !up : null;
     const color = good === null ? 'var(--muted)' : good ? 'var(--good)' : 'var(--bad)';
     const mag = isLev ? (Math.abs(v) >= 0.25 ? '▲▲' : '▲') : (Math.abs(v) >= 8 ? '▲▲' : '▲');
-    out.push(`<span class="chip" style="color:${color}">${!isLev && k === 'bci' ? 'implant users' : SHORT[k]} ${up ? mag : mag.replace(/▲/g, '▼')}</span>`);
+    out.push(`<span class="chip" style="color:${color}">${info.short} ${up ? mag : mag.replace(/▲/g, '▼')}</span>`);
   };
   // Show what the choice would actually change, after floors, clamps and any deal cap.
   const s0 = game.s, L0 = game.L, s1 = structuredClone({ ...s0, log: [] }), L1 = { ...L0 };
@@ -1702,13 +1701,10 @@ function yearChanges(a, b) {
     .sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]))
     .slice(0, 6);
   if (!rows.length) return '';
-  const BAD = new Set(['capCN', 'openCap', 'conc', 'internal', 'deleg']);
-  const NAME = { capUS: 'US capability', capCN: 'China capability', align: 'Alignment', openCap: 'Open models', bio: 'Biodefense',
-    coord: 'Coordination', bci: 'Neural interfaces', conc: 'Power concentration', trust: 'Public trust', internal: 'Hidden internal AI', deleg: 'Delegated to AI' };
   return '<div class="chips changes">' + rows.map(([k, d]) => {
-    const good = k === 'capUS' || k === 'bci' ? null : BAD.has(k) ? d < 0 : d > 0;
+    const up = M.STAT_INFO[k].up, good = up === 'good' ? d > 0 : up === 'bad' ? d < 0 : null;
     const color = good === null ? 'var(--muted)' : good ? 'var(--good)' : 'var(--bad)';
-    return `<span class="chip" style="color:${color}">${NAME[k]} ${d > 0 ? '+' : ''}${Math.round(d)}</span>`;
+    return `<span class="chip" style="color:${color}">${M.STAT_INFO[k].name} ${d > 0 ? '+' : ''}${Math.round(d)}</span>`;
   }).join('') + '</div>';
 }
 

@@ -89,7 +89,7 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
    with sources, distribution).
 7. `index.html` the equation(s) in §3/§4 that use it, with constants typed by hand.
 8. `index.html` the Lab path tooltip ("Secret facts in this future", `tip-world`) only if it is
-    one of the headline unknowns (today: ease, speed, bio).
+   one of the headline unknowns (today: ease, speed, bio).
 9. `index.html` §6 calibration table if it moves a calibration target.
 10. `README.md` the count of uncertain assumptions ("eleven"), and the test that checks it
     (`Object.keys(M.ASSUMPTION_INFO).length === 11 && readme.includes('eleven uncertain')`).
@@ -107,38 +107,37 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
 1. `model.js` `K_DEFAULTS`: its 2027 level (`x0`) and every constant its update uses (see
    "A model constant").
 2. `model.js` `initialState`: `x: K.x0`.
-3. `model.js` `STAT_INFO`: `{ label, color }`. Drives the campaign's World state panel
-   (`#stats`), the year-change summary's row list, Copy for LLMs' starting state, and the card
-   test's valid `st` keys.
+3. `model.js` `STAT_INFO`: `{ label, color, short, name, up }`. `short` names it on card chips,
+   `name` in the year-change summary, `up: 'good' | 'bad'` (or absent) colours both. Drives the
+   campaign's World state panel (`#stats`), the chips, the year-change summary, Copy for LLMs'
+   starting state, and the card test's valid `st` keys.
 4. `model.js` its yearly update in `step()`. Its position in the update order decides which
    inputs are same-year values (see `docs/model-structure.md` §3); read start-of-year values
    unless the same-year read is intended and commented.
 5. `model.js` every consumer (hazards in `risks`, `transitionOdds`'s bar, `lockinBase`, other
    updates), each neutral at the 2027 level.
-6. `index.html` `SHORT` (chip names, for `chips()`), and `GOOD_UP` or `BAD_UP` (chip colour).
-7. `index.html` `yearChanges`: `NAME` (label) and `BAD` (if up is bad).
-8. `index.html` model page: §2 Notation state row with its 2027 value, its §5 update equation,
+6. `index.html` model page: §2 Notation state row with its 2027 value, its §5 update equation,
    and each consumer's equation.
-9. `events.js`: card effects `st: { x: ±n }` where cards should move it.
-10. `index.html` the `why` texts in `renderRisks` if it drives a hazard; globe visuals optional.
-11. `test-model.js`: starting value, direction across presets, determinism per seed, the page
-    documents it.
-12. Recalibration commit and baseline/sweep rerun (see rules).
+7. `events.js`: card effects `st: { x: ±n }` where cards should move it.
+8. `index.html` the `why` texts in `renderRisks` if it drives a hazard; globe visuals optional.
+9. `test-model.js`: starting value, direction across presets, determinism per seed, the page
+   documents it.
+10. Recalibration commit and baseline/sweep rerun (see rules).
 
 ### A policy lever
 
-1. `model.js` `LEVER_INFO`: `{ label, low, high, def, pct? }`, appended at the end (old
-   positional `l=` share links map by index). This alone drives the Lab sliders, the campaign's
-   lever panel, share links, `defaultLevers()`, every preset's default (`P()` in presets.js),
-   Copy for LLMs and the link round-trip test.
+1. `model.js` `LEVER_INFO`: `{ label, low, high, def, pct?, short, up? }`, appended at the end
+   (old positional `l=` share links map by index). This alone drives the Lab sliders, the
+   campaign's lever panel, card chips (`short`, `up` as in `STAT_INFO`), share links,
+   `defaultLevers()`, every preset's default (`P()` in presets.js), Copy for LLMs and the link
+   round-trip test.
 2. `model.js` the formulas it moves (and `hiddenShare`'s no-lever defaults if it enters there).
-3. `index.html` `SHORT` and `GOOD_UP`/`BAD_UP` (chips).
-4. `index.html` model page §2 "Policy levers" list and its symbol in every equation.
-5. `presets.js` presets that should set it; the optimized "Safest mix" and "Under 2% risk" were
+3. `index.html` model page §2 "Policy levers" list and its symbol in every equation.
+4. `presets.js` presets that should set it; the optimized "Safest mix" and "Under 2% risk" were
    searched over all levers, so check their promises still hold.
-6. `events.js` cards `lev: { x: ±v }` / `levMin`.
-7. `README.md` "ten policy levers".
-8. `test-model.js` behaviour checks; regenerate `test-k-baseline.json` if a default is nonzero
+5. `events.js` cards `lev: { x: ±v }` / `levMin`.
+6. `README.md` "ten policy levers".
+7. `test-model.js` behaviour checks; regenerate `test-k-baseline.json` if a default is nonzero
    in a formula; rerun the sweep.
 
 ### A model constant

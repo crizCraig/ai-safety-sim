@@ -176,6 +176,9 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const okKeys = c && c.choices.length === 3 && c.choices.every((ch) => Object.keys(ch.lev || {}).every((k) => k in M.LEVER_INFO)
     && Object.keys(ch.st || {}).every((k) => k in M.STAT_INFO || k === 'cnMult'));
   check('Pledge card exists with valid lever and state keys', !!okKeys);
+  // Card chips and the year's change summary name and colour every lever and state variable from its entry.
+  const named = (info, needName) => Object.values(info).every((i) => i.short && (!needName || i.name) && [undefined, 'good', 'bad'].includes(i.up));
+  check('Every lever and state variable has a chip name and direction, and every state variable a change name', named(M.LEVER_INFO, false) && named(M.STAT_INFO, true));
   let games = 0, seen = 0;
   for (let g = 0; g < 2000; g++) {
     const rng = M.mulberry32(9000 + g), st = M.initialState(M.sampleWorld(A0, rng)), Lg = M.defaultLevers(), used = new Set();
@@ -652,7 +655,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   // Shown in the campaign and documented.
   const cards = E.CARDS.filter((c) => c.choices.some((ch) => ch.st && 'deleg' in ch.st)).map((c) => c.id);
   check('Campaign shows delegation (World state panel, year changes, chips) and two cards move it',
-    /deleg: 'decisions left to AI'/.test(html) && /deleg: 'Delegated to AI'/.test(html) && /'internal', 'deleg'/.test(html)
+    M.STAT_INFO.deleg.short === 'decisions left to AI' && M.STAT_INFO.deleg.name === 'Delegated to AI' && M.STAT_INFO.deleg.up === 'bad'
       && cards.includes('automate') && cards.includes('agents'), cards.join(', '));
   check('Model reference documents Λ: state row, update equation, rubber-stamp oversight, gradual disempowerment',
     html.includes('<span class="mi">\\Lambda</span></td><td>Decisions delegated to AI') && html.includes('\\Delta\\Lambda =') && /rubber-stamp oversight/i.test(html) && /Gradual Disempowerment/.test(html)

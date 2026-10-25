@@ -97,18 +97,18 @@
   const END_YEAR = 2040;
 
   // Policy levers, each 0..1. The player sets these through decisions
-  // (campaign) or sliders (Futures Lab).
+  // (campaign) or sliders (Futures Lab). `short` and `up` work as in STAT_INFO (card chips).
   const LEVER_INFO = {
-    race:      { label: 'Race intensity',        low: 'Pause',        high: 'All-out sprint',  def: 0.7 },
-    safety:    { label: 'Safety share of AI compute', low: '0%', high: '100% (a pause)', def: 0.05, pct: true },
-    openness:  { label: 'Open-weights releases', low: 'Closed weights', high: 'Release frontier', def: 0.45 },
-    transparency: { label: 'Research transparency', low: 'Secret labs', high: 'All research public', def: 0.2 },
-    biodef:    { label: 'Biodefense investment', low: 'Minimal',      high: 'Manhattan-scale', def: 0.2 },
-    diplomacy: { label: 'US–China diplomacy',    low: 'Cold war',     high: 'Joint project',   def: 0.25 },
-    bci:       { label: 'Neural-interface push', low: 'Market pace',  high: 'AI-driven moonshot', def: 0.1 },
-    oversight: { label: 'Independent oversight', low: 'Self-audits',  high: 'IAEA for AI',     def: 0.1 },
-    aggression: { label: 'Sabotage of China\'s AI', low: 'None',     high: 'Cyber + kinetic strikes', def: 0 },
-    fund:      { label: 'Public AI wealth fund', low: 'None',         high: 'Public owns most AI', def: 0.05 },
+    race:      { label: 'Race intensity',        low: 'Pause',        high: 'All-out sprint',  def: 0.7, short: 'racing', up: 'bad' },
+    safety:    { label: 'Safety share of AI compute', low: '0%', high: '100% (a pause)', def: 0.05, pct: true, short: 'safety work', up: 'good' },
+    openness:  { label: 'Open-weights releases', low: 'Closed weights', high: 'Release frontier', def: 0.45, short: 'free AI' },
+    transparency: { label: 'Research transparency', low: 'Secret labs', high: 'All research public', def: 0.2, short: 'open research', up: 'good' },
+    biodef:    { label: 'Biodefense investment', low: 'Minimal',      high: 'Manhattan-scale', def: 0.2, short: 'pandemic prep', up: 'good' },
+    diplomacy: { label: 'US–China diplomacy',    low: 'Cold war',     high: 'Joint project',   def: 0.25, short: 'diplomacy', up: 'good' },
+    bci:       { label: 'Neural-interface push', low: 'Market pace',  high: 'AI-driven moonshot', def: 0.1, short: 'brain implants' },
+    oversight: { label: 'Independent oversight', low: 'Self-audits',  high: 'IAEA for AI',     def: 0.1, short: 'oversight', up: 'good' },
+    aggression: { label: 'Sabotage of China\'s AI', low: 'None',     high: 'Cyber + kinetic strikes', def: 0, short: 'sabotage', up: 'bad' },
+    fund:      { label: 'Public AI wealth fund', low: 'None',         high: 'Public owns most AI', def: 0.05, short: 'public AI fund', up: 'good' },
   };
 
   // Hidden facts about the world nobody knows in advance. As in the original
@@ -421,18 +421,20 @@
     return BIO_REF;
   }
 
+  // `short` names a change on a card's chips, `name` in the year's change summary; `up` says
+  // whether a rise is 'good' or 'bad' for humanity (absent: neither), which colours both.
   const STAT_INFO = {
-    capUS:   { label: 'Frontier capability — US bloc', color: '#5aa9ff' },
-    capCN:   { label: 'Frontier capability — China',   color: '#ff6b5a' },
-    align:   { label: 'Alignment & control maturity',  color: '#59f0b8' },
-    openCap: { label: 'Best open-weights model',       color: '#ffd166' },
-    bio:     { label: 'Biodefense (screening, PPE, vaccines)', color: '#9be15d' },
-    coord:   { label: 'International coordination',    color: '#7fe3ff' },
-    bci:     { label: 'Neural-interface adoption',     color: '#d68cff' },
-    internal: { label: 'Hidden internal AI',           color: '#ff5fa2' },
-    deleg:   { label: 'Decisions delegated to AI',     color: '#c9a27e' },
-    conc:    { label: 'Power concentration',           color: '#ff9f43' },
-    trust:   { label: 'Public trust & stability',      color: '#e0e6f0' },
+    capUS:   { label: 'Frontier capability — US bloc', color: '#5aa9ff', short: 'US AI', name: 'US capability' },
+    capCN:   { label: 'Frontier capability — China',   color: '#ff6b5a', short: 'China AI', name: 'China capability', up: 'bad' },
+    align:   { label: 'Alignment & control maturity',  color: '#59f0b8', short: 'AI safety', name: 'Alignment', up: 'good' },
+    openCap: { label: 'Best open-weights model',       color: '#ffd166', short: 'free AI power', name: 'Open models', up: 'bad' },
+    bio:     { label: 'Biodefense (screening, PPE, vaccines)', color: '#9be15d', short: 'pandemic defense', name: 'Biodefense', up: 'good' },
+    coord:   { label: 'International coordination',    color: '#7fe3ff', short: 'US–China trust', name: 'Coordination', up: 'good' },
+    bci:     { label: 'Neural-interface adoption',     color: '#d68cff', short: 'implant users', name: 'Neural interfaces' },
+    internal: { label: 'Hidden internal AI',           color: '#ff5fa2', short: 'secret AI', name: 'Hidden internal AI', up: 'bad' },
+    deleg:   { label: 'Decisions delegated to AI',     color: '#c9a27e', short: 'decisions left to AI', name: 'Delegated to AI', up: 'bad' },
+    conc:    { label: 'Power concentration',           color: '#ff9f43', short: 'power in few hands', name: 'Power concentration', up: 'bad' },
+    trust:   { label: 'Public trust & stability',      color: '#e0e6f0', short: 'public trust', name: 'Public trust', up: 'good' },
   };
 
   function defaultLevers() {
