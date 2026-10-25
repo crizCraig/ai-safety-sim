@@ -625,7 +625,7 @@
   // values. The baseline pressure scales with 1 - share: how unlikely the few are to share the
   // gains when nothing forces them. `value` is value alignment: the chance the (intent-)aligned
   // AI cares about humanity broadly and refuses to help a few seize power. Even a sure refusal
-  // removes only K.lockValue (0.8) of the odds: the owners can retrain or swap the model, and
+  // removes only K.lockValue (0.8) of the uncapped pressure (less once the 0.95 cap binds): the owners can retrain or swap the model, and
   // part of lock-in is drift (value moving to AI owners) that no one asks the AI to help with.
   function lockinOdds(s, L, whistle = s.world.whistle, share = s.world.share, value = s.world.valueAlign) {
     return clamp(lockinScale(share) * lockinBase(s, L) * (1 - K.lockWhistle * whistle) * (1 - K.lockValue * (value || 0)), 0, 0.95);

@@ -262,7 +262,7 @@ const METRICS = [
   ['paA', 'Plan A p(alignment)'], ['paB', 'Plan B p(alignment)'], ['paC', 'Plan C p(alignment)'], ['paD', 'Plan D p(alignment)'],
 ];
 
-const BOUNDED = new Set(['fundExpensive']);
+const BOUNDED = new Set(['fundExpensive', 'lockValue', 'lockWhistle']); // fractions that must stay within [0, 1]
 function variants(K0, k) {
   const v = K0[k];
   if (SHIFT[k]) return [[v - SHIFT[k][0], `−${SHIFT[k][0]}`], [v + SHIFT[k][0], `+${SHIFT[k][0]}`]];
