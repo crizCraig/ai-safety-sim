@@ -364,7 +364,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Shown lock-in odds do not depend on the hidden draws', M.lockinBelief(twin(0, 0, 0), L) === M.lockinBelief(twin(1, 1, 1), L) && M.lockinOdds(twin(0, 0), L) > M.lockinOdds(twin(0.9, 0), L));
   // Value alignment: an aligned AI that refuses to help a few seize power cuts the odds, by at
   // most K.lockValue (a sure refusal leaves 20% where the cap does not bind); the dice use the draw.
-  const low = Object.assign({}, st, { conc: 40, trust: 80 }), lo = (v) => M.lockinOdds(low, L, 0.25, 0.8, v);
+  const low = Object.assign({}, st, { conc: 40, trust: 80 }), lo = (v) => M.lockinOdds(low, L, 0.25, 0.3, v);
   check('Lock-in odds fall with value alignment, by 80% when an aligned AI surely refuses', lo(0) < 0.95 && lo(0) > lo(0.5) && lo(0.5) > lo(1) && Math.abs(lo(1) - (1 - M.K.lockValue) * lo(0)) < 1e-12 && M.K.lockValue === 0.8,
     `${(100 * lo(0)).toFixed(1)}% -> ${(100 * lo(1)).toFixed(1)}%`);
   check('The dice use the world\'s value-alignment draw', M.lockinOdds(twin(0, 0, 0), L) > M.lockinOdds(twin(0, 0, 1), L) && M.lockinOdds(twin(0, 0, 0.6), L) === M.lockinOdds(st, L, 0, 0, 0.6));

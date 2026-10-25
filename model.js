@@ -53,7 +53,7 @@
     // Superintelligence handoff bar
     barBase: 45, barDiff: 32, barInternal: 0.2, barDeleg: 0.15, barBci: 10, barW: 6,
     // Locked-in power
-    lockK: 5.2, lockWhistle: 0.6, lockValue: 0.8, lockConcFloor: 0.45, lockConcMid: 64, lockConcW: 6, lockPhysYears: 6,
+    lockK: 4.0, lockWhistle: 0.6, lockValue: 0.8, lockConcFloor: 0.45, lockConcMid: 64, lockConcW: 6, lockPhysYears: 6,
     lockAutoFloor: 0.6, lockRaceBase: 0.8, lockRaceSlope: 0.4, lockTrustBase: 1.3, lockTrustSlope: 0.6,
     lockPluralW: 15, lockFund: 0.7, lockOversight: 0.45, lockTransp: 0.35, lockPlural: 0.15, lockOpen: 0.1, lockDip: 0.2,
     // Capability growth
