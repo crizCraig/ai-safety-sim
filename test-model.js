@@ -430,7 +430,10 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
 {
   const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
   const g = M.bioRefExposure();
-  check('G_ref is computed and plausible (0.15–0.25)', g > 0.15 && g < 0.25, g.toFixed(3));
+  // About 0.06 since every yearly update reads the start-of-year state (it was 0.19 when open
+  // weights chased the end-of-year frontier). Any change to how open models grow moves it, and
+  // with it the pandemic hazard scale k on every path except the default.
+  check('G_ref is computed and plausible (0.04–0.10)', g > 0.04 && g < 0.10, g.toFixed(4));
   check('Model reference fills G_ref from the code', html.includes('{{GREF}}') && /replace\('\{\{GREF\}\}', M\.bioRefExposure\(\)/.test(html));
 }
 

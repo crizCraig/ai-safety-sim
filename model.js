@@ -701,8 +701,15 @@
       if (d[2] < r.war) return finish(s, 'war', r, 'war');
     }
 
-    const mc = maxCap(s), capUS0 = s.capUS, capCN0 = s.capCN;
-    const w = s.world;
+    // Every update below reads the start-of-year state from s0, a frozen copy, and writes s, so
+    // the order of the lines cannot matter. One same-year read is deliberate: the deal shock
+    // (dissolution or impairment) cuts coordination this year, so alignment's sharing term and
+    // coordination's own update start from the shocked level (coordShocked). The milestone,
+    // handoff and 2040 checks after the updates read the end-of-year state, also on purpose:
+    // the handoff happens when this year's growth crosses 100.
+    const s0 = Object.freeze({ ...s });
+    const mc = maxCap(s0);
+    const w = s0.world;
 
     // Capability: base pace × compute × hidden progress speed × AI R&D uplift.
     // Published research lets China (and everyone else) close part of the gap.
@@ -713,11 +720,11 @@
     // spends on capabilities, so a pause (race 0 or all compute on safety) holds.
     // A public fund taking a share of AI returns drags slightly on reinvestment.
     const cUS = computeSpeed(L.race) * safetyTax * (1 - K.fundDrag * L.fund);
-    const cCN = computeSpeed(chinaRace(s, L)) * s.cnMult * (1 - K.sabotSlow * L.aggression); // sabotage slows China's labs
+    const cCN = computeSpeed(chinaRace(s0, L)) * s0.cnMult * (1 - K.sabotSlow * L.aggression); // sabotage slows China's labs
     const jUS = Math.min(1.5, cUS), jCN = Math.min(1.5, cCN);
-    let gUS = (BASE * w.speed * uplift(s.capUS) + noise(3)) * cUS;
-    let gCN = (BASE * w.speed * uplift(s.capCN) + noise(4)) * cCN
-      + K.leak * L.transparency * Math.max(0, s.capUS - s.capCN) * (1 - K.sabotSlow * L.aggression);
+    let gUS = (BASE * w.speed * uplift(s0.capUS) + noise(3)) * cUS;
+    let gCN = (BASE * w.speed * uplift(s0.capCN) + noise(4)) * cCN
+      + K.leak * L.transparency * Math.max(0, s0.capUS - s0.capCN) * (1 - K.sabotSlow * L.aggression);
     if (d[5] < K.jumpP) { gUS += (K.jumpUS + d[6] * K.jumpUSRand) * jUS; gCN += (K.jumpCN + d[7] * K.jumpCNRand) * jCN; }
     // AI 2040's Deal Decline: about 48% of deals decline within ten years, split about equally
     // between dissolution (leadership change, a side caught cheating, ...) and impairment.
@@ -726,17 +733,18 @@
     // rise a few points; the deal stays in force while coordination holds at 60 or more.
     // The deal holds capability through the year it dissolves or weakens, so the change
     // bites the next year (and the campaign gets a turn to respond).
-    const dealThisYear = dealActive(s, L);
-    if (dealThisYear) {
-      if (s.dealStart == null) s.dealStart = s.year;
-      const ceil = dealCeiling(s), h = dealHazard(s.year - s.dealStart);
-      gUS = Math.min(gUS, Math.max(0, ceil - s.capUS));
-      gCN = Math.min(gCN, Math.max(0, ceil - s.capCN));
-      if (d[8] < h) { s.coord = clamp(s.coord - K.dealCollapseCut); s.dealCollapsed = s.year; }
-      else if (!s.dealImpaired && d[16] < h) { s.coord = clamp(s.coord - K.dealImpairCut); s.dealImpaired = s.year; }
+    let coordShocked = s0.coord;
+    if (dealActive(s0, L)) {
+      const dealStart = s0.dealStart ?? s0.year;
+      s.dealStart = dealStart;
+      const ceil = dealCeiling(s0), h = dealHazard(s0.year - dealStart);
+      gUS = Math.min(gUS, Math.max(0, ceil - s0.capUS));
+      gCN = Math.min(gCN, Math.max(0, ceil - s0.capCN));
+      if (d[8] < h) { coordShocked = clamp(s0.coord - K.dealCollapseCut); s.dealCollapsed = s0.year; }
+      else if (!s0.dealImpaired && d[16] < h) { coordShocked = clamp(s0.coord - K.dealImpairCut); s.dealImpaired = s0.year; }
     }
-    s.capUS = clamp(s.capUS + Math.max(0, gUS));
-    s.capCN = clamp(s.capCN + Math.max(0, gCN));
+    s.capUS = clamp(s0.capUS + Math.max(0, gUS));
+    s.capCN = clamp(s0.capCN + Math.max(0, gCN));
 
     // Alignment: funded research, multiplied by the share of AI labor pointed at
     // safety (so it also speeds up during takeoff), shared international and
@@ -745,51 +753,52 @@
     // Safety research is sped up by each bloc's own AI: the US bloc's by its safety share,
     // China's by its own alignment effort (100% = a serious program, like a US bloc spending
     // 30% of compute on safety). So a cautious China that leads the race speeds alignment up too.
-    const assist = 1 + (uplift(capUS0) - 1) * safetyLabor(L.safety) + (uplift(capCN0) - 1) * CN_LABOR * (w.cnAlign || 0);
-    const shared = 1 + K.alShCoord * (s.coord / 100) + K.alShTransp * L.transparency;
-    const bciBoost = 1 + K.alBci * (s.bci / 100);
-    s.align = clamp(s.align + K.alRate * (K.alBase + K.alSafety * sx + K.alOversight * L.oversight) * assist * shared * bciBoost / w.difficulty + noise(9) * K.alNoise);
+    const assist = 1 + (uplift(s0.capUS) - 1) * safetyLabor(L.safety) + (uplift(s0.capCN) - 1) * CN_LABOR * (w.cnAlign || 0);
+    const shared = 1 + K.alShCoord * (coordShocked / 100) + K.alShTransp * L.transparency; // the deal shock bites this year
+    const bciBoost = 1 + K.alBci * (s0.bci / 100);
+    s.align = clamp(s0.align + K.alRate * (K.alBase + K.alSafety * sx + K.alOversight * L.oversight) * assist * shared * bciBoost / w.difficulty + noise(9) * K.alNoise);
     if (d[10] < K.alJumpP) s.align = clamp(s.align + K.alJumpBase + d[11] * K.alJumpRand * (0.5 + Math.min(1, sx)));
 
     // Hidden internal AI: automated R&D runs inside labs; transparency and
     // inspections pull it into view.
     // Augmented overseers (BCI) can follow what thousands of AI copies are doing.
     // Rubber-stamp oversight (high delegation) pulls less of it into view.
-    const bite = oversightBite(s);
-    s.internal = clamp(s.internal + K.intRace * L.race * Math.sqrt(uplift(mc)) - (K.intTransp * L.transparency + K.intOversight * L.oversight) * bite - K.intBci * (s.bci / 100) - K.intDecay);
+    const bite = oversightBite(s0);
+    s.internal = clamp(s0.internal + K.intRace * L.race * Math.sqrt(uplift(mc)) - (K.intTransp * L.transparency + K.intOversight * L.oversight) * bite - K.intBci * (s0.bci / 100) - K.intDecay);
 
     // Delegation: automation (capability and the share of AI research AI does) and racing (no time
     // to check) hand more decisions to AI; oversight, transparency and safety work that keeps
     // humans in the loop take some back. Growth slows as little is left to hand over.
-    const delegUp = (K.delBase + K.delCap * Math.max(0, mc - 40) + K.delRd * rdShare(mc)) * (K.delRaceBase + L.race) * (1 - s.deleg / 100);
-    const delegDown = (K.delOversight * L.oversight + K.delTransp * L.transparency + K.delSafety * Math.min(1, sx)) * s.deleg;
-    s.deleg = clamp(s.deleg + delegUp - delegDown);
+    const delegUp = (K.delBase + K.delCap * Math.max(0, mc - 40) + K.delRd * rdShare(mc)) * (K.delRaceBase + L.race) * (1 - s0.deleg / 100);
+    const delegDown = (K.delOversight * L.oversight + K.delTransp * L.transparency + K.delSafety * Math.min(1, sx)) * s0.deleg;
+    s.deleg = clamp(s0.deleg + delegUp - delegDown);
 
-    s.coord = clamp(s.coord + K.coDip * L.diplomacy + K.coOversight * L.oversight + K.coTransp * L.transparency - K.coRace * L.race - K.coAggr * L.aggression - K.coDecay + noise(12) * K.coNoise);
+    s.coord = clamp(coordShocked + K.coDip * L.diplomacy + K.coOversight * L.oversight + K.coTransp * L.transparency - K.coRace * L.race - K.coAggr * L.aggression - K.coDecay + noise(12) * K.coNoise);
 
-    // Open-weights frontier tracks the closed frontier with a policy-set lag.
-    const openTarget = maxCap(s) * (K.openBase + K.openLever * L.openness + K.openTransp * L.transparency);
-    s.openCap = clamp(s.openCap + (openTarget - s.openCap) * K.openRate);
+    // Open-weights frontier tracks the closed frontier (start of year) with a policy-set lag.
+    const openTarget = mc * (K.openBase + K.openLever * L.openness + K.openTransp * L.transparency);
+    s.openCap = clamp(s0.openCap + (openTarget - s0.openCap) * K.openRate);
 
     // Biodefense decays without investment; open tools give modest d/acc help.
-    s.bio = clamp(s.bio + K.bioDef * L.biodef + K.bioOpen * L.openness - K.bioDecay);
+    s.bio = clamp(s0.bio + K.bioDef * L.biodef + K.bioOpen * L.openness - K.bioDecay);
 
     // Pointing AI labor at neurotech speeds BCIs up, but surgery, approval and
     // rollout cap adoption at about 20 points a year.
-    s.bci = clamp(s.bci + Math.min(K.bciCap, (K.bciLever * L.bci + K.bciBase) * (1 + (uplift(mc) - 1) * K.bciUplift * L.bci)));
+    s.bci = clamp(s0.bci + Math.min(K.bciCap, (K.bciLever * L.bci + K.bciBase) * (1 + (uplift(mc) - 1) * K.bciUplift * L.bci)));
 
-    s.conc = clamp(s.conc + K.concRace * L.race * (1 - K.concRaceOpen * L.openness - K.concRaceTransp * L.transparency) + K.concCap * Math.max(0, mc - 60)
+    s.conc = clamp(s0.conc + K.concRace * L.race * (1 - K.concRaceOpen * L.openness - K.concRaceTransp * L.transparency) + K.concCap * Math.max(0, mc - 60)
       - K.concOpen * L.openness - K.concTransp * L.transparency + K.concBci * L.bci * (1 - L.diplomacy) - K.concOversight * L.oversight + K.concAggr * L.aggression - K.concDecay);
 
-    s.trust = clamp(s.trust - K.trCap * Math.max(0, mc - 55) + K.trSafety * Math.min(1, sx) + K.trOversight * L.oversight + K.trTransp * L.transparency
-      - K.trRaceConc * L.race * (s.conc / 100) + K.trDrift);
+    s.trust = clamp(s0.trust - K.trCap * Math.max(0, mc - 55) + K.trSafety * Math.min(1, sx) + K.trOversight * L.oversight + K.trTransp * L.transparency
+      - K.trRaceConc * L.race * (s0.conc / 100) + K.trDrift);
 
     // Public stake in AI: builds toward the fund lever, but buying in gets far more
     // expensive once AI value explodes (capability past expert level), so early funds own more.
     const target = 100 * L.fund;
-    const buyIn = target > s.fundStake ? K.fundBuy * (1 - K.fundExpensive * sig((mc - 80) / 5)) : K.fundSell;
-    s.fundStake = clamp(s.fundStake + (target - s.fundStake) * buyIn);
+    const buyIn = target > s0.fundStake ? K.fundBuy * (1 - K.fundExpensive * sig((mc - 80) / 5)) : K.fundSell;
+    s.fundStake = clamp(s0.fundStake + (target - s0.fundStake) * buyIn);
 
+    // End of year: the milestone, handoff and 2040 checks read the updated state (see above).
     s.year += 1;
     if (!s.acYear && maxCap(s) >= AC) s.acYear = s.year;
 
