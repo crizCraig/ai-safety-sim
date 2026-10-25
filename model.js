@@ -29,8 +29,8 @@
     upliftStart: 50, upliftAC: 3, upliftTED: 40,
     // Loss-of-control onset gate (share of AI research done by AI)
     rdShareMid: 0.7, rdShareW: 0.1,
-    // Compute from race intensity
-    computeNorm: 0.52, computeExp: 0.74,
+    // Compute from race intensity (normalization fixed at COMPUTE_NORM: race 0.55 = 1×)
+    computeExp: 0.74,
     // Safety share: linear to the knee, then diminishing; AI labor on safety
     safetyKnee: 0.3, safetyTail: 0.6, laborBase: 0.08, laborSafety: 0.35, laborPause: 0.5,
     // US–China deal
@@ -38,13 +38,13 @@
     dealHaz0: 0.06, dealHaz1: 0.035, dealHaz2: 0.02, dealCollapseCut: 40, dealImpairCut: 20,
     // China's race and its slowdown near the brink
     usPushSafety: 0.5, cnRaceBase: 0.6, cnRaceResp: 0.45, cnRaceCoord: 0.55,
-    cnWarnCap: 83, cnWarnW: 4, cnWarnGap: 30, cnWarnGapW: 8, cnSlowRace: 0.7, cnRecip: 0.6, cnSlowMax: 0.9,
+    cnWarnCap: 83, cnWarnW: 4, cnWarnGap: 30, cnSlowRace: 0.7, cnRecip: 0.6, cnSlowMax: 0.9,
     // How much US alignment work China's lab can use
     shareBase: 0.55, shareCoord: 0.45, shareTransp: 0.3, leadW: 3,
     // Hidden share of the test overstatement
     hidBase: 0.6, hidInternal: 0.8, hidOversight: 0.5, hidTransp: 0.3, hidSafety: 0.3,
-    // Loss-of-control hazard
-    locScale: 0.25, locOffset: 36, locWidth: 6, intBase: 0.4, intSlope: 0.9,
+    // Loss-of-control hazard: locScale (1 + intSlope H/100), i.e. the old 0.25 (0.4 + 0.9 H/100)
+    locScale: 0.1, locOffset: 36, locWidth: 6, intSlope: 2.25,
     // Great-power war
     warBase: 0.055, warCloseW: 25, warCloseFloor: 0.3, warStakesMid: 60, warStakesW: 8,
     warAggr: 1.5, warSabot: 0.07, warBehindW: 20, warBehindFloor: 0.4,
@@ -52,15 +52,16 @@
     bioOpenMid: 62, bioOpenW: 6, bioDefExp: 2,
     // Superintelligence handoff bar
     barBase: 45, barDiff: 32, barInternal: 0.2, barDeleg: 0.15, barBci: 10, barW: 6,
-    // Locked-in power
-    lockK: 4.0, lockWhistle: 0.6, lockValue: 0.8, lockConcFloor: 0.45, lockConcMid: 64, lockConcW: 6, lockPhysYears: 6,
-    lockAutoFloor: 0.6, lockRaceBase: 0.8, lockRaceSlope: 0.4, lockTrustBase: 1.3, lockTrustSlope: 0.6,
+    // Locked-in power. Pressure (1 + 0.5 r)(1 - (0.6/1.3) T/100) is the old (0.8 + 0.4 r)(1.3 - 0.6 T/100)
+    // divided by 0.8 × 1.3 = 1.04, which lockK absorbs (4.0 × 1.04 = 4.16)
+    lockK: 4.16, lockWhistle: 0.6, lockValue: 0.8, lockConcFloor: 0.45, lockConcMid: 64, lockConcW: 6, lockPhysYears: 6,
+    lockAutoFloor: 0.6, lockRaceSlope: 0.5, lockTrustSlope: 0.6 / 1.3,
     lockPluralW: 15, lockFund: 0.7, lockOversight: 0.45, lockTransp: 0.35, lockPlural: 0.15, lockOpen: 0.1, lockDip: 0.2,
     // Capability growth
-    capBase: 7, ovsTax: 0.08, fundDrag: 0.05, sabotSlow: 0.35, leak: 0.25,
+    capBase: 7, ovsTax: 0.08, sabotSlow: 0.35, leak: 0.25,
     jumpP: 0.15, jumpUS: 3, jumpUSRand: 5, jumpCN: 2, jumpCNRand: 4,
-    // Alignment growth
-    alRate: 0.55, alBase: 1.9, alSafety: 10, alOversight: 1.5, alShCoord: 0.35, alShTransp: 0.4, alBci: 0.5,
+    // Alignment growth: alRate (1 + alSafety e(s) + alOversight v), i.e. the old 0.55 (1.9 + 10 e(s) + 1.5 v)
+    alRate: 1.045, alSafety: 10 / 1.9, alOversight: 1.5 / 1.9, alShCoord: 0.35, alShTransp: 0.4, alBci: 0.5,
     alNoise: 0.5, alJumpP: 0.12, alJumpBase: 3, alJumpRand: 6,
     // Hidden internal AI
     intRace: 4, intTransp: 9, intOversight: 5, intBci: 6, intDecay: 0.5,
@@ -470,7 +471,8 @@
   // Effective compute from race intensity. AI 2040: 10× less compute makes the
   // intelligence explosion ~5.5× slower, i.e. speed ∝ compute^0.74. Race 0.55 = 1× (the default
   // race 0.7 is about 1.2×); race ≈ 0 is a halt.
-  const computeSpeed = (race) => Math.pow(Math.max(0, race - 0.03) / K.computeNorm, K.computeExp);
+  const COMPUTE_NORM = 0.52; // fixed, not a swept constant: it sets race 0.55 = 1× compute
+  const computeSpeed = (race) => Math.pow(Math.max(0, race - 0.03) / COMPUTE_NORM, K.computeExp);
 
   // Safety lever = fraction of AI compute and AI labor spent on safety (0–100%).
   // Effect is linear up to 30%, then diminishes: people and ideas become the bottleneck.
@@ -504,7 +506,7 @@
     const caution = s.world.cnCaution || 0;
     if (!caution) return 0;
     const mc = maxCap(s);
-    const warning = sig((mc - K.cnWarnCap) / K.cnWarnW) * sig((mc - s.align - K.cnWarnGap) / K.cnWarnGapW);
+    const warning = sig((mc - K.cnWarnCap) / K.cnWarnW) * sig((mc - s.align - K.cnWarnGap) / K.cnWarnW);
     const usSlow = clamp(1 - L.race * (1 - K.usPushSafety * L.safety) / K.cnSlowRace, 0, 1);
     const recip = K.cnRecip * (1 + Math.max(usSlow, dealActive(s, L) ? 1 : 0));
     return clamp(caution * warning * recip, 0, K.cnSlowMax);
@@ -572,7 +574,7 @@
     // default. Shown as the expectation over difficulty and China's own alignment work;
     // the roll uses the truth.
     // AI 2040: most takeover risk comes from AIs deployed inside labs, out of view.
-    const internalF = K.intBase + K.intSlope * s.internal / 100, gate = locGate(mc);
+    const internalF = 1 + K.intSlope * s.internal / 100, gate = locGate(mc);
     const lossAt = (own, over) => K.locScale * sig((mc - effAlign(s, L, own, over) - K.locOffset) / K.locWidth) * gate * internalF * delegHazard(s);
     // Monte Carlo runs (s.fast) never show beliefs, so they skip the averages.
     let lossBelief = 0;
@@ -636,7 +638,7 @@
     const conc = K.lockConcFloor + (1 - K.lockConcFloor) * sig((s.conc - K.lockConcMid) / K.lockConcW); // power already concentrated
     const phys = s.acYear ? clamp((s.year - s.acYear) / K.lockPhysYears, 0, 1) : 0;   // robots follow software
     const automation = K.lockAutoFloor + (1 - K.lockAutoFloor) * phys;
-    const pressure = (K.lockRaceBase + K.lockRaceSlope * L.race) * (K.lockTrustBase - K.lockTrustSlope * s.trust / 100); // automate or die; weak public voice
+    const pressure = (1 + K.lockRaceSlope * L.race) * (1 - K.lockTrustSlope * s.trust / 100); // automate or die; weak public voice
     const plural = Math.max(clamp(1 - Math.abs(s.capUS - s.capCN) / K.lockPluralW, 0, 1), clamp((s.openCap - 80) / 20, 0, 1));
     return conc * automation * pressure
       * (1 - K.lockFund * s.fundStake / 100)                                // public owns part of AI
@@ -718,8 +720,7 @@
     const safetyTax = Math.max(0, 1 - L.safety - K.ovsTax * L.oversight);
     // Noise and surprise breakthroughs scale with the compute each side actually
     // spends on capabilities, so a pause (race 0 or all compute on safety) holds.
-    // A public fund taking a share of AI returns drags slightly on reinvestment.
-    const cUS = computeSpeed(L.race) * safetyTax * (1 - K.fundDrag * L.fund);
+    const cUS = computeSpeed(L.race) * safetyTax;
     const cCN = computeSpeed(chinaRace(s0, L)) * s0.cnMult * (1 - K.sabotSlow * L.aggression); // sabotage slows China's labs
     const jUS = Math.min(1.5, cUS), jCN = Math.min(1.5, cCN);
     let gUS = (BASE * w.speed * uplift(s0.capUS) + noise(3)) * cUS;
@@ -756,7 +757,7 @@
     const assist = 1 + (uplift(s0.capUS) - 1) * safetyLabor(L.safety) + (uplift(s0.capCN) - 1) * CN_LABOR * (w.cnAlign || 0);
     const shared = 1 + K.alShCoord * (coordShocked / 100) + K.alShTransp * L.transparency; // the deal shock bites this year
     const bciBoost = 1 + K.alBci * (s0.bci / 100);
-    s.align = clamp(s0.align + K.alRate * (K.alBase + K.alSafety * sx + K.alOversight * L.oversight) * assist * shared * bciBoost / w.difficulty + noise(9) * K.alNoise);
+    s.align = clamp(s0.align + K.alRate * (1 + K.alSafety * sx + K.alOversight * L.oversight) * assist * shared * bciBoost / w.difficulty + noise(9) * K.alNoise);
     if (d[10] < K.alJumpP) s.align = clamp(s.align + K.alJumpBase + d[11] * K.alJumpRand * (0.5 + Math.min(1, sx)));
 
     // Hidden internal AI: automated R&D runs inside labs; transparency and
