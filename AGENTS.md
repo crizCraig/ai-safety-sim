@@ -66,10 +66,16 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
   (§7 "Which numbers matter": the constant count and the "None of the other N" sentence).
 - **The model page fills its constants from `K`.** In the equations (`.math`), inline math
   (`.mi`) and the notation table's 2027 values (`.kv`), write a constant as `⟦name⟧`, `⟦name:1⟧`
-  (one decimal) or `⟦1-name⟧` (one `+ - * /` between two constants or numbers);
-  `fillModelNumbers()` fills them through `M.fillConstants` before Temml renders and before Copy
-  for LLMs reads the page. A test fails if an equation types a constant by hand. Numbers in the
-  prose (and the unknowns' distributions in the notation table) are still typed by hand.
+  (one decimal), `⟦name:f⟧` (an exact fraction listed in `K_FRACTIONS`, such as 6/13; it falls
+  back to decimals once the constant is overridden) or `⟦1-name⟧` (one `+ - * /` between two
+  constants or numbers); `fillModelNumbers()` fills them through `M.fillConstants` before Temml
+  renders and before Copy for LLMs reads the page. A test fails if any `.math`, `.mi` or `.kv`
+  element, or a cell of the state table's 2027 column, types a number by hand, unless the number
+  is a unit (1 or 0 that is not a coefficient, a /100 scale, log base 10), an unknown's
+  distribution `\mathcal{N}(…)`, or part of one of the expressions in the test's `LITERAL_OK`,
+  each tagged structural, example or historical. Allow a new literal there by its whole
+  expression, never by its value alone, and the test also fails on an allowance no longer used.
+  Numbers in the prose are still typed by hand.
 
 ### A hidden unknown
 
@@ -157,7 +163,7 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
    `setConstants`.
    A pure normalization that fixes a unit (e.g. `COMPUTE_NORM`, race 0.55 = 1× compute) is a
    named code constant, not in `K`, and is not swept; if an equation shows it, add its number to
-   the test's `ALLOWED` literals. Prefer folding a base term into a scale constant (as the cuts
+   the test's `LITERAL_OK` expressions (the whole expression, tagged structural). Prefer folding a base term into a scale constant (as the cuts
    of `intBase`, `alBase`, `lockRaceBase` and `lockTrustBase` did) over adding a new constant.
 2. `scripts/sweep_constants.js` `META[name] = [type, group, plain name, what it does]` (the sweep
    refuses to run without it); `SHIFT` if it is a level or threshold, `BOUNDED` if it is a
@@ -168,6 +174,8 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
    (`test-k-baseline.json` still matches). Otherwise regenerate it.
 5. Rerun the sweep and update the counts on the model page §7 ("each of the model's N named
    constants", "None of the other N", "M of the N move none by more than 3").
+6. `README.md` the count of named constants in the `model.js` row ("its N named constants");
+   a test checks it against `Object.keys(K)`.
 
 ### An outcome or ending
 
@@ -180,7 +188,10 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
    `summarizeCRN` share).
 5. `index.html` `ATMO` (globe colour), the globe's ending visuals (`out === 'lockin'` etc. in the
    ending animation), `endKicker` wording (good / unresolved / catastrophe), and the ending art
-   `assets/endings-gpt/<key>.webp` (`scripts/gen_card_art.py endings`).
+   `assets/endings-gpt/<key>.webp`: add its prompt to `ENDINGS` in `scripts/gen_card_art.py`
+   (`generate()` looks every id up in `CARDS`/`ENDINGS` and fails on a missing one), generate
+   with `scripts/gen_card_art.py endings` (raw PNGs), then crop with
+   `scripts/process_card_art.py` after adding its focal height to that script's `FOCUS`.
 6. `index.html` model page §4 Endings.
 7. `test-model.js` `bad()` and outcome checks; regenerate `test-k-baseline.json` (counts gain a
    key) and rerun the sweep if it moves catastrophe.
@@ -191,10 +202,18 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
    lev, levMin, st, stMin }] }`. `lev` keys must be in `LEVER_INFO`, `st` keys in `STAT_INFO` (or
    `cnMult`). Pinned cards use `year`; pool cards use `when`. Adding a pool card changes which
    card seeded games draw.
-2. Art: `assets/cards-gpt/<id>.webp` (painted) and `assets/cards/<id>.svg` (fallback drawing),
-   made with `scripts/gen_card_art.py <id>` and `scripts/process_card_art.py`, which writes the
-   focal point into `ART_FOCUS` in index.html. Add the id to `PRESIDENT_ART` if it shows the
-   president.
+2. Art, in three separate steps:
+   - Raw generation: add the card's prompt to `CARDS` in `scripts/gen_card_art.py` (`generate()`
+     looks the id up there and fails on a missing one), then run `scripts/gen_card_art.py <id>`.
+   - Processing: add its focal height to `FOCUS` in `scripts/process_card_art.py`, then run that
+     script. It crops to `assets/cards-gpt/<id>.webp` and writes the focal point into
+     `ART_FOCUS` in index.html.
+   - SVG fallback: `assets/cards/<id>.svg` is drawn by hand. Neither script makes it, and
+     `showCardArt` falls back to it when the painted image fails to load.
+   If the card shows the US president, add the id in four places: `PRESIDENT_SPOT` in
+   `gen_card_art.py` (where he stands, for the split Vance | Democrat redraw,
+   `CARD_ART_SPLIT=newsom|aoc`), `SPLIT_IDS` in `process_card_art.py` (only the split versions
+   are processed), its `FOCUS` there, and `PRESIDENT_ART` in index.html.
 3. `test-model.js`: valid keys, three choices, and that it comes up in ordinary play.
 
 ### A preset

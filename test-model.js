@@ -668,19 +668,63 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
 {
   const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
   const page = html.slice(0, html.indexOf('<script type="module">'));
-  const math = [...page.matchAll(/<div class="math">([\s\S]*?)<\/div>/g)].map((m) => m[1]);
   let filled = '', err = '';
   try { filled = M.fillConstants(page); } catch (e) { err = e.message; }
-  check('Every placeholder on the model page names a model constant and fills', !err && !filled.includes('\u27e6'), err);
-  // Numbers still typed into the equations are structure, not model constants: scale bounds,
-  // milestones, years and clamps that are literals in model.js too. A new hand-typed constant fails here.
-  const ALLOWED = new Set(['0', '0.01', '0.03', '0.05', '0.3', '0.5', '0.52', '0.95', '1', '2', '20', '30', '40', '50', '55', '60', '70', '80', '100', '2027', '2036']);
-  const literal = [...new Set(math.join(' ').replace(/\u27e6[^\u27e7]+\u27e7|\{\{GREF\}\}/g, ' ').replace(/\\[a-zA-Z]+/g, ' ').match(/\d+(\.\d+)?/g))];
-  check('The equations type no model constant by hand (only structural numbers stay literal)', math.length === 24 && literal.every((x) => ALLOWED.has(x)), literal.filter((x) => !ALLOWED.has(x)).join(' '));
-  M.setConstants({ locScale: 0.31, barDiff: 33 });
+  check('Every placeholder on the model page names a model constant and fills', !err && !filled.includes('⟦'), err);
+  // No model constant is typed by hand into the page's math: display equations (.math), inline math
+  // (.mi), filled values (.kv) and the state table's 2027 column. A number may stay literal only as
+  // part of one of the expressions below, each listed by what it is, or as a unit: 1 or 0 that is not
+  // a coefficient (not followed by \,), a /100 or {100} scale, log base 10, or the subscript _0.
+  const LITERAL_OK = [
+    // Structure that is literal in model.js too: milestones (AC 70, TEDAI 90), clamps and fixed scales.
+    ['structural', '\\sum_{t=2027}^{\\min(2036,'], ['structural', '\\min\\Big(0.95,'], ['structural', '\\tfrac{T-50}{30}'],
+    ['structural', '\\tfrac{O-80}{20}'], ['structural', '\\tfrac{C-80}{5}'], ['structural', '\\le c < 70'], ['structural', '(c-70)/20'],
+    ['structural', 'c \\ge 70'], ['structural', '\\max(0,\\ r-0.03)}{0.52}'], ['structural', '\\operatorname{clip}_{[0.05,1]}'],
+    ['structural', '\\operatorname{clip}_{[0.1,1.4]}'], ['structural', 's)-0.5\\big)'], ['structural', '\\min(1.5,\\ c)'],
+    ['structural', '\\ell(0.3)'], ['structural', '\\frac{s-0.01}'], ['structural', '\\max(0,\\ C-40)'], ['structural', '\\max(0,\\ C-60)'],
+    ['structural', '\\max(0,\\ C-55)'], ['structural', '\\Big)^{2}'], ['structural', '100 f'],
+    // Worked examples in the prose.
+    ['example', '\\Lambda = 30'], ['example', '\\Lambda = 32'],
+    // Earlier forms of an equation, quoted to explain where a fitted constant came from.
+    ['historical', '\\sigma\\big(\\tfrac{C-78}{4}\\big)'], ['historical', '0.25\\,(0.4+0.9\\,H/100)'],
+    ['historical', '(0.8+0.4\\,r)(1.3-0.6\\,T/100)'], ['historical', '4.0 \\times 1.04 \\times 0.6'], ['historical', '0.55\\,(1.9 + 10\\,e(s) + 1.5\\,v)'],
+  ];
+  // Distributions of the unknowns, \mathcal{N}(mean, sd) or \mathcal{N}(mean,\ sd): ASSUMPTION_INFO's defaults, not constants in K.
+  const DIST = /\\mathcal\{N\}\(-?\d+(\.\d+)?,\\? -?\d+(\.\d+)?\)/g;
+  const handTyped = (pg) => {
+    const els = [...pg.matchAll(/<div class="math">([\s\S]*?)<\/div>|<span class="mi">([\s\S]*?)<\/span>|class="kv">([\s\S]*?)<\/(?:td|span)>/g)].map((m) => m[1] ?? m[2] ?? m[3]);
+    // The 2027 column: the third cell of each row of the state table (header ending in 2027).
+    const state = pg.match(/<th>2027<\/th><\/tr><\/thead>([\s\S]*?)<\/tbody>/);
+    const cells = state ? [...state[1].matchAll(/<tr>(?:<td[^>]*>[\s\S]*?<\/td>){2}<td[^>]*>([\s\S]*?)<\/td><\/tr>/g)].map((m) => m[1]) : [];
+    const used = new Set(), bad = [];
+    const scan = (t, where) => {
+      let x = t.replace(/⟦[^⟧]+⟧|\{\{GREF\}\}/g, '#');
+      for (const [kind, e] of LITERAL_OK) if (x.includes(e)) { used.add(e); x = x.split(e).join(' ' + kind + ' '); }
+      x = x.replace(DIST, ' dist ').replace(/\{100\}|\/100|_\{10\}|_0(?![\d.])/g, ' ').replace(/(?<![\w.])[01](?![\d.])(?!\s*\\,)/g, ' ').replace(/\\[a-zA-Z]+/g, ' ');
+      for (const n of x.match(/\d+(\.\d+)?/g) || []) bad.push(`${where} ${n} in "${t.trim().slice(0, 50)}"`);
+    };
+    els.forEach((t) => scan(t, 'math'));
+    // 2027 cells hold only placeholders, apart from capability's default, the Current capability unknown.
+    cells.forEach((t) => scan(t.replace(/<span class="mi">[\s\S]*?<\/span>/g, ' ').replace(new RegExp('^' + M.ASSUMPTION_INFO.capNow.mean + ', '), ''), '2027'));
+    for (const [, e] of LITERAL_OK) if (!used.has(e)) bad.push('unused allowance ' + e);
+    return { bad, n: els.length, cells: cells.length };
+  };
+  const g = handTyped(page);
+  check('The page\'s math and 2027 values type no model constant by hand (literals only where structural, historical or a distribution)',
+    g.bad.length === 0 && g.n > 150 && g.cells === 10, g.bad.join('; ') + ` (${g.n} math elements, ${g.cells} 2027 cells)`);
+  const mutate = (a, b) => { if (page.split(a).length !== 2) throw new Error('mutation target not unique: ' + a); return handTyped(page.replace(a, b)).bad; };
+  const m1 = mutate('⟦lockDeleg⟧', '0.5'), m2 = mutate('⟦hidBase⟧', '99'), m3 = mutate('⟦coord0⟧', '7');
+  check('The literal guard catches a hand-typed value that is structural elsewhere (lockDeleg as 0.5), an inline coefficient (hidBase as 99) and a 2027 value (coord0 as 7)',
+    m1.some((b) => b.startsWith('math 0.5 ')) && m2.some((b) => b.startsWith('math 99 ')) && m3.some((b) => b.startsWith('2027 7 ')), [m1, m2, m3].map((m) => m.join(',')).join(' | '));
+  // The three ratios show as the exact fractions the code uses, and as decimals once overridden.
+  const fr = filled;
+  check('Exact ratios show as fractions: 6/13 (lock-in trust), 10/1.9 and 1.5/1.9 (alignment)',
+    fr.includes('\\big(1-\\tfrac{6}{13}\\,\\tfrac{T}{100}\\big)') && fr.includes('1 + \\tfrac{10}{1.9}\\,e(s) + \\tfrac{1.5}{1.9}\\,v')
+      && Object.entries(M.K_FRACTIONS).every(([k, [n, d]]) => Math.abs(M.K_DEFAULTS[k] - n / d) <= 4 * Number.EPSILON * M.K_DEFAULTS[k]));
+  M.setConstants({ locScale: 0.31, barDiff: 33, alSafety: 5 });
   const moved = M.fillConstants(page);
   M.setConstants();
-  check('Changing a constant changes the page', moved.includes('h(\\delta)\\cdot 0.31\\,') && moved.includes('33\\,\\delta') && M.fillConstants(page) === filled);
+  check('Changing a constant changes the page', moved.includes('h(\\delta)\\cdot 0.31\\,') && moved.includes('33\\,\\delta') && moved.includes('1 + 5\\,e(s)') && M.fillConstants(page) === filled);
 }
 
 // --- Named constants (K): the defaults reproduce the stored seeded baseline ---
@@ -698,6 +742,8 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Overriding constants changes results, and setConstants() restores the baseline', moved && same());
   let threw = false; try { M.setConstants({ noSuchConstant: 1 }); } catch (e) { threw = true; }
   check('setConstants rejects unknown names', threw);
+  const n = Object.keys(M.K).length, readme = require('fs').readFileSync(__dirname + '/README.md', 'utf8');
+  check(`README gives the number of named constants (${n})`, readme.includes(`its ${n} named constants`), (readme.match(/its \d+ named constants/) || ['no count'])[0]);
 }
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll checks passed');

@@ -86,6 +86,10 @@
     endTrust: 45, pauseCoord: 55,
   });
   const K = Object.assign({}, K_DEFAULTS);
+  // Constants the model page shows as exact fractions, written ⟦name:f⟧ there: [numerator, denominator].
+  // fillConstants shows the fraction only while K holds that ratio (to within rounding, since
+  // 0.6 / 1.3 and 6 / 13 differ in the last bit) and decimals once a constant is overridden.
+  const K_FRACTIONS = Object.freeze({ lockTrustSlope: [6, 13], alSafety: [10, 1.9], alOversight: [1.5, 1.9] });
   // Override constants by name (the rest return to their defaults); setConstants() restores them all.
   // Clears the caches that depend on them (the bio reference exposure, bio belief nodes).
   function setConstants(over = {}) {
@@ -96,8 +100,9 @@
   }
 
   // The model page ("How the model works") writes each constant as ⟦name⟧, ⟦name:d⟧ (d decimals)
-  // or ⟦a op b⟧ (one + - * / between two constants or numbers, for a derived number such as
-  // 1 - lockConcFloor). This fills them from K, so the page's equations cannot drift from the code.
+  // ⟦name:f⟧ (an exact fraction from K_FRACTIONS) or ⟦a op b⟧ (one + - * / between two constants or
+  // numbers, for a derived number such as 1 - lockConcFloor). This fills them from K, so the page's
+  // equations cannot drift from the code.
   const OPS = { '+': (a, b) => a + b, '-': (a, b) => a - b, '*': (a, b) => a * b, '/': (a, b) => a / b };
   function fillConstants(text) {
     const term = (t) => {
@@ -105,7 +110,14 @@
       if (/^\d+(\.\d+)?$/.test(t)) return +t;
       throw new Error('Unknown model constant on the model page: ' + t);
     };
-    return text.replace(/⟦([^⟧:]+)(?::(\d))?⟧/g, (m, expr, d) => {
+    return text.replace(/⟦([^⟧:]+)(?::(\d|f))?⟧/g, (m, expr, d) => {
+      if (d === 'f') {
+        const name = expr.trim(), f = K_FRACTIONS[name];
+        if (!f) throw new Error('No fraction for model constant on the model page: ' + name);
+        const v = term(name);
+        if (Math.abs(v - f[0] / f[1]) <= 4 * Number.EPSILON * Math.abs(v)) return '\\tfrac{' + f[0] + '}{' + f[1] + '}';
+        return String(+v.toFixed(10));
+      }
       const op = expr.match(/^\s*([\w.]+)\s*([-+*/])\s*([\w.]+)\s*$/);
       const v = op ? OPS[op[2]](term(op[1]), term(op[3])) : term(expr.trim());
       return d === undefined ? String(+v.toFixed(10)) : v.toFixed(+d);
@@ -1022,7 +1034,7 @@
   }
 
   root.SimModel = {
-    K, K_DEFAULTS, setConstants, fillConstants,
+    K, K_DEFAULTS, K_FRACTIONS, setConstants, fillConstants,
     START_YEAR, END_YEAR, LEVER_INFO, STAT_INFO, OUTCOMES, ASSUMPTION_INFO, DRAW_ORDER, rollRows, secretRows,
     AC, TOP_EXPERT, TEDAI, DELEG0, oversightBite, delegHazard, uplift, rdShare, locGate, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
