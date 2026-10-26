@@ -53,7 +53,7 @@ people without economic leverage or a say even when humans keep control of AI.
 | `scripts/build_artifact.py` | Builds a copy for a claude.ai Artifact |
 | `index.html` | Three.js scene, HUD, campaign loop, Futures Lab |
 | `test-model.js` | `node test-model.js` prints outcome distributions for policy presets |
-| `scripts/sweep_constants.js` | Moves each named constant on its own and writes `docs/constant-sensitivity.md` (by topic) and `docs/constant-sensitivity-full.md` (every number) |
+| `scripts/sweep_constants.js` | Moves each named constant on its own and writes `docs/constant-sensitivity.md` (by topic) and `docs/constant-sensitivity-full.md` (every number); `--marginals` screens candidate cuts against every preset and every lever's effect (`docs/simplification-2.md`) |
 
 ## Caveat
 

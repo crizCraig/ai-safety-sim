@@ -5,6 +5,9 @@
 //                                              grouped by topic) and docs/constant-sensitivity-full.md (every number)
 //   node scripts/sweep_constants.js --n 1000   fewer futures per run (quick look)
 //   node scripts/sweep_constants.js --baseline rewrite test-k-baseline.json (after a deliberate model change)
+//   node scripts/sweep_constants.js --marginals [--n 20000] [--only id,id] [--out file.json]
+//                                              the simplification screen (docs/simplification-2.md): each candidate
+//                                              cut in CUTS against all 14 presets and every lever's marginal effect
 //
 // Each constant is set low and high while every other constant stays at its default:
 // scale constants run at ×0.5 and ×1.5; midpoints, thresholds and starting levels on the
@@ -61,10 +64,44 @@ function runJob(M, P, over, n) {
   };
 }
 
+// --marginals: one policy's futures under one set of constant overrides, future by future, so the
+// main thread can pair them across variants. cat[i] = 1 if future i ends in catastrophe; al[i] is its
+// p(alignment) score, NaN for pandemic and war futures (left out, as in summarize).
+function futuresCRN(M, L, n) {
+  const A = M.defaultAssumptions(), cat = new Uint8Array(n), al = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const rng = M.mulberry32((SEED * 1000003 + i * 7919) | 0);
+    const s = M.initialState(M.sampleWorld(A, rng)); s.fast = true;
+    let ev = null;
+    while (!ev) ev = M.step(s, L, rng, true).event;
+    cat[i] = M.CATASTROPHES.includes(ev) ? 1 : 0;
+    al[i] = ev === 'bio' || ev === 'war' ? NaN : M.alignmentScore(ev, s, L);
+  }
+  return { cat, al };
+}
+// The --marginals policies: all presets, then each lever at 0 and at 1 from each background.
+const BACKGROUNDS = [['SQ', 'Status quo'], ['A', 'Plan A: Verified slowdown']];
+function margPolicies(M, P) {
+  const out = Object.keys(P.PRESETS).map((k) => ({ id: 'preset:' + k, L: P.PRESETS[k] }));
+  for (const [tag, bg] of BACKGROUNDS) for (const lv of Object.keys(M.LEVER_INFO)) for (const x of [0, 1]) {
+    out.push({ id: `lever:${tag}:${lv}:${x}`, L: Object.assign({}, P.PRESETS[bg], { [lv]: x }) });
+  }
+  return out;
+}
+
 if (!isMainThread) {
   const { M, P } = load();
+  let pol = null, last = null;
   parentPort.on('message', (job) => {
     if (job === null) return process.exit(0);
+    if (job.mode === 'marg') {
+      pol = pol || margPolicies(M, P);
+      const key = JSON.stringify(job.over);
+      if (key !== last) { M.setConstants(job.over); last = key; }
+      parentPort.postMessage({ i: job.i, r: futuresCRN(M, pol[job.p].L, job.n) });
+      return;
+    }
+    last = null;
     parentPort.postMessage({ i: job.i, r: runJob(M, P, job.over, job.n) });
   });
   return;
@@ -435,9 +472,152 @@ function renderReadable(rows, base, n, nK) {
   return L.join('\n');
 }
 
+// --- Simplification screen (--marginals) ---------------------------------------------------------
+// The sweep above watches seven headline numbers from presets that barely use some levers (the fund,
+// oversight and transparency sit low in them), so "moves nothing" there can mean "that lever is off".
+// This screen checks each candidate cut against every lever's effect instead: each lever 0 vs 1 from
+// Status quo and from Plan A (catastrophe and p(alignment)), all 14 presets' catastrophe, and Plans A–D
+// p(alignment). A cut is written as constant overrides that reproduce it exactly (a removed term is
+// its constant at 0, a merge sets one constant to another's value), so the code change that follows
+// must give the same numbers. Same seeded futures for every variant (common random numbers); the
+// paired standard errors say how far a difference is from sampling noise.
+// [id, overrides, constants it would remove]
+const ZERO = ['laborBase', 'laborSafety', 'laborPause', 'usPushSafety', 'cnRaceResp', 'cnRaceCoord', 'shareCoord',
+  'shareTransp', 'hidOversight', 'hidTransp', 'hidSafety', 'hidInternal', 'intSlope', 'ovsTax', 'leak', 'sabotSlow',
+  'jumpUSRand', 'jumpCNRand', 'alShCoord', 'alShTransp', 'alJumpRand', 'alNoise', 'coNoise', 'intDecay', 'intTransp',
+  'intOversight', 'intBci', 'delBase', 'delCap', 'delRd', 'delOversight', 'delTransp', 'delSafety', 'coOversight',
+  'coTransp', 'coRace', 'coAggr', 'coDecay', 'openTransp', 'bioOpen', 'concCap', 'concOpen', 'concTransp',
+  'concOversight', 'concAggr', 'concDecay', 'concRaceOpen', 'concRaceTransp', 'concBci', 'trCap', 'trSafety',
+  'trOversight', 'trTransp', 'trRaceConc', 'trDrift', 'fundExpensive', 'lockDip', 'lockOpen', 'lockPlural',
+  'lockRaceSlope', 'lockTrustSlope', 'delegBite', 'delegHaz', 'lockDeleg', 'barDeleg', 'barInternal', 'barBci', 'alBci',
+  'bciUplift', 'dealSlack', 'dealImpairCut', 'fund0', 'bci0', 'warAggr', 'warSabot'];
+const CUTS = [
+  ...ZERO.map((k) => [k + '=0', { [k]: 0 }, [k]]),
+  ['jumpP=0', { jumpP: 0 }, ['jumpP', 'jumpUS', 'jumpUSRand', 'jumpCN', 'jumpCNRand']],
+  ['alJumpP=0', { alJumpP: 0 }, ['alJumpP', 'alJumpBase', 'alJumpRand']],
+  ['warCloseFloor=1', { warCloseFloor: 1 }, ['warCloseFloor', 'warCloseW']],
+  ['fundSell=fundBuy', { fundSell: 0.4 }, ['fundSell']],
+  ['openRate=1', { openRate: 1 }, ['openRate']],
+  ['bciCap=inf', { bciCap: 1e9 }, ['bciCap']],
+  ['bioDefExp=1', { bioDefExp: 1 }, ['bioDefExp']],
+];
+// Thresholds: a cut is a candidate only if no preset's catastrophe moves more than PRESET_TOL points and
+// no lever marginal or Plan A–D p(alignment) more than MARG_TOL.
+const PRESET_TOL = 0.3, MARG_TOL = 1;
+
+// Mean and paired standard error of per-future differences (NaN entries skipped).
+function pairStats(f, n) {
+  let s = 0, ss = 0, m = 0;
+  for (let i = 0; i < n; i++) { const d = f(i); if (Number.isNaN(d)) continue; s += d; ss += d * d; m++; }
+  const mean = s / m;
+  return { mean, se: Math.sqrt(Math.max(0, ss / m - mean * mean) / m) };
+}
+const rate = (a) => { let s = 0, m = 0; for (const x of a) if (!Number.isNaN(x)) { s += x; m++; } return m ? s / m : NaN; };
+
+// Compare one variant's futures with the baseline's: every metric's change in points, with paired SEs.
+// p(alignment) is a ratio (pandemic and war futures are left out), so its change is the change in the
+// ratio and its SE is taken over futures that count in both.
+function compareVariant(pols, base, vr, n) {
+  const out = { presetCat: {}, presetAl: {}, leverCat: {}, leverAl: {} };
+  pols.forEach((p, j) => {
+    if (!p.id.startsWith('preset:')) return;
+    const k = p.id.slice(7), b = base[j], v = vr[j];
+    out.presetCat[k] = pairStats((i) => 100 * (v.cat[i] - b.cat[i]), n);
+    out.presetAl[k] = { mean: 100 * (rate(v.al) - rate(b.al)), se: pairStats((i) => 100 * (v.al[i] - b.al[i]), n).se };
+  });
+  const idx = Object.fromEntries(pols.map((p, j) => [p.id, j]));
+  for (const p of pols) {
+    const m = p.id.match(/^lever:(\w+):(\w+):1$/);
+    if (!m) continue;
+    const j0 = idx[`lever:${m[1]}:${m[2]}:0`], j1 = idx[p.id], key = `${m[1]}:${m[2]}`;
+    const [b0, b1, v0, v1] = [base[j0], base[j1], vr[j0], vr[j1]];
+    out.leverCat[key] = pairStats((i) => 100 * ((v1.cat[i] - v0.cat[i]) - (b1.cat[i] - b0.cat[i])), n);
+    out.leverCat[key].base = 100 * (rate(b1.cat) - rate(b0.cat));
+    out.leverAl[key] = { mean: 100 * ((rate(v1.al) - rate(v0.al)) - (rate(b1.al) - rate(b0.al))),
+      se: pairStats((i) => 100 * ((v1.al[i] - v0.al[i]) - (b1.al[i] - b0.al[i])), n).se,
+      base: 100 * (rate(b1.al) - rate(b0.al)) };
+  }
+  const worst = (o, keys) => keys.reduce((a, k) => (Math.abs(o[k].mean) > Math.abs(a[1]) ? [k, o[k].mean, o[k].se] : a), ['', 0, 0]);
+  const plans = Object.keys(out.presetAl).filter((k) => /^Plan [ABCD]:/.test(k));
+  out.worst = {
+    presetCat: worst(out.presetCat, Object.keys(out.presetCat)), presetAl: worst(out.presetAl, Object.keys(out.presetAl)),
+    planAl: worst(out.presetAl, plans), leverCat: worst(out.leverCat, Object.keys(out.leverCat)),
+    leverAl: worst(out.leverAl, Object.keys(out.leverAl)),
+  };
+  const W = out.worst;
+  out.pass = Math.abs(W.presetCat[1]) <= PRESET_TOL && Math.abs(W.planAl[1]) <= MARG_TOL
+    && Math.abs(W.leverCat[1]) <= MARG_TOL && Math.abs(W.leverAl[1]) <= MARG_TOL;
+  return out;
+}
+
+async function runMarginals(M, P, args) {
+  const ni = args.indexOf('--n'), n = ni >= 0 ? +args[ni + 1] : 20000;
+  const oi = args.indexOf('--only'), only = oi >= 0 ? args[oi + 1].split(',') : null;
+  const ui = args.indexOf('--out'), outFile = ui >= 0 ? args[ui + 1] : null;
+  // --over '{"k":v}' screens an ad-hoc set of overrides (for example a bundle of cuts) as one variant.
+  // A cut that changes code rather than constants is checked across two copies of the model:
+  // --save FILE stores this model's default futures, and --against FILE (run from the edited copy)
+  // compares the edited model, as variant 'edited', with those stored futures.
+  const vi = args.indexOf('--over');
+  const si = args.indexOf('--save'), saveFile = si >= 0 ? args[si + 1] : null;
+  const ai = args.indexOf('--against'), againstFile = ai >= 0 ? args[ai + 1] : null;
+  let cuts = CUTS;
+  if (vi >= 0) cuts = [['custom', JSON.parse(args[vi + 1]), []]];
+  else if (only) cuts = only.map((id) => { const c = CUTS.find((x) => x[0] === id); if (!c) throw new Error('No such cut: ' + id); return c; });
+  for (const [, over] of cuts) for (const k in over) if (!(k in M.K_DEFAULTS)) throw new Error('Unknown constant ' + k);
+  if (againstFile) cuts = [['edited', {}, []]];
+  if (saveFile) cuts = [];
+  const pols = margPolicies(M, P), variants = [['baseline', {}, []], ...cuts];
+  const v8 = require('v8');
+  const stored = againstFile ? v8.deserialize(fs.readFileSync(againstFile)) : null;
+  if (stored && (stored.n !== n || stored.ids.join() !== pols.map((p) => p.id).join())) throw new Error('--against: different n or policies');
+  const jobs = [];
+  variants.forEach(([, over], vIdx) => { if (!(stored && vIdx === 0)) pols.forEach((_, p) => jobs.push({ mode: 'marg', over, n, p, v: vIdx })); });
+  // Results stream in; a variant is compared and freed as soon as it and the baseline are complete.
+  const got = variants.map(() => new Array(pols.length)), left = variants.map(() => pols.length), report = [];
+  if (stored) { got[0] = stored.futures; left[0] = 0; }
+  const finish = (vIdx) => {
+    const [id, over, removes] = variants[vIdx];
+    const c = compareVariant(pols, got[0], got[vIdx], n);
+    report.push({ id, over, removes, ...c });
+    const W = c.worst, f = (w) => `${w[1] >= 0 ? '+' : ''}${w[1].toFixed(2)}±${w[2].toFixed(2)} ${w[0]}`;
+    console.log(`${c.pass ? 'PASS' : 'fail'} ${id.padEnd(22)} preset ${f(W.presetCat)} | planAl ${f(W.planAl)} | leverCat ${f(W.leverCat)} | leverAl ${f(W.leverAl)}`);
+    got[vIdx] = null;
+  };
+  const nw = Math.max(1, Math.min(jobs.length, os.cpus().length - 1));
+  let next = 0, done = 0;
+  await new Promise((resolve, reject) => {
+    for (let w = 0; w < nw; w++) {
+      const worker = new Worker(__filename);
+      const feed = () => { if (next < jobs.length) worker.postMessage({ i: next, ...jobs[next++] }); else worker.postMessage(null); };
+      worker.on('message', ({ i, r }) => {
+        const { v, p } = jobs[i];
+        got[v][p] = r; left[v]--; done++;
+        if (left[0] === 0) {
+          if (v === 0) {
+            if (saveFile) fs.writeFileSync(saveFile, v8.serialize({ n, ids: pols.map((q) => q.id), futures: got[0] }));
+            for (let u = 1; u < variants.length; u++) if (left[u] === 0) finish(u);
+          } else if (left[v] === 0) finish(v);
+        }
+        if (done === jobs.length) resolve();
+        feed();
+      });
+      worker.on('error', reject);
+      feed();
+    }
+  });
+  const base = { presets: {}, levers: {} };
+  // Baseline numbers for reference are recomputed from the first comparison's stored bases.
+  if (report[0]) for (const k in report[0].leverCat) base.levers[k] = { cat: report[0].leverCat[k].base, al: report[0].leverAl[k].base };
+  if (outFile) fs.writeFileSync(outFile, JSON.stringify({ n, tolerances: { preset: PRESET_TOL, marginal: MARG_TOL }, base, report }, null, 1) + '\n');
+  if (saveFile) return console.log(`wrote ${saveFile}`);
+  console.log(`${report.filter((r) => r.pass).length} of ${report.length} pass` + (outFile ? `; wrote ${outFile}` : ''));
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const { M, P } = load();
+  if (args.includes('--marginals')) return runMarginals(M, P, args);
   if (args.includes('--baseline')) {
     // Seeded summaries of every preset with the default constants, checked by test-model.js.
     const out = {};
