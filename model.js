@@ -20,7 +20,7 @@
   const K_DEFAULTS = Object.freeze({
     // Starting state, 2027
     align0: 16, cnGap0: 7, openCap0: 32, bio0: 14, coord0: 22, bci0: 4, conc0: 45, trust0: 55,
-    internal0: 30, fund0: 3, deleg0: 12,
+    internal0: 30, deleg0: 12,
     // Difficulty: aligned by default below diffSafe, full loss-of-control exposure diffRamp above it
     diffSafe: 0.3, diffRamp: 0.5,
     // Delegation's effects: rubber-stamp oversight, yearly hazard multiplier
@@ -80,8 +80,9 @@
     concBci: 2.2, concOversight: 4, concAggr: 3, concDecay: 0.8,
     // Public trust
     trCap: 0.04, trSafety: 2.5, trOversight: 1.5, trTransp: 1.5, trRaceConc: 1.5, trDrift: 0.3,
-    // Public wealth fund
-    fundBuy: 0.4, fundExpensive: 0.85, fundSell: 0.2,
+    // Public wealth fund: the stake starts at 0 and moves toward the lever's target at fundRate a year,
+    // slower when buying in late (fundExpensive)
+    fundRate: 0.4, fundExpensive: 0.85,
     // 2040 endings
     endTrust: 45, pauseCoord: 55,
   });
@@ -501,7 +502,7 @@
       survival: 1,        // cumulative probability of avoiding catastrophe so far (expected, not rolled)
       alive: 1,           // ...of which: the future is still running
       safeEnded: 0,
-      fundStake: K.fund0, // public ownership of AI returns, 0..100 (Alaska-style funds exist today)
+      fundStake: 0,       // public ownership of frontier AI returns, 0..100
       dealStart: null,    // first year a US–China deal was in force
       dealImpaired: null, // year the deal was weakened (at most once)
       dealCollapsed: null, // year the deal dissolved (it never returns)       // ...of which: it already ended without catastrophe (kind takeover, handoff)
@@ -884,7 +885,7 @@
     // Public stake in AI: builds toward the fund lever, but buying in gets far more
     // expensive once AI value explodes (capability past expert level), so early funds own more.
     const target = 100 * L.fund;
-    const buyIn = target > s0.fundStake ? K.fundBuy * (1 - K.fundExpensive * sig((mc - 80) / 5)) : K.fundSell;
+    const buyIn = K.fundRate * (target > s0.fundStake ? 1 - K.fundExpensive * sig((mc - 80) / 5) : 1);
     s.fundStake = clamp(s0.fundStake + (target - s0.fundStake) * buyIn);
 
     // End of year: the milestone, handoff and 2040 checks read the updated state (see above).

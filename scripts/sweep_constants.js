@@ -270,7 +270,6 @@ const META = {
   // Power and lock-in
   conc0: ['B', 'power', 'Power concentration in 2027', 'Where power concentration starts'],
   trust0: ['B', 'power', 'Public trust in 2027', 'Where public trust starts'],
-  fund0: ['B', 'power', 'Public stake in AI in 2027', 'Where the public\'s ownership of AI returns starts'],
   lockK: ['F', 'power', 'Lock-in scale', 'Overall scale of the lock-in odds; fitted so about 70% of today\'s controlled futures lock in before value alignment (about 54% with it)'],
   lockWhistle: ['J', 'power', 'Lock-in stopped by whistleblowers', 'Share of lock-in removed when insiders surely speak up'],
   lockValue: ['J', 'power', 'Lock-in stopped by value-aligned AI', 'Share of lock-in pressure removed when an aligned AI surely refuses to help a few seize power (1: a value-aligned AI always counters lock-in)'],
@@ -302,9 +301,8 @@ const META = {
   trTransp: ['J', 'power', 'Trust from transparency', 'Yearly trust gained with all research public'],
   trRaceConc: ['J', 'power', 'Trust lost to racing with concentrated power', 'Yearly trust lost under an all-out race with power concentrated'],
   trDrift: ['B', 'power', 'Trust drift', 'Yearly trust gained anyway'],
-  fundBuy: ['J', 'power', 'Wealth fund buy-in speed', 'Share of the gap to the fund target bought each year'],
+  fundRate: ['J', 'power', 'Wealth fund speed', 'Share of the gap to the fund target bought (or sold) each year'],
   fundExpensive: ['J', 'power', 'Buying in gets expensive', 'How much slower buy-in gets once AI passes expert level'],
-  fundSell: ['J', 'power', 'Wealth fund sell-down speed', 'Share of the excess sold each year when the target is lowered'],
   endTrust: ['J', 'power', 'Trust below which power locks in by 2040', 'Without superintelligence, power can lock in by 2040 only below this trust'],
   // Delegation
   deleg0: ['B', 'deleg', 'Delegation in 2027', 'Where delegation starts; its effects are neutral here'],
@@ -488,13 +486,12 @@ const ZERO = ['laborBase', 'laborSafety', 'usPushSafety', 'cnRaceResp', 'cnRaceC
   'concOversight', 'concAggr', 'concDecay', 'concRaceOpen', 'concRaceTransp', 'concBci', 'trCap', 'trSafety',
   'trOversight', 'trTransp', 'trRaceConc', 'trDrift', 'fundExpensive', 'lockDip', 'lockOpen', 'lockPlural',
   'lockRaceSlope', 'lockTrustSlope', 'delegBite', 'delegHaz', 'lockDeleg', 'barDeleg', 'barInternal', 'barBci', 'alBci',
-  'bciUplift', 'dealSlack', 'dealImpairCut', 'fund0', 'bci0', 'warAggr', 'warSabot'];
+  'bciUplift', 'dealSlack', 'dealImpairCut', 'bci0', 'warAggr', 'warSabot'];
 const CUTS = [
   ...ZERO.map((k) => [k + '=0', { [k]: 0 }, [k]]),
   ['jumpP=0', { jumpP: 0 }, ['jumpP', 'jumpUS', 'jumpUSRand', 'jumpCN', 'jumpCNRand']],
   ['alJumpP=0', { alJumpP: 0 }, ['alJumpP', 'alJumpBase', 'alJumpRand']],
   ['warCloseFloor=1', { warCloseFloor: 1 }, ['warCloseFloor', 'warCloseW']],
-  ['fundSell=fundBuy', { fundSell: 0.4 }, ['fundSell']],
   ['openRate=1', { openRate: 1 }, ['openRate']],
   ['bciCap=inf', { bciCap: 1e9 }, ['bciCap']],
   ['bioDefExp=1', { bioDefExp: 1 }, ['bioDefExp']],

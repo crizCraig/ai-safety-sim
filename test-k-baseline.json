@@ -31,12 +31,12 @@
  },
  "Status quo": {
   "counts": {
-   "flourish": 132,
+   "flourish": 131,
    "bio": 8,
    "misalign": 961,
    "war": 55,
    "benevolent": 178,
-   "lockin": 166,
+   "lockin": 167,
    "pause": 0,
    "muddle": 0
   },
@@ -61,12 +61,12 @@
  },
  "Plan B: Fight China": {
   "counts": {
-   "flourish": 99,
+   "flourish": 98,
    "bio": 5,
    "misalign": 585,
    "war": 261,
    "benevolent": 117,
-   "lockin": 433,
+   "lockin": 434,
    "pause": 0,
    "muddle": 0
   },
@@ -91,12 +91,12 @@
  },
  "Plan D: Race to ASI": {
   "counts": {
-   "flourish": 41,
+   "flourish": 40,
    "bio": 8,
    "misalign": 1015,
    "war": 47,
    "benevolent": 196,
-   "lockin": 193,
+   "lockin": 194,
    "pause": 0,
    "muddle": 0
   },
@@ -196,12 +196,12 @@
  },
  "All compute on safety": {
   "counts": {
-   "flourish": 319,
+   "flourish": 318,
    "bio": 17,
    "misalign": 587,
    "war": 67,
    "benevolent": 126,
-   "lockin": 381,
+   "lockin": 382,
    "pause": 0,
    "muddle": 3
   },
