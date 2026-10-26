@@ -31,8 +31,8 @@
     rdShareMid: 0.7, rdShareW: 0.1,
     // Compute from race intensity (normalization fixed at COMPUTE_NORM: race 0.55 = 1×)
     computeExp: 0.74,
-    // Safety share: linear to the knee, then diminishing; AI labor on safety
-    safetyKnee: 0.3, safetyTail: 0.6, laborBase: 0.08, laborSafety: 0.35, laborPause: 0.5,
+    // Safety share: linear to the knee, then diminishing; AI labor on safety (saturates at the knee)
+    safetyKnee: 0.3, safetyTail: 0.6, laborBase: 0.08, laborSafety: 0.35,
     // US–China deal
     dealCoord: 60, dealDip: 0.5, dealCap: 78, dealSlack: 6,
     dealHaz0: 0.06, dealHaz1: 0.035, dealHaz2: 0.02, dealCollapseCut: 40, dealImpairCut: 20,
@@ -64,7 +64,7 @@
     jumpP: 0.15, jumpUS: 3, jumpUSRand: 5, jumpCN: 2, jumpCNRand: 4,
     // Alignment growth: alRate (1 + alSafety e(s) + alOversight v), i.e. the old 0.55 (1.9 + 10 e(s) + 1.5 v)
     alRate: 1.045, alSafety: 10 / 1.9, alOversight: 1.5 / 1.9, alShCoord: 0.35, alShTransp: 0.4, alBci: 0.5,
-    alNoise: 0.5, alJumpP: 0.12, alJumpBase: 3, alJumpRand: 6,
+    alJumpP: 0.12, alJumpBase: 3, alJumpRand: 6,
     // Hidden internal AI
     intRace: 4, intTransp: 9, intOversight: 5, intBci: 6, intDecay: 0.5,
     // Delegation
@@ -552,7 +552,10 @@
   // Effect is linear up to 30%, then diminishes: people and ideas become the bottleneck.
   // At 100% no compute is left for capabilities, which amounts to a unilateral pause.
   const safetyEffect = (f) => f <= K.safetyKnee ? Math.max(0, (f - 0.01) / (K.safetyKnee - 0.01)) : 1 + K.safetyTail * (f - K.safetyKnee) / (1 - K.safetyKnee);
-  const safetyLabor = (f) => K.laborBase + K.laborSafety * Math.min(1, safetyEffect(f)) + K.laborPause * Math.max(0, f - K.safetyKnee) / (1 - K.safetyKnee);
+  // The share of AI research labor on safety. It saturates at the knee: past it, more safety share
+  // mostly takes compute from capabilities (a separate term for labor past the knee moved no
+  // preset or lever effect, so it was removed; docs/simplification-2.md).
+  const safetyLabor = (f) => K.laborBase + K.laborSafety * Math.min(1, safetyEffect(f));
   let CN_LABOR = safetyLabor(0.3); // AI labor share China puts on alignment at full own effort
 
   // A verified US–China deal: frontier scaling stops at top-human-expert level.
@@ -840,7 +843,9 @@
     const assist = 1 + (uplift(s0.capUS) - 1) * safetyLabor(L.safety) + (uplift(s0.capCN) - 1) * CN_LABOR * (w.cnAlign || 0);
     const shared = 1 + K.alShCoord * (coordShocked / 100) + K.alShTransp * L.transparency; // the deal shock bites this year
     const bciBoost = 1 + K.alBci * (s0.bci / 100);
-    s.align = clamp(s0.align + K.alRate * (1 + K.alSafety * sx + K.alOversight * L.oversight) * assist * shared * bciBoost / w.difficulty + noise(9) * K.alNoise);
+    // d[9] once drew a small yearly wobble (±0.5); it is still drawn so the stream keeps its order.
+    // Alignment stays uncertain within a world through breakthroughs (d[10], d[11]).
+    s.align = clamp(s0.align + K.alRate * (1 + K.alSafety * sx + K.alOversight * L.oversight) * assist * shared * bciBoost / w.difficulty);
     if (d[10] < K.alJumpP) s.align = clamp(s.align + K.alJumpBase + d[11] * K.alJumpRand * (0.5 + Math.min(1, sx)));
 
     // Hidden internal AI: automated R&D runs inside labs; transparency and

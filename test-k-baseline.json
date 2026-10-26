@@ -7,10 +7,10 @@
    "war": 17,
    "benevolent": 0,
    "lockin": 0,
-   "pause": 1461,
-   "muddle": 6
+   "pause": 1460,
+   "muddle": 7
   },
-  "pAlignment": 0.8418444750306724,
+  "pAlignment": 0.8418434746000557,
   "acMedian": 2038,
   "asiMedian": 2039
  },
@@ -22,42 +22,42 @@
    "war": 14,
    "benevolent": 1,
    "lockin": 0,
-   "pause": 1449,
-   "muddle": 19
+   "pause": 1448,
+   "muddle": 20
   },
-  "pAlignment": 0.844644924309834,
+  "pAlignment": 0.8447972446221472,
   "acMedian": 2038,
   "asiMedian": 2039
  },
  "Status quo": {
   "counts": {
-   "flourish": 131,
+   "flourish": 132,
    "bio": 8,
-   "misalign": 963,
+   "misalign": 961,
    "war": 55,
    "benevolent": 178,
-   "lockin": 165,
+   "lockin": 166,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.20598469032707029,
+  "pAlignment": 0.20737647877522616,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "Plan A: Verified slowdown": {
   "counts": {
-   "flourish": 243,
-   "bio": 31,
-   "misalign": 201,
-   "war": 26,
-   "benevolent": 33,
-   "lockin": 42,
-   "pause": 868,
-   "muddle": 56
+   "flourish": 230,
+   "bio": 33,
+   "misalign": 202,
+   "war": 30,
+   "benevolent": 30,
+   "lockin": 51,
+   "pause": 864,
+   "muddle": 60
   },
-  "pAlignment": 0.7309834884439019,
+  "pAlignment": 0.7300006876709543,
   "acMedian": 2032,
-  "asiMedian": 2035
+  "asiMedian": 2034
  },
  "Plan B: Fight China": {
   "counts": {
@@ -76,16 +76,16 @@
  },
  "Plan C: Burn the lead": {
   "counts": {
-   "flourish": 270,
+   "flourish": 275,
    "bio": 9,
-   "misalign": 720,
-   "war": 71,
-   "benevolent": 151,
-   "lockin": 279,
+   "misalign": 718,
+   "war": 72,
+   "benevolent": 143,
+   "lockin": 283,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.38661971830985914,
+  "pAlignment": 0.39323467230443976,
   "acMedian": 2030,
   "asiMedian": 2031
  },
@@ -112,70 +112,70 @@
    "war": 13,
    "benevolent": 1,
    "lockin": 0,
-   "pause": 1348,
-   "muddle": 125
+   "pause": 1351,
+   "muddle": 122
   },
-  "pAlignment": 0.7510108697885438,
+  "pAlignment": 0.7507127623913443,
   "acMedian": 2038,
   "asiMedian": 2038
  },
  "Open everything": {
   "counts": {
-   "flourish": 228,
+   "flourish": 227,
    "bio": 19,
-   "misalign": 913,
+   "misalign": 914,
    "war": 59,
    "benevolent": 176,
    "lockin": 105,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.23417721518987342,
+  "pAlignment": 0.23347398030942335,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "Open + biodefense": {
   "counts": {
-   "flourish": 284,
+   "flourish": 283,
    "bio": 22,
-   "misalign": 850,
+   "misalign": 852,
    "war": 65,
-   "benevolent": 152,
+   "benevolent": 151,
    "lockin": 127,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.2908704883227176,
+  "pAlignment": 0.29016277423920733,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "IAEA for AI": {
   "counts": {
-   "flourish": 489,
+   "flourish": 490,
    "bio": 6,
    "misalign": 672,
    "war": 50,
-   "benevolent": 143,
+   "benevolent": 142,
    "lockin": 140,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.435595567867036,
+  "pAlignment": 0.4362880886426593,
   "acMedian": 2031,
   "asiMedian": 2032
  },
  "Neuralink bet": {
   "counts": {
-   "flourish": 167,
+   "flourish": 166,
    "bio": 8,
-   "misalign": 855,
-   "war": 69,
-   "benevolent": 174,
-   "lockin": 227,
+   "misalign": 859,
+   "war": 68,
+   "benevolent": 175,
+   "lockin": 224,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.2768798313422347,
+  "pAlignment": 0.273876404494382,
   "acMedian": 2030,
   "asiMedian": 2031
  },
@@ -187,25 +187,25 @@
    "war": 75,
    "benevolent": 36,
    "lockin": 88,
-   "pause": 675,
-   "muddle": 62
+   "pause": 674,
+   "muddle": 63
   },
-  "pAlignment": 0.7529066460777206,
+  "pAlignment": 0.7529470293466547,
   "acMedian": 2033,
   "asiMedian": 2033
  },
  "All compute on safety": {
   "counts": {
    "flourish": 319,
-   "bio": 16,
-   "misalign": 584,
-   "war": 69,
-   "benevolent": 129,
-   "lockin": 380,
+   "bio": 17,
+   "misalign": 587,
+   "war": 67,
+   "benevolent": 126,
+   "lockin": 381,
    "pause": 0,
    "muddle": 3
   },
-  "pAlignment": 0.49424535949674964,
+  "pAlignment": 0.4946025308527995,
   "acMedian": 2032,
   "asiMedian": 2033
  }

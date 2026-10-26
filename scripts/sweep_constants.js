@@ -169,15 +169,13 @@ const META = {
   alOversight: ['J', 'align', 'Alignment progress from oversight', 'Extra yearly progress with full independent oversight, relative to progress with none (1.5/1.9)'],
   alShCoord: ['J', 'align', 'Alignment boost from coordination', 'Multiplier on progress from shared international research'],
   alShTransp: ['J', 'align', 'Alignment boost from published research', 'Multiplier on progress from research transparency'],
-  alNoise: ['J', 'align', 'Alignment noise', 'Random yearly wobble in alignment'],
   alJumpP: ['J', 'align', 'Chance of an alignment breakthrough', 'Yearly chance of a surprise jump in alignment'],
   alJumpBase: ['J', 'align', 'Alignment breakthrough size', 'Smallest alignment jump in a breakthrough year'],
   alJumpRand: ['J', 'align', 'Alignment breakthrough spread', 'Random extra size of an alignment breakthrough'],
   safetyKnee: ['J', 'align', 'Where safety spending stops paying fully', 'Safety share of compute up to which each extra point buys full progress; past it, returns shrink'],
   safetyTail: ['J', 'align', 'Safety effect past the knee', 'Extra effect from the knee up to 100% safety'],
   laborBase: ['J', 'align', 'AI labor on safety, baseline', 'Share of AI research help that goes to safety with no safety spending'],
-  laborSafety: ['J', 'align', 'AI labor on safety from spending', 'Extra share of AI help on safety, up to the knee'],
-  laborPause: ['J', 'align', 'AI labor on safety past the knee', 'Extra share of AI help on safety beyond the knee'],
+  laborSafety: ['J', 'align', 'AI labor on safety from spending', 'Extra share of AI help on safety, up to the knee (no more past it)'],
   diffSafe: ['J', 'align', 'Easy-by-default difficulty', 'Below this difficulty (above 3.3× ease) alignment works out without a general solution'],
   barBase: ['F', 'align', 'Handoff bar at zero difficulty', 'Alignment the handoff needs before difficulty is added; fitted to Plans A–C'],
   barDiff: ['F', 'align', 'Handoff bar per unit difficulty', 'How much more alignment a harder world needs at the handoff; fitted to Plans A–C'],
@@ -482,9 +480,9 @@ function renderReadable(rows, base, n, nK) {
 // must give the same numbers. Same seeded futures for every variant (common random numbers); the
 // paired standard errors say how far a difference is from sampling noise.
 // [id, overrides, constants it would remove]
-const ZERO = ['laborBase', 'laborSafety', 'laborPause', 'usPushSafety', 'cnRaceResp', 'cnRaceCoord', 'shareCoord',
+const ZERO = ['laborBase', 'laborSafety', 'usPushSafety', 'cnRaceResp', 'cnRaceCoord', 'shareCoord',
   'shareTransp', 'hidOversight', 'hidTransp', 'hidSafety', 'hidInternal', 'intSlope', 'ovsTax', 'leak', 'sabotSlow',
-  'jumpUSRand', 'jumpCNRand', 'alShCoord', 'alShTransp', 'alJumpRand', 'alNoise', 'coNoise', 'intDecay', 'intTransp',
+  'jumpUSRand', 'jumpCNRand', 'alShCoord', 'alShTransp', 'alJumpRand', 'coNoise', 'intDecay', 'intTransp',
   'intOversight', 'intBci', 'delBase', 'delCap', 'delRd', 'delOversight', 'delTransp', 'delSafety', 'coOversight',
   'coTransp', 'coRace', 'coAggr', 'coDecay', 'openTransp', 'bioOpen', 'concCap', 'concOpen', 'concTransp',
   'concOversight', 'concAggr', 'concDecay', 'concRaceOpen', 'concRaceTransp', 'concBci', 'trCap', 'trSafety',
