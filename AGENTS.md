@@ -41,7 +41,7 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
   `DRAW_ORDER`. Append a new unknown's key at the end of it, never in the middle, so every
   existing seed keeps its world (the test's `FIXED` list pins the existing order). The per-year
   dice in `step()` are a fixed array `d` of 17 draws; add a die at the end (`d[17]`) and lengthen
-  the array.
+  the array. A die whose job is removed (as `d[9]`, the old alignment noise) is still drawn.
 - **Belief must equal the average of the truth.** Every hazard has a truth version (the hidden
   draw, used by the dice) and a belief version (shown to players, averaged over the unknown's
   distribution). Test both: belief equals the Monte Carlo average of truth over sampled worlds,
@@ -177,6 +177,14 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
    constants", "None of the other N", "M of the N move none by more than 3").
 6. `README.md` the count of named constants in the `model.js` row ("its N named constants");
    a test checks it against `Object.keys(K)`.
+
+To **remove or merge** a constant, first screen it with `node scripts/sweep_constants.js
+--marginals` (add it to `CUTS` as the overrides that reproduce the cut, or check an edited copy of
+the model with `--save`/`--against`). The headline sweep's presets barely use the fund, oversight
+and transparency, so "moves nothing there" is not enough: a cut must move no preset's catastrophe by
+more than 0.3 points and no lever's effect or Plan A–D p(alignment) by more than about 1 (20,000
+futures, 200,000 near the line). Then do steps 1–6 in reverse and record it in
+`docs/simplification-2.md`.
 
 ### An outcome or ending
 

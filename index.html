@@ -461,11 +461,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261026132935"></script>
-<script src="events.js?v=20261026132935"></script>
-<script src="landmask.js?v=20261026132935"></script>
-<script src="presets.js?v=20261026132935"></script>
-<script src="trees.js?v=20261026132935"></script>
+<script src="model.js?v=20261026165310"></script>
+<script src="events.js?v=20261026165310"></script>
+<script src="landmask.js?v=20261026165310"></script>
+<script src="presets.js?v=20261026165310"></script>
+<script src="trees.js?v=20261026165310"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -763,7 +763,7 @@
     <p>Figures from 30,000–40,000 simulated futures. The realized bio median sits a little below the target because futures last different lengths of time, so each world's exposure varies around the average used for calibration. p(alignment) counts aligned handoffs as 1 and loss of control as 0, benevolent or not; futures still short of superintelligence in 2040 count their handoff odds given the hidden world; pandemic and war futures are left out.</p>
 
     <h3>7. Which numbers matter</h3>
-    <p>Most constants above are judgment calls, so we moved each of the model's 162 named constants on its own, to half and one and a half times its value (midpoints and thresholds ±10 points), and watched seven headline numbers: catastrophe under the status quo, Plan A and the Safest mix, and p(alignment) under Plans A–D (4,000 futures per run, the same futures every run). The ten that matter most:</p>
+    <p>Most constants above are judgment calls, so we moved each of the model's 158 named constants on its own, to half and one and a half times its value (midpoints and thresholds ±10 points), and watched seven headline numbers: catastrophe under the status quo, Plan A and the Safest mix, and p(alignment) under Plans A–D (4,000 futures per run, the same futures every run). The ten that matter most:</p>
     <div class="tablewrap"><table>
       <thead><tr><th>Value</th><th>Constant</th><th>Largest effect</th><th>Kind</th></tr></thead>
       <tbody>
@@ -779,7 +779,7 @@
         <tr><td>2.496</td><td>Lock-in scale</td><td>halved, status-quo catastrophe −6</td><td>Fitted (lock-in share)</td></tr>
       </tbody>
     </table></div>
-    <p>None of the other 152 moves any headline number by more than 5.0 points, and 140 of the 162 move none by more than 3. No constant moves the status quo's catastrophe rate by more than 6 points. Fitted constants trade off against the target they were fitted to, so their swings show how much that target matters. <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/constant-sensitivity.md" target="_blank" rel="noopener">Which numbers matter</a> goes through every constant by topic (how fast AI improves, alignment research, loss of control, war, pandemic, deals, China, lock-in and delegation), saying what each does, where it comes from (a source, fitted to a target, a 2027 baseline or a judgment call) and what it moves; the <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/constant-sensitivity-full.md" target="_blank" rel="noopener">full table</a> has every number. <code>scripts/sweep_constants.js</code> reproduces both.</p>
+    <p>None of the other 148 moves any headline number by more than 5.1 points, and 134 of the 158 move none by more than 3. No constant moves the status quo's catastrophe rate by more than 6 points. Fitted constants trade off against the target they were fitted to, so their swings show how much that target matters. <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/constant-sensitivity.md" target="_blank" rel="noopener">Which numbers matter</a> goes through every constant by topic (how fast AI improves, alignment research, loss of control, war, pandemic, deals, China, lock-in and delegation), saying what each does, where it comes from (a source, fitted to a target, a 2027 baseline or a judgment call) and what it moves; the <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/constant-sensitivity-full.md" target="_blank" rel="noopener">full table</a> has every number. <code>scripts/sweep_constants.js</code> reproduces both. Moving no headline number does not make a constant removable: these presets barely use the wealth fund, oversight or transparency, so <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/simplification-2.md" target="_blank" rel="noopener">Simplifying the model</a> also checks every lever's effect before cutting one.</p>
 
     <h3>8. What it leaves out</h3>
     <p>Covert projects and cheating on the deal (beyond the age-based dissolution and impairment rates), cyberattacks, countries other than the two blocs, misuse beyond bio, conflict between AGIs, anything after 2040, plans that change over time in the Futures Lab, and whether capability can really be put on one axis at all. Treat it as an argument you can poke at, not an oracle.</p>
@@ -799,7 +799,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261026132935';
+const ASSET_VERSION = '20261026165310';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';

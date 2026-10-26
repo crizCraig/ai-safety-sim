@@ -427,7 +427,7 @@ function renderReadable(rows, base, n, nK) {
   L.push('');
   L.push('Baseline, with every constant at its default: ' + METRICS.map(([m, , plain]) => `${plain} ${base[m].toFixed(0)}%`).join(', ') + '.');
   L.push('');
-  L.push('Two limits: each constant moves alone, so interactions are not explored, and only these seven numbers are watched (for example Plan B\'s war risk and the lesser presets are not).');
+  L.push('Three limits: each constant moves alone, so interactions are not explored; only these seven numbers are watched (for example Plan B\'s war risk and the lesser presets are not); and these presets barely use some levers (the wealth fund, oversight and transparency sit low in most of them), so a constant that moves none of these numbers can still change what a lever does. "Barely matters" here does not mean it can be removed: [Simplifying the model](simplification-2.md) checks every lever\'s effect before cutting anything.');
   L.push('');
   L.push('## The ten that matter most');
   L.push('');
