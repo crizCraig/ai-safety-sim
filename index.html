@@ -253,6 +253,8 @@
   .orow { display: grid; grid-template-columns: 12px 1fr 52px; gap: 8px; align-items: center; font-size: 12.5px; margin-bottom: 8px; }
   /* Each outcome's bullet matches the end sphere of its lines in the 3D view. */
   .orow .dot { width: 11px; height: 11px; border-radius: 50%; justify-self: center; }
+  .ggap { height: 10px; }
+  .ggap:first-child { display: none; }
   .orow .bar { grid-column: 2 / 4; height: 6px; margin-top: -4px; }
   .orow .v { font-family: var(--mono); text-align: right; }
   .note { font-size: 11px; color: var(--muted); line-height: 1.45; }
@@ -459,11 +461,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261026131040"></script>
-<script src="events.js?v=20261026131040"></script>
-<script src="landmask.js?v=20261026131040"></script>
-<script src="presets.js?v=20261026131040"></script>
-<script src="trees.js?v=20261026131040"></script>
+<script src="model.js?v=20261026131959"></script>
+<script src="events.js?v=20261026131959"></script>
+<script src="landmask.js?v=20261026131959"></script>
+<script src="presets.js?v=20261026131959"></script>
+<script src="trees.js?v=20261026131959"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -797,7 +799,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261026131040';
+const ASSET_VERSION = '20261026131959';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1834,9 +1836,9 @@ function buildLabUI() {
     const p = e.target.closest('[data-p]')?.dataset.p; if (!p) return;
     Object.assign(labL, PRESETS[p]); syncSliders(); runLab(); selectPreset(p);
   };
-  // Similar levers sit together under a small heading (M.LEVER_GROUPS).
+  // Similar levers sit together, with a little extra space between groups (M.LEVER_GROUPS).
   $('sliders').innerHTML = M.LEVER_ORDER.map((k, i) => [k, M.LEVER_INFO[k], i]).map(([k, info, i]) =>
-    `${i === 0 || M.leverGroup(M.LEVER_ORDER[i - 1]) !== M.leverGroup(k) ? `<div class="pgroup">${M.leverGroup(k)}</div>` : ''}<div class="slider"><div class="row"><span>${info.label}</span><span id="sv-${k}"></span></div><input type="range" min="0" max="100" step="0.5" id="sl-${k}" aria-label="${info.label}"><div class="ends"><span>${info.low}</span><span>${info.high}</span></div></div>`
+    `${i === 0 || M.leverGroup(M.LEVER_ORDER[i - 1]) !== M.leverGroup(k) ? '<div class="ggap"></div>' : ''}<div class="slider"><div class="row"><span>${info.label}</span><span id="sv-${k}"></span></div><input type="range" min="0" max="100" step="0.5" id="sl-${k}" aria-label="${info.label}"><div class="ends"><span>${info.low}</span><span>${info.high}</span></div></div>`
   ).join('');
   let timer;
   for (const k in M.LEVER_INFO) $('sl-' + k).addEventListener('input', (e) => {
@@ -1858,9 +1860,9 @@ const fmtA = (k, v, isSd = false) => {
 const marksHTML = (info) => !info.marks ? '' : `<div class="amarks">${info.marks.map(([v, t], i) =>
   `<span class="${i === 0 ? 'l' : 'r'}" style="left:${((v - info.min) / (info.max - info.min) * 100).toFixed(1)}%">${t}</span>`).join('')}</div>`;
 function buildAssumptionUI() {
-  // Similar unknowns sit together under a small heading (ASSUMPTION_INFO is ordered by group).
+  // Similar unknowns sit together, with a little extra space between groups (ASSUMPTION_INFO is ordered by group).
   $('assumptions').innerHTML = Object.entries(M.ASSUMPTION_INFO).map(([k, info], i, all) =>
-    `${info.group && (i === 0 || all[i - 1][1].group !== info.group) ? `<div class="pgroup">${info.group}</div>` : ''}<div class="slider"><div class="row"><span>${info.label}</span><span id="av-${k}"></span></div>
+    `${info.group && (i === 0 || all[i - 1][1].group !== info.group) ? '<div class="ggap"></div>' : ''}<div class="slider"><div class="row"><span>${info.label}</span><span id="av-${k}"></span></div>
       <div class="pair"><label>center<input type="range" id="am-${k}" min="${info.min}" max="${info.max}" step="${info.fmt === 'num' ? 1 : 0.01}" aria-label="${info.label} center">${marksHTML(info)}</label>
       <label>± spread<input type="range" id="as-${k}" min="0" max="${(info.max - info.min) / 3}" step="0.01" aria-label="${info.label} spread"></label></div>
       <div class="note">${info.help}</div></div>`
