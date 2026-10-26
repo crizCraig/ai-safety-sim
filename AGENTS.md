@@ -143,7 +143,8 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
 ### A policy lever
 
 1. `model.js` `LEVER_INFO`: `{ label, low, high, def, pct?, short, up? }`, appended at the end
-   (old positional `l=` share links map by index). This alone drives the Lab sliders, the
+   (old positional `l=` share links map by index), plus its place in `LEVER_GROUPS`, which sets
+   the order and headings it is shown under. This alone drives the Lab sliders, the
    campaign's lever panel, card chips (`short`, `up` as in `STAT_INFO`), share links,
    `defaultLevers()`, every preset's default (`P()` in presets.js), Copy for LLMs and the link
    round-trip test.
