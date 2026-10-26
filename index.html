@@ -251,11 +251,11 @@
   button.orow.open { border-color: var(--line); background: rgba(255,255,255,0.05); }
   .orow .odesc { grid-column: 1 / 4; font-size: 11.5px; line-height: 1.45; color: #c3cee0; margin-top: 2px; }
   .orow { display: grid; grid-template-columns: 12px 1fr 52px; gap: 8px; align-items: center; font-size: 12.5px; margin-bottom: 8px; }
-  .orow .dot { width: 10px; height: 10px; border-radius: 50%; }
-  /* Each outcome's bullet matches the end sphere of its lines in the 3D view: larger for a catastrophe. */
-  .orow .dot.big { width: 12px; height: 12px; }
-  .orow .dot.small { width: 7px; height: 7px; justify-self: center; }
+  /* Each outcome's bullet matches the end marker of its lines in the 3D view: a circle for a catastrophe, a star otherwise. */
+  .orow .dot { width: 11px; height: 11px; border-radius: 50%; justify-self: center; }
+  .orow .star { width: 12px; height: 12px; display: block; justify-self: center; }
   .dot-in { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); vertical-align: 0; }
+  .star-in { display: inline-block; width: 11px; height: 11px; vertical-align: -1px; }
   .orow .bar { grid-column: 2 / 4; height: 6px; margin-top: -4px; }
   .orow .v { font-family: var(--mono); text-align: right; }
   .note { font-size: 11px; color: var(--muted); line-height: 1.45; }
@@ -462,11 +462,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261025163651"></script>
-<script src="events.js?v=20261025163651"></script>
-<script src="landmask.js?v=20261025163651"></script>
-<script src="presets.js?v=20261025163651"></script>
-<script src="trees.js?v=20261025163651"></script>
+<script src="model.js?v=20261026121104"></script>
+<script src="events.js?v=20261026121104"></script>
+<script src="landmask.js?v=20261026121104"></script>
+<script src="presets.js?v=20261026121104"></script>
+<script src="trees.js?v=20261026121104"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -532,7 +532,7 @@
     <button class="btn copybtn" id="copyPage">Copy for LLMs</button>
     <div class="note">Copies these settings, the formulas, the model's code and the results as one prompt. Paste it into Claude or another AI and ask it to poke holes in the assumptions.</div>
     <div class="divider"></div>
-    <p class="note">Each line in the 3D view is one simulated future, 2027 → its outcome. Height is frontier capability and depth is alignment. Each line ends at the state its future reached, in a sphere of its outcome's colour; a larger sphere marks a catastrophe (pandemic, loss of control, war or locked-in power) at the year it struck. Hover or tap a line to read its values.</p>
+    <p class="note">Each line in the 3D view is one simulated future, 2027 → its outcome. Height is frontier capability and depth is alignment. Each line ends at the state its future reached, in its outcome's colour: a circle marks a catastrophe (pandemic, loss of control, war or locked-in power) at the year it struck, and a star any other ending. Hover or tap a line to read its values.</p>
   </div>
 </div>
 
@@ -800,7 +800,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261025163651';
+const ASSET_VERSION = '20261026121104';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1090,11 +1090,27 @@ const fanY = (c) => c / 100 * 7;
 // Higher alignment recedes into the scene, away from the default camera.
 const fanZ = (a) => 6 - THREE.MathUtils.clamp(a, 0, 100) / 100 * 12;
 let fanAnim = 0;
-// Every line ends in a sphere in its outcome's colour, larger for a catastrophe (the outcome list's bullets match).
+// A five-pointed white star, tinted per line by its SpriteMaterial colour. One texture shared by every star.
+const STAR_TEX = (() => {
+  const S = 128, c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d');
+  g.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 ? S * 0.2 : S * 0.47, a = -Math.PI / 2 + i * Math.PI / 5;
+    g.lineTo(S / 2 + r * Math.cos(a), S * 0.53 + r * Math.sin(a));
+  }
+  g.closePath(); g.fillStyle = '#fff'; g.fill();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+})();
+const STAR_SIZE = 0.6;
+// Every line ends at the state it reached: a sphere in its outcome's colour for a catastrophe, a star for any
+// other ending (the outcome list's bullets match).
 function buildFan(paths) {
   setHover(null);
   for (const ch of [...fanLines.children]) {
-    ch.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); });
+    // Sprites share one geometry and the star texture, so only their materials are disposed.
+    ch.traverse((o) => { if (!o.isSprite) o.geometry?.dispose(); o.material?.dispose(); });
     fanLines.remove(ch);
   }
   for (const p of paths) {
@@ -1111,9 +1127,12 @@ function buildFan(paths) {
     line.userData.marks = p.points.map((q, i) => ({ q, v: pts[i] }));
     g.setDrawRange(0, 0);
     fanLines.add(line);
-    // Every line ends at the state it actually reached, in a dot that says whether it was a catastrophe.
+    // Every line ends at the state it actually reached: a sphere for a catastrophe, a star otherwise.
     const catastrophe = M.CATASTROPHES.includes(p.outcome);
-    const end = new THREE.Mesh(new THREE.SphereGeometry(catastrophe ? 0.14 : 0.08, 12, 10), new THREE.MeshBasicMaterial({ color: col }));
+    const end = catastrophe
+      ? new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 10), new THREE.MeshBasicMaterial({ color: col }))
+      : new THREE.Sprite(new THREE.SpriteMaterial({ map: STAR_TEX, color: col, transparent: true, depthWrite: false }));
+    if (!catastrophe) end.scale.setScalar(STAR_SIZE);
     end.position.copy(pts[pts.length - 1]); end.visible = false;
     line.add(end); line.userData.end = end;
   }
@@ -1965,16 +1984,18 @@ function runLab() {
   $('catNum').style.color = cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)';
   labCat = cat;
   if (distOpen) scheduleDist();
-  $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, cat < 0.1 ? 1 : 0)}</b> of futures (outcomes with a large dot <span class="dot-in"></span>) · outcome reached after ${mc.meanYears.toFixed(1)} years on average (${avgDate(mc.meanYears)}) · click an outcome to isolate it`;
+  $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, cat < 0.1 ? 1 : 0)}</b> of futures (outcomes marked with a circle <span class="dot-in"></span>; a star ${starSvg('var(--muted)', 'star-in')} marks any other ending) · outcome reached after ${mc.meanYears.toFixed(1)} years on average (${avgDate(mc.meanYears)}) · click an outcome to isolate it`;
   buildFan(mc.paths);
   applyFocus();
 }
 
+// A five-pointed star bullet, matching the star at the end of a non-catastrophe line in 3D.
+function starSvg(fill, cls, label) { return `<svg class="${cls}" viewBox="0 0 24 24" ${label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"'}><path fill="${fill}" d="M12 1.2l3.1 7.2 7.8.7-5.9 5.2 1.8 7.7L12 18l-6.8 4 1.8-7.7-5.9-5.2 7.8-.7z"/></svg>`; }
 function renderOutcomeRows(mc) {
   const order = Object.keys(M.OUTCOMES).sort((a, b) => mc.counts[b] - mc.counts[a]);
   $('outcomes').innerHTML = order.map((k) => {
     const p = mc.counts[k] / mc.n, o = M.OUTCOMES[k], open = labFocus === k, cat = M.CATASTROPHES.includes(k);
-    return `<button class="orow${open ? ' open' : ''}${cat ? ' cat' : ''}" data-outcome="${k}" aria-expanded="${open}"><span class="dot ${cat ? 'big' : 'small'}" style="background:${o.color}" aria-label="${cat ? 'catastrophe' : 'not a catastrophe'}"></span><span>${o.title}</span><span class="v">${pct(p)}</span><span class="bar"><i style="width:${p * 100}%;background:${o.color}"></i></span>${open ? `<span class="odesc">${o.text}</span>` : ''}</button>`;
+    return `<button class="orow${open ? ' open' : ''}${cat ? ' cat' : ''}" data-outcome="${k}" aria-expanded="${open}">${cat ? `<span class="dot" style="background:${o.color}" role="img" aria-label="catastrophe"></span>` : starSvg(o.color, 'star', 'not a catastrophe')}<span>${o.title}</span><span class="v">${pct(p)}</span><span class="bar"><i style="width:${p * 100}%;background:${o.color}"></i></span>${open ? `<span class="odesc">${o.text}</span>` : ''}</button>`;
   }).join('');
 }
 
@@ -2444,7 +2465,7 @@ const TOURS = {
     ['#sliders', 'Or set your own policy', 'Drag any slider. The results update right away.'],
     ['#catBig', 'The headline number', 'The share of simulated futures that end in catastrophe. Tap it to see how that risk spreads across possible worlds.'],
     ['#outcomes', 'How the futures end', 'Click an outcome to see only those futures in the 3D view, and to read what it means.'],
-    ['#gl', 'Each path is one future', 'Watch them draw: each path runs from 2027 to where that future ends. Height is how powerful AI gets and depth is how far alignment has come; a large end sphere marks a catastrophe. Drag to rotate, zoom with scroll or a pinch, and hover a path for details.'],
+    ['#gl', 'Each path is one future', 'Watch them draw: each path runs from 2027 to where that future ends. Height is how powerful AI gets and depth is how far alignment has come; a circle at the end marks a catastrophe and a star any other ending. Drag to rotate, zoom with scroll or a pinch, and hover a path for details.'],
     ['.tabs', 'Play it yourself', 'Switch to the Campaign to make the decisions one year at a time.'],
   ],
 };
