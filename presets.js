@@ -61,6 +61,7 @@
   const TIME_RSI = 'https://time.com/article/2026/10/14/recursive-self-improvement-AI-report/';
   const GLADSTONE_RSI = 'https://aiendgame.com/p/what-rsi-looks-like';
   const AIFP_UPDATE = 'https://blog.aifutures.org/p/q25-2026-timelines-update-uplift';
+  const S1 = 'https://www.sec.gov/Archives/edgar/data/2130357/000162828026067168/anthropicpbc-sx1.htm';
   const METR_UPLIFT = 'https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/';
   const UNKNOWN_PRESETS = {
     'AI 2040 (default)': { set: {},
@@ -69,7 +70,7 @@
     // made before that wrote speed=1.3:0.3, which `legacy` maps back to this scenario.
     'RSI 2027 (lab insiders)': { set: { capNow: { mean: 50, sd: 0 }, speed: { mean: Math.log10(1.3), sd: 0.35 / Math.LN10 } },
       legacy: { speed: '1.3:0.3' },
-      html: `Most frontier-lab researchers interviewed for Gladstone AI's <a href="${GLADSTONE_RSI}" target="_blank" rel="noopener">report</a> (via <a href="${TIME_RSI}" target="_blank" rel="noopener">TIME</a>, Oct 2026) expect recursive self-improvement within 3 to 12 months, absent U.S. government intervention. This starts 2027 at capability 50, where AI speeds up its own research, at 1.3× AI 2040's pace. Milestones come about a year earlier (Automated Coder ~2029, superintelligence ~2030), and Plan A's catastrophe share roughly doubles.` },
+      html: `Most frontier-lab researchers interviewed for Gladstone AI's <a href="${GLADSTONE_RSI}" target="_blank" rel="noopener">report</a> (via <a href="${TIME_RSI}" target="_blank" rel="noopener">TIME</a>, Oct 2026) expect recursive self-improvement within 3 to 12 months, absent U.S. government intervention. This starts 2027 at capability 50, where AI speeds up its own research, at 1.3× AI 2040's pace. <a href="${S1}" target="_blank" rel="noopener">Anthropic's S-1</a> (Oct 2026) says Claude wrote "over 90%" of its September 2026 code as it approaches "recursive self-improvement." Milestones come about a year earlier (Automated Coder ~2029, superintelligence ~2030), and Plan A's catastrophe share roughly doubles.` },
     // Daniel Kokotajlo's all-things-considered Automated Coder median is Nov 2027; the Lab labels a
     // milestone with the year after it is reached, so that is the Lab's 2028 (as RSI's 2028 shows
     // as 2029). Only the starting point moves: 59 at AI 2040's pace puts about three quarters of

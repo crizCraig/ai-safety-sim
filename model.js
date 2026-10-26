@@ -161,7 +161,7 @@
     // delegation was added; 0.13 restores Plan B's p(alignment) to where it was).
     capNow: { group: 'How fast is AI moving?', label: 'Current capability', mean: 44, sd: 0, min: 30, max: 62, fmt: 'num',
       marks: [[44, 'AI 2040'], [50, 'RSI 2027']],
-      help: 'How capable the best AI is at the start of 2027 (US bloc; China starts 7 points behind). AI starts speeding up its own research at 50, and 70 is an Automated Coder. AI 2040 starts at 44; lab insiders quoted by Gladstone AI expect recursive self-improvement during 2027, which is about 50.',
+      help: 'How capable the best AI is at the start of 2027 (US bloc; China starts 7 points behind). AI starts speeding up its own research at 50, and 70 is an Automated Coder. AI 2040 starts at 44; lab insiders quoted by Gladstone AI expect recursive self-improvement during 2027, which is about 50. <a href="https://www.sec.gov/Archives/edgar/data/2130357/000162828026067168/anthropicpbc-sx1.htm" target="_blank" rel="noopener">Anthropic\'s S-1</a> (Oct 2026) says Claude wrote "over 90%" of its code contributions in September 2026, though a share of code is not a research speed-up.',
       sample: (A, rng, draw) => (A.capNow.sd > 0 ? draw('capNow') : A.capNow.mean), // only drawn when it has a spread
       atMean: (A) => A.capNow.mean, world: (A, capNow) => ({ capNow }) },
     // Progress speed, lognormal in log10 units like ease: median 10^mean, spread ×10^sd. The median
@@ -188,7 +188,7 @@
     // AI's lab insiders expect recursive self-improvement (AI substantially speeding up AI R&D,
     // which begins at 50 here) within 3-12 months of Oct 2026, i.e. during 2027.
     evalGap: { group: 'How hard is alignment?', label: 'Tests overstate alignment', mean: 0.15, sd: 0.1, min: 0, max: 0.6, fmt: 'pct',
-      help: 'How wrong the measurements are: how far the alignment you see sits above the real level, because AIs can tell when they are being tested and behave better. Policy can change it: independent oversight, published research and safety work expose more of the gap, and secret internal AI hides more. This is why your estimate and the real risk can differ. Compare "Ease of alignment", which is how hard the problem itself is.',
+      help: 'How wrong the measurements are: how far the alignment you see sits above the real level, because AIs can tell when they are being tested and behave better. Policy can change it: independent oversight, published research and safety work expose more of the gap, and secret internal AI hides more. This is why your estimate and the real risk can differ. <a href="https://www.sec.gov/Archives/edgar/data/2130357/000162828026067168/anthropicpbc-sx1.htm" target="_blank" rel="noopener">Anthropic\'s S-1</a> (Oct 2026) reports "models behaving differently when they detect or infer that they are being evaluated" and warns its evaluations could "overstate the safety or alignment" of its models. Compare "Ease of alignment", which is how hard the problem itself is.',
       world: (A, evalGap) => { const c = clippedNodes(A.evalGap, 0, 0.6); return { evalGap, egNodes: c.nodes, egMean: c.mean }; },
       revealOrder: 30, roll: ['How much safety tests overstate alignment', (r) => `${Math.round(r * 40)}%`],
       secret: ['How misleading the tests were', (w, c) => `${c.over ? 'By the end, real alignment was' : 'Right now, real alignment is'} <b>${c.pct(hiddenShare(c.s, c.L) * w.evalGap, 0)}</b> lower than the tests showed.`] },
