@@ -154,8 +154,9 @@
   const LEVER_ORDER = Object.freeze(LEVER_GROUPS.flatMap(([, ks]) => ks));
   const leverGroup = (k) => (LEVER_GROUPS.find(([, ks]) => ks.includes(k)) || [])[0];
 
-  // Hidden facts about the world nobody knows in advance. As in the original
-  // Game of AGI, each simulated future samples them from Gaussians (mean ± sd).
+  // Hidden facts about the world nobody knows in advance. Each simulated future draws them from
+  // a distribution set by a center ± spread: the probabilities and shares (fmt 'pct') from a Beta
+  // on [min, max] with that mean and sd (see betaOf), the others from (log)normals as noted.
   const ASSUMPTION_INFO = {
     // Ease of alignment = 1 / difficulty. Lognormal, set in log10 units: median
     // 10^mean, spread ×10^sd. Calibrated to AI 2040's p(alignment) estimates (0.10 before
@@ -188,53 +189,53 @@
     // Where the frontier stands at the start of 2027. AI 2040's starting point is 44; Gladstone
     // AI's lab insiders expect recursive self-improvement (AI substantially speeding up AI R&D,
     // which begins at 50 here) within 3-12 months of Oct 2026, i.e. during 2027.
-    evalGap: { group: 'How hard is alignment?', label: 'Tests overstate alignment', mean: 0.15, sd: 0.1, min: 0, max: 0.6, fmt: 'pct',
+    evalGap: { group: 'How hard is alignment?', label: 'Tests overstate alignment', mean: 0.15, sd: 0.09, min: 0, max: 0.6, fmt: 'pct',
       help: 'How wrong the measurements are: how far the alignment you see sits above the real level, because AIs can tell when they are being tested and behave better. Policy can change it: independent oversight, published research and safety work expose more of the gap, and secret internal AI hides more. This is why your estimate and the real risk can differ. <a href="https://www.sec.gov/Archives/edgar/data/2130357/000162828026067168/anthropicpbc-sx1.htm" target="_blank" rel="noopener">Anthropic\'s S-1</a> (Oct 2026) reports "models behaving differently when they detect or infer that they are being evaluated" and warns its evaluations could "overstate the safety or alignment" of its models. Compare "Ease of alignment", which is how hard the problem itself is.',
-      world: (A, evalGap) => { const c = clippedNodes(A.evalGap, 0, 0.6); return { evalGap, egNodes: c.nodes, egMean: c.mean }; },
+      world: (A, evalGap) => { const c = probNodes(A.evalGap, 0, 0.6); return { evalGap, egNodes: c.nodes, egMean: c.mean }; },
       revealOrder: 30, roll: ['How much safety tests overstate alignment', (r) => `${Math.round(r * 40)}%`],
       secret: ['How misleading the tests were', (w, c) => `${c.over ? 'By the end, real alignment was' : 'Right now, real alignment is'} <b>${c.pct(hiddenShare(c.s, c.L) * w.evalGap, 0)}</b> lower than the tests showed.`] },
-    benevolent: { group: 'Does AI care about everyone?', label: 'Kind even if uncontrolled', mean: 0.1, sd: 0.25, min: 0, max: 1, fmt: 'pct',
+    benevolent: { group: 'Does AI care about everyone?', label: 'Kind even if uncontrolled', mean: 0.16, sd: 0.18, min: 0, max: 1, fmt: 'pct',
       help: 'If humans lose control of AI, the chance it still cares for humanity. The future is then steered by AI, kindly, instead of by people (Benevolent Takeover).',
       sample: (A, rng, draw) => { const p = draw('benevolent'); return rng() < p; }, atMean: () => false,
-      world: (A, benevolent) => ({ pBenevolent: clippedMean(A.benevolent), benevolent }),
+      world: (A, benevolent) => ({ pBenevolent: probMean(A.benevolent), benevolent }),
       revealOrder: 80, roll: ['Whether an AI that escaped control would be kind', (r) => (r < 0.5 ? 'yes' : 'no')],
       secret: ['If AI had escaped control', (w) => (w.benevolent ? '<span style="color:#ff9ecf">It would have cared for humanity.</span>' : 'It would not have cared for humanity.')] },
     // China's own work and caution are judgments informed by published work (Concordia AI's
     // safety-paper counts, SemiAnalysis's count of releases with safety results), official
     // "human control" language and current racing; none of these measures effort, and there is
     // no case of Beijing slowing frontier AI for safety. Hence the wide spreads.
-    valueAlign: { group: 'Does AI care about everyone?', label: 'Aligned AI fights corruption', mean: 0.25, sd: 0.20, min: 0, max: 1, fmt: 'pct',
+    valueAlign: { group: 'Does AI care about everyone?', label: 'Aligned AI fights corruption', mean: 0.26, sd: 0.18, min: 0, max: 1, fmt: 'pct',
       help: 'Value alignment: the chance an aligned superintelligence cares about humanity broadly, not just about whoever controls it, and so declines to help a few seize power even when its controllers ask. Unlike "Kind even if uncontrolled", which is about an AI that has escaped control, this is about one that is still under control: alignment can succeed technically yet serve only a powerful few if governance fails. Labs aim for this (e.g. constitutions that tell models to refuse illegitimate power grabs), but it\'s unproven under pressure from whoever controls the weights. An AI that surely refuses stops lock-in entirely. At the default it cuts status-quo lock-in from about 70% to about 54% of futures where humans keep control.',
-      world: (A, valueAlign) => ({ valueAlign, valueNodes: clippedNodes(A.valueAlign, 0, 1).nodes }),
+      world: (A, valueAlign) => ({ valueAlign, valueNodes: probNodes(A.valueAlign).nodes }),
       revealOrder: 70, roll: ['Whether aligned AI fights corruption', (r) => `${Math.round(r * 70)}%`],
       secret: ['Aligned AI fights corruption', (w, c) => `A <b>${c.pct(w.valueAlign, 0)}</b> chance an aligned AI would refuse to help a few seize power, even if its controllers asked.`] },
     // Lognormal, set in log10 units. Calibrated to a separate factored Monte Carlo
     // decomposition: decade median 1.2e-4, 95% interval ~5e-7 to ~3e-2,
     // P(>1%) ≈ 5.5%, P(>10%) ≈ 0.7%. That is median 10^-3.92 with a log10 sd of about 1.2.
-    share: { group: 'Does power stay in check?', label: 'The powerful share the gains', mean: 0.30, sd: 0.20, min: 0, max: 1, fmt: 'pct',
+    share: { group: 'Does power stay in check?', label: 'The powerful share the gains', mean: 0.31, sd: 0.19, min: 0, max: 1, fmt: 'pct',
       help: 'If a few control AI and nothing forces them, the chance they share its gains broadly anyway. Low means the powerful keep AI and its gains once most people\'s work is no longer needed. The wealth fund, oversight, transparency and whistleblowers can still force sharing.',
-      world: (A, share) => ({ share, shareNodes: clippedNodes(A.share, 0, 1).nodes }),
+      world: (A, share) => ({ share, shareNodes: probNodes(A.share).nodes }),
       revealOrder: 60, roll: ['Whether the powerful would share AI\'s gains', (r) => `${Math.round(r * 70)}%`],
       secret: ['The powerful', (w, c) => `A <b>${c.pct(w.share, 0)}</b> chance they would share AI's gains if nothing forced them.`] },
     // Value alignment, as opposed to intent alignment ("aligned" elsewhere means the AI does what
     // its controllers intend). Labs aim for it, e.g. constitutions telling models to refuse
     // illegitimate power grabs, but nothing shows it holds when the weights' owners push.
-    whistle: { group: 'Does power stay in check?', label: 'Whistleblower odds', mean: 0.25, sd: 0.15, min: 0, max: 1, fmt: 'pct',
+    whistle: { group: 'Does power stay in check?', label: 'Whistleblower odds', mean: 0.25, sd: 0.14, min: 0, max: 1, fmt: 'pct',
       help: 'Chance that insiders expose or refuse to carry out a power grab by whoever controls AGI.',
-      world: (A, whistle) => ({ whistle, whistleNodes: clippedNodes(A.whistle, 0, 1).nodes }),
+      world: (A, whistle) => ({ whistle, whistleNodes: probNodes(A.whistle).nodes }),
       revealOrder: 50, roll: ['Whether insiders would expose a power grab', (r) => `${Math.round(r * 60)}%`],
       secret: ['Insiders', (w, c) => `A <b>${c.pct(w.whistle, 0)}</b> chance they would expose a power grab.`] },
     // Whether those who hold AI share its gains when nothing forces them. Arguments that they
     // will not: once most people's work is no longer needed, they lose their leverage (Drago and
     // Laine, The Intelligence Curse; Kulveit et al., Gradual Disempowerment), as in rentier
     // states; voluntary pledges exist but nothing enforces them.
-    cnAlign: { group: 'What will China do?', label: 'China\'s own alignment work', mean: 0.35, sd: 0.25, min: 0, max: 1, fmt: 'pct',
+    cnAlign: { group: 'What will China do?', label: 'China\'s own alignment work', mean: 0.36, sd: 0.23, min: 0, max: 1, fmt: 'pct',
       help: 'How much alignment research China\'s labs do themselves, relative to the US bloc. It fills part of the gap that published US research and coordination do not reach, and China\'s AI speeds this research up as it improves (100% is a serious program, like a US bloc putting 30% of compute on safety). Work on keeping AI loyal to the Party\'s line does not count.',
-      world: (A, cnAlign) => Object.assign({ cnAlign }, chinaNodes(A.cnAlign)),
+      world: (A, cnAlign) => { const c = probNodes(A.cnAlign); return { cnAlign, cnNodes: c.nodes, cnMean: c.mean }; },
       revealOrder: 40, roll: ['How much alignment work China does itself', (r) => `${Math.round(r * 100)}%`],
       // One secret row for both of China's unknowns.
       secret: ['China', (w, c) => `Did <b>${c.pct(w.cnAlign, 0)}</b> as much alignment work as the US bloc, and ${w.cnCaution < 0.005 ? 'would not have slowed down' : `would have slowed <b>${c.pct(w.cnCaution, 0)}</b>`} near the brink.`] },
-    cnCaution: { group: 'What will China do?', label: 'China slows near the brink', mean: 0.25, sd: 0.25, min: 0, max: 1, fmt: 'pct',
+    cnCaution: { group: 'What will China do?', label: 'China slows near the brink', mean: 0.27, sd: 0.22, min: 0, max: 1, fmt: 'pct',
       help: 'How far China cuts its AI race once there are signs of losing control. It notices later than the US would, slows more if the US slows or a deal is in force, and never slows for fear of concentrated power: an AI that obeys the Party counts as aligned in Beijing.',
       world: (A, cnCaution) => ({ cnCaution }),
       revealOrder: 45, roll: ['Whether China slows down near the brink', (r) => `${Math.round(r * 70)}%`] },
@@ -269,9 +270,11 @@
   }
   // Links round to 3 decimals to stay short, so decoding snaps back to the exact values the
   // page can produce: the default or a scenario's values if the link matches their encoding,
-  // otherwise the nearest slider position (center min + k·step, spread k·step).
-  function assumptionFromURL(k, m, sd) {
+  // otherwise the nearest slider position (center min + k·step, spread k·step). `legacy` marks a link
+  // from before v=3, whose probability unknowns were clipped normals: they convert to the matching Beta.
+  function assumptionFromURL(k, m, sd, legacy = false) {
     const info = ASSUMPTION_INFO[k];
+    if (legacy && isProb(k) && Number.isFinite(m) && Number.isFinite(sd)) return legacyProbAssumption(k, m, sd);
     if (info) {
       const cands = [defaultAssumptions()[k]];
       const UP = root.SimPresets && root.SimPresets.UNKNOWN_PRESETS;
@@ -292,8 +295,9 @@
   }
 
   // Each unknown in ASSUMPTION_INFO carries, besides its slider metadata:
-  //   sample(A, rng, draw)  its value in one future (default: draw(key), N(mean, sd) clipped to [min, max]);
-  //   atMean(A)             its value in the mean world (default: clippedMean(A[key]));
+  //   sample(A, rng, draw)  its value in one future (default: draw(key): for fmt 'pct' a Beta on [min, max]
+  //                         with that mean and sd, otherwise N(mean, sd) clipped to [min, max]);
+  //   atMean(A)             its value in the mean world (default: the Beta's mean);
   //   world(A, v)           the fields a world carries for value v, belief nodes included;
   //   notInBase             left out of the base world that measures bio exposure.
   // The RNG order. Append-only: a new unknown goes at the end, so every existing seed keeps its world.
@@ -301,9 +305,10 @@
 
   // Draw one world. `pSafe` is what everyone believes up front; `safe` is the truth.
   function sampleWorld(A, rng, skipBio = false) {
+    // Every draw takes one standard normal (two RNG calls), whatever the distribution or its spread.
     const draw = (k) => {
-      const info = ASSUMPTION_INFO[k];
-      return Math.max(info.min, Math.min(info.max, A[k].mean + A[k].sd * gauss(rng)));
+      const info = ASSUMPTION_INFO[k], z = gauss(rng);
+      return info.fmt === 'pct' ? betaAtZ(betaOf(A[k], info.min, info.max), z) : Math.max(info.min, Math.min(info.max, A[k].mean + A[k].sd * z));
     };
     const v = {};
     for (const k of DRAW_ORDER) v[k] = ASSUMPTION_INFO[k].sample ? ASSUMPTION_INFO[k].sample(A, rng, draw) : draw(k);
@@ -326,33 +331,10 @@
   // Every unknown at its mean (the kind-AI coin at false), for the default starting state.
   function meanWorld() {
     const A = defaultAssumptions(), v = {};
-    for (const k of DRAW_ORDER) v[k] = ASSUMPTION_INFO[k].atMean ? ASSUMPTION_INFO[k].atMean(A) : clippedMean(A[k]);
+    for (const k of DRAW_ORDER) v[k] = ASSUMPTION_INFO[k].atMean ? ASSUMPTION_INFO[k].atMean(A) : probMean(A[k], ASSUMPTION_INFO[k].min, ASSUMPTION_INFO[k].max);
     return buildWorld(A, v);
   }
 
-  // Belief nodes [weight, value] over N(mean, sd) clipped to [lo, hi]: the clipping's point
-  // masses at the ends kept exactly, 40 midpoint nodes inside. Cached per distribution.
-  const CLIP_CACHE = new Map();
-  function clippedNodes(p, lo, hi) {
-    const key = p.mean + '|' + p.sd + '|' + lo + '|' + hi;
-    if (!CLIP_CACHE.has(key)) {
-      let nodes;
-      if (!(p.sd > 0)) nodes = [[1, clamp(p.mean, lo, hi)]];
-      else {
-        const z0 = (lo - p.mean) / p.sd, z1 = (hi - p.mean) / p.sd;
-        nodes = [[normCdf(z0), lo], [1 - normCdf(z1), hi]];
-        const a = Math.max(z0, -8), b = Math.min(z1, 8), dz = (b - a) / 40;
-        if (b > a) for (let i = 0; i < 40; i++) {
-          const zl = a + i * dz, zm = zl + dz / 2;
-          nodes.push([normCdf(zl + dz) - normCdf(zl), clamp(p.mean + p.sd * zm, lo, hi)]);
-        }
-        const t = nodes.reduce((x, [w]) => x + w, 0);
-        nodes = nodes.filter(([w]) => w > 1e-12).map(([w, v]) => [w / t, v]);
-      }
-      CLIP_CACHE.set(key, { nodes, mean: nodes.reduce((a, [w, v]) => a + w * v, 0) });
-    }
-    return CLIP_CACHE.get(key);
-  }
   // What the campaign reveals about the unknowns, in `revealOrder` (capNow is public, so it has none).
   // The roll screen flashes each `roll` row; the secret facts show each `secret` row, given the
   // page's percent formatter `pct`, the state `s`, levers `L` and whether the game is `over`.
@@ -361,29 +343,144 @@
   const rollRows = () => revealed('roll');
   const secretRows = (s, L, ctx) => revealed('secret').map(([label, html]) => [label, html(s.world, Object.assign({ s, L }, ctx))]);
 
-  // Nodes over China's own-alignment effort for the belief shown to players (an expectation
-  // over the clipped bell curve; the dice use the hidden draw). Nodes span ±4 sd so the clipped
-  // tails are represented (cached per distribution).
-  const CN_Z = Array.from({ length: 33 }, (_, i) => -4 + i * 0.25);
-  const CN_W = (() => { const w = CN_Z.map((z) => Math.exp(-z * z / 2)), t = w.reduce((a, b) => a + b); return w.map((x) => x / t); })();
-  const CN_CACHE = new Map();
-  function chinaNodes(p) {
-    const key = p.mean + '|' + p.sd;
-    if (!CN_CACHE.has(key)) {
-      const nodes = p.sd > 0 ? CN_Z.map((z, i) => [CN_W[i], clamp(p.mean + p.sd * z, 0, 1)]) : [[1, clamp(p.mean, 0, 1)]];
-      CN_CACHE.set(key, { nodes, mean: nodes.reduce((a, [w, v]) => a + w * v, 0) });
-    }
-    const c = CN_CACHE.get(key);
-    return { cnNodes: c.nodes, cnMean: c.mean };
-  }
 
-  // Expected value of a probability drawn from N(mean, sd) and clipped to [0, 1], which is
-  // what each world's draw averages to (the shown belief must match the sampled truth).
-  function clippedMean(p) {
-    if (!(p.sd > 0)) return clamp(p.mean, 0, 1);
-    let e = 0;
-    for (const z of DIFF_Z) e += zWeight(z) * clamp(p.mean + p.sd * z, 0, 1);
-    return e;
+  // ---- Probability unknowns (fmt 'pct'): a Beta distribution on [min, max] ----
+  // The sliders set the Beta's mean (center) and standard deviation (spread), converted by the
+  // method of moments: with m and s rescaled to [0, 1], k = m(1-m)/s² - 1, α = m k, β = (1-m) k.
+  // A Beta's sd is always below √(m(1-m)) (that limit is two point masses at the ends), so the
+  // spread is capped at BETA_SD_CAP·√(m(1-m)) (k ≥ 0.108); a spread of 0, or a center at either
+  // end, is a point mass. Until Oct 2026 these were normals clipped to [min, max], which piled
+  // probability onto the ends (35% of worlds had kindness exactly 0) and moved the mean away
+  // from the label; legacyProbAssumption converts those parameters for old share links.
+  const BETA_SD_CAP = 0.95;
+  const isProb = (k) => ASSUMPTION_INFO[k] && ASSUMPTION_INFO[k].fmt === 'pct';
+  // ln Γ(x), Lanczos (g = 7, 9 terms), relative error about 1e-15 for x > 0.
+  const LANCZOS = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
+    12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  function lnGamma(x) {
+    if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lnGamma(1 - x);
+    x -= 1; let a = LANCZOS[0]; const t = x + 7.5;
+    for (let i = 1; i < 9; i++) a += LANCZOS[i] / (x + i);
+    return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+  }
+  // Continued fraction for the regularized incomplete beta (Numerical Recipes' betacf, modified Lentz).
+  function betaCF(a, b, x) {
+    const TINY = 1e-300, qab = a + b, qap = a + 1, qam = a - 1;
+    let c = 1, d = 1 - qab * x / qap; if (Math.abs(d) < TINY) d = TINY; d = 1 / d; let h = d;
+    for (let m = 1; m <= 300; m++) {
+      const m2 = 2 * m;
+      let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+      d = 1 + aa * d; if (Math.abs(d) < TINY) d = TINY; c = 1 + aa / c; if (Math.abs(c) < TINY) c = TINY; d = 1 / d; h *= d * c;
+      aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+      d = 1 + aa * d; if (Math.abs(d) < TINY) d = TINY; c = 1 + aa / c; if (Math.abs(c) < TINY) c = TINY; d = 1 / d;
+      const del = d * c; h *= del;
+      if (Math.abs(del - 1) < 1e-15) break;
+    }
+    return h;
+  }
+  // I_x(a, b), the Beta(a, b) CDF at x, with ln B(a, b) passed in (lnB).
+  function betaInc(a, b, x, lnB) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    const bt = Math.exp(a * Math.log(x) + b * Math.log1p(-x) - lnB);
+    return x < (a + 1) / (a + b + 2) ? bt * betaCF(a, b, x) / a : 1 - bt * betaCF(b, a, 1 - x) / b;
+  }
+  // x with I_x(a, b) = t, for a lower-tail target t ≤ 0.5: Newton in ln x, kept inside a bracket.
+  function betaInvLower(a, b, t, lnB) {
+    if (t <= 0) return 0;
+    let lo = -1000, hi = 0; // ln x
+    let y = Math.min(-1e-9, (Math.log(t) + Math.log(a) + lnB) / a); // the small-x approximation I ≈ x^a / (a B)
+    if (!(y > lo)) y = lo / 2;
+    for (let i = 0; i < 200; i++) {
+      if (y < -740) return 0; // below the smallest double: the value is 0 for every purpose here
+      const x = Math.exp(y), f = betaInc(a, b, x, lnB) - t;
+      if (f === 0) return x;
+      if (f > 0) hi = y; else lo = y;
+      const dens = Math.exp(a * y + (b - 1) * Math.log1p(-x) - lnB); // dI / d ln x
+      let next = y - f / dens;
+      if (!(next > lo && next < hi)) next = lo < -900 ? (hi - 1 < lo ? (lo + hi) / 2 : hi - 1) : (lo + hi) / 2;
+      if (Math.abs(next - y) < 1e-13) return Math.exp(next);
+      y = next;
+    }
+    return Math.exp(y);
+  }
+  // Standard normal tail Φ(-|z|), accurate in relative terms far into the tail (Numerical Recipes' erfcc, relative error < 1.2e-7).
+  function normTail(z) {
+    const x = Math.abs(z) / Math.SQRT2, t = 1 / (1 + 0.5 * x);
+    return 0.5 * t * Math.exp(-x * x - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806
+      + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+  }
+  // The Beta on [lo, hi] for an unknown's {mean, sd}: { m, s } on [0, 1] after the cap, and either
+  // `point` (a point mass, in [lo, hi] units) or the shape a, b. Cached per distribution.
+  const BETA_CACHE = new Map();
+  function betaOf(p, lo = 0, hi = 1) {
+    const key = p.mean + '|' + p.sd + '|' + lo + '|' + hi;
+    let B = BETA_CACHE.get(key);
+    if (!B) {
+      const w = hi - lo, m = clamp((p.mean - lo) / w, 0, 1), s = Math.min(Math.max(0, p.sd) / w, BETA_SD_CAP * Math.sqrt(m * (1 - m)));
+      if (!(s > 1e-9)) B = { lo, w, m, s: 0, point: lo + w * m };
+      else {
+        const k = m * (1 - m) / (s * s) - 1, a = m * k, b = (1 - m) * k;
+        B = { lo, w, m, s, a, b, lnB: lnGamma(a) + lnGamma(b) - lnGamma(a + b) };
+      }
+      BETA_CACHE.set(key, B);
+    }
+    return B;
+  }
+  // The Beta's quantile at Φ(z), in [lo, hi] units. Sampling feeds it a standard normal z, so a
+  // probability unknown uses the same two RNG calls as the normal it replaced: every other draw
+  // and every per-year die keeps its stream, and each world keeps its rank (its z) when a slider moves.
+  function betaAtZ(B, z) {
+    if (B.point !== undefined) return B.point;
+    const x = z <= 0 ? betaInvLower(B.a, B.b, normTail(z), B.lnB) : 1 - betaInvLower(B.b, B.a, normTail(z), B.lnB);
+    return B.lo + B.w * x;
+  }
+  // The spread an unknown actually has after the cap (in its own units), for the sliders' labels.
+  const probSpread = (k, p) => { const B = betaOf(p, ASSUMPTION_INFO[k].min, ASSUMPTION_INFO[k].max); return B.s * B.w; };
+  const probMean = (p, lo = 0, hi = 1) => betaOf(p, lo, hi).point ?? lo + (hi - lo) * betaOf(p, lo, hi).m;
+  // Belief nodes [weight, value] over the Beta: 42 bins between z = -5, -4.75, …, 5 (and the two
+  // tails), each at the exact mean of the Beta inside it (from E[X; X ≤ x] = m I_x(a+1, b)), so the
+  // nodes' mean is the Beta's mean exactly and each value stays inside its bin, however skewed the
+  // Beta is. Cached per distribution.
+  const PROB_Z = Array.from({ length: 41 }, (_, i) => -5 + i * 0.25);
+  const NODE_CACHE = new Map();
+  function probNodes(p, lo = 0, hi = 1) {
+    const key = p.mean + '|' + p.sd + '|' + lo + '|' + hi;
+    if (!NODE_CACHE.has(key)) {
+      const B = betaOf(p, lo, hi);
+      let nodes;
+      if (B.point !== undefined) nodes = [[1, B.point]];
+      else {
+        const lnB1 = lnGamma(B.a + 1) + lnGamma(B.b) - lnGamma(B.a + B.b + 1);
+        const xs = [0, ...PROB_Z.map((z) => (betaAtZ(B, z) - lo) / B.w), 1];
+        const F = [0, ...PROB_Z.map((z) => (z <= 0 ? normTail(z) : 1 - normTail(z))), 1];
+        const G = xs.map((x) => betaInc(B.a + 1, B.b, x, lnB1));
+        nodes = [];
+        for (let i = 0; i + 1 < xs.length; i++) {
+          const wgt = F[i + 1] - F[i];
+          if (!(wgt > 0)) continue;
+          const v = clamp(B.m * (G[i + 1] - G[i]) / wgt, xs[i], xs[i + 1]);
+          nodes.push([wgt, lo + B.w * v]);
+        }
+        const t = nodes.reduce((x, [w]) => x + w, 0);
+        nodes = nodes.map(([w, v]) => [w / t, v]);
+      }
+      NODE_CACHE.set(key, { nodes, mean: probMean(p, lo, hi) });
+    }
+    return NODE_CACHE.get(key);
+  }
+  // Old share links (before v=3) gave a probability unknown's center:spread as a normal clipped to
+  // [min, max]. The Beta with that clipped normal's mean and sd reproduces those futures closely;
+  // rounded to the sliders' 0.01 steps. The defaults are this conversion of the old defaults.
+  function legacyProbAssumption(k, mean, sd) {
+    const { min: lo, max: hi } = ASSUMPTION_INFO[k];
+    if (!(sd > 0)) return [clamp(mean, lo, hi), 0];
+    let e = 0, e2 = 0; const N = 4000, a = -9, h = 18 / N;
+    for (let i = 0; i < N; i++) {
+      const z = a + (i + 0.5) * h, w = Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI) * h, x = clamp(mean + sd * z, lo, hi);
+      e += w * x; e2 += w * x * x;
+    }
+    const r = (v) => Math.round(v * 100) / 100;
+    return [r(e), r(Math.sqrt(Math.max(0, e2 - e * e)))];
   }
 
   // Loss-of-control exposure from alignment difficulty: none below 0.3× (aligned
@@ -732,7 +829,7 @@
       * (1 - K.lockDip * L.diplomacy * clamp((s.trust - 50) / 30, 0, 1));   // coordination, only with public pressure
   }
   // Calibrated so about 70% of status-quo futures where humans keep control lock in before
-  // value alignment (nu = 0); the default nu (mean 0.25) brings that to about 54%.
+  // value alignment (nu = 0); the default nu (mean 0.26) brings that to about 54%.
   const LOCK_K = K_DEFAULTS.lockK; // the default; formulas use K.lockK
   const lockinScale = (share) => K.lockK * (1 - share);
   // Endings that count as catastrophes (a kind takeover does not).
@@ -1052,7 +1149,7 @@
     START_YEAR, END_YEAR, LEVER_INFO, LEVER_GROUPS, LEVER_ORDER, leverGroup, STAT_INFO, OUTCOMES, ASSUMPTION_INFO, DRAW_ORDER, rollRows, secretRows,
     AC, TOP_EXPERT, TEDAI, DELEG0, oversightBite, delegHazard, uplift, rdShare, locGate, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
-    clamp, sig, defaultLevers, defaultAssumptions, assumptionToURL, assumptionFromURL, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
+    clamp, sig, defaultLevers, defaultAssumptions, assumptionToURL, assumptionFromURL, legacyProbAssumption, betaOf, betaAtZ, probNodes, probMean, probSpread, BETA_SD_CAP, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
     risks, transitionOdds, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, summarize, alignmentScore, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

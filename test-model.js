@@ -108,11 +108,11 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const shown = M.risks(s, M.defaultLevers()).bio, g = M.bioShape(s), rng = M.mulberry32(13), n = 200000;
   let sum = 0; for (let i = 0; i < n; i++) sum += 1 - Math.exp(-M.sampleWorld(A0, rng).bioScale * g);
   check('Shown pandemic risk = expected risk over the unknown (±10%)', Math.abs(shown / (sum / n) - 1) < 0.1, `${(100 * shown).toFixed(3)}% vs ${(100 * sum / n).toFixed(3)}%`);
-  // Kindness belief accounts for clipping.
-  const A = { ...A0, benevolent: { mean: 0, sd: 1 / 3 } };
+  // Kindness belief matches the sampled share, also at the slider edge (a very skewed Beta).
+  const A = { ...A0, benevolent: { mean: 0.05, sd: 1 / 3 } };
   let kind = 0; const r2 = M.mulberry32(3); for (let i = 0; i < 50000; i++) if (M.sampleWorld(A, r2).benevolent) kind++;
   const belief = M.sampleWorld(A, M.mulberry32(1)).pBenevolent;
-  check('Kindness belief matches sampled share with clipping (±0.01)', near(belief, kind / 50000, 0.01), `${belief.toFixed(3)} vs ${(kind / 50000).toFixed(3)}`);
+  check('Kindness belief matches sampled share at the slider edge (±0.01)', near(belief, kind / 50000, 0.01), `${belief.toFixed(3)} vs ${(kind / 50000).toFixed(3)}`);
 }
 
 // --- Survival accounting: kind takeovers are not catastrophes ---
@@ -259,7 +259,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
 // --- Shown handoff odds average over China's alignment work, tails included (Codex C6-1) ---
 {
   const L = { ...M.defaultLevers(), transparency: 0 };
-  for (const mean of [0, 1]) {
+  for (const mean of [0.02, 0.98]) { // near the ends, where the Beta is most skewed (at the ends it is a point mass)
     const A = { ...A0, ease: { mean: 0, sd: 0 }, cnAlign: { mean, sd: 0.33 } };
     const st = (world) => Object.assign(M.initialState(world), { capUS: 60, capCN: 99, align: 100, coord: 0, internal: 100 });
     const shown = M.transitionOdds(st(M.sampleWorld(A, M.mulberry32(1))), false, L);
@@ -298,7 +298,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
 // --- Overstatement belief at the slider edge, and the careful path uses real alignment (Codex C8) ---
 {
   const L = { ...M.defaultLevers(), oversight: 0, transparency: 0, safety: 0 };
-  const A = { ...A0, ease: { mean: 0, sd: 0 }, cnAlign: { mean: 0.35, sd: 0 }, evalGap: { mean: 0, sd: 0.2 } };
+  const A = { ...A0, ease: { mean: 0, sd: 0 }, cnAlign: { mean: 0.35, sd: 0 }, evalGap: { mean: 0.02, sd: 0.2 } };
   const st = (world) => Object.assign(M.initialState(world), { capUS: 99, capCN: 60, align: 80, internal: 50 });
   const shown = M.transitionOdds(st(M.sampleWorld(A, M.mulberry32(1))), false, L);
   const rng = M.mulberry32(9); let sum = 0; const n = 200000;
@@ -346,7 +346,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const share = sq.counts.lockin / ctl(sq);
   // Craig's ~70% judgment is lock-in *before* value alignment: with no aligned AI that refuses
   // to help (valueAlign 0) about 70% of controlled status-quo futures lock in. The default chance
-  // that aligned AI declines to help a few seize power (mean 0.25) brings that to about 54% (a value-aligned AI always counters lock-in)
+  // that aligned AI declines to help a few seize power (mean 0.26) brings that to about 54% (a value-aligned AI always counters lock-in)
   // (Craig chose this over recalibrating: "This is my hope. That AI will do what's right.").
   check('Status quo: Locked-In Power in about 54% of futures where humans keep control (49-59%)', near(share, 0.54, 0.05), (100 * share).toFixed(1) + '%');
   const sq7 = M.summarize(M.defaultLevers(), A0, 20000, 7), share7 = sq7.counts.lockin / ctl(sq7);
@@ -414,10 +414,10 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   M.sampleWorld(A, probe); const used = pos;
   const last = M.mulberry32(42); for (let i = 0; i < used - 2; i++) last();
   const z = Math.sqrt(-2 * Math.log(1 - last())) * Math.cos(2 * Math.PI * last());
-  check('The value-alignment draw is the last draw of a world', Math.abs(a.valueAlign - Math.max(0, Math.min(1, A.valueAlign.mean + A.valueAlign.sd * z))) < 1e-12);
+  check('The value-alignment draw is the last draw of a world', Math.abs(a.valueAlign - M.betaAtZ(M.betaOf(A.valueAlign, 0, 1), z)) < 1e-12);
   const prev = M.mulberry32(42); for (let i = 0; i < used - 4; i++) prev();
   const z2 = Math.sqrt(-2 * Math.log(1 - prev())) * Math.cos(2 * Math.PI * prev());
-  check('The sharing draw comes just before it', Math.abs(a.share - Math.max(0, Math.min(1, A.share.mean + A.share.sd * z2))) < 1e-12);
+  check('The sharing draw comes just before it', Math.abs(a.share - M.betaAtZ(M.betaOf(A.share, 0, 1), z2)) < 1e-12);
   // One registry: every unknown is drawn exactly once, in a fixed append-only order, and each
   // entry builds its own world fields.
   const FIXED = ['ease', 'speed', 'whistle', 'benevolent', 'bioDecade', 'cnAlign', 'cnCaution', 'evalGap', 'capNow', 'share', 'valueAlign'];
@@ -576,6 +576,64 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Model reference gives the lognormal speed spread', html.includes('\\log_{10} \\varphi \\sim \\mathcal{N}(0,\\ 0.152)') && html.includes('0.56–1.78×'));
 }
 
+// --- Probability unknowns are Betas with the slider's mean and sd (not clipped normals) ---
+{
+  const PROB = Object.keys(M.ASSUMPTION_INFO).filter((k) => M.ASSUMPTION_INFO[k].fmt === 'pct');
+  check('The probability unknowns are the seven fmt pct ones', PROB.join() === 'evalGap,benevolent,valueAlign,share,whistle,cnAlign,cnCaution', PROB.join());
+  // Sampled mean and sd equal the sliders' center and spread, inside [min, max], with no pile at the ends.
+  const rng = M.mulberry32(17), n = 100000, sums = {};
+  for (const k of PROB) sums[k] = { e: 0, e2: 0, ends: 0, out: 0 };
+  for (let i = 0; i < n; i++) {
+    const w = M.sampleWorld(A0, rng);
+    for (const k of PROB) {
+      if (k === 'benevolent') continue; // the world keeps only the kindness coin
+      const x = w[k], i0 = M.ASSUMPTION_INFO[k], S = sums[k];
+      S.e += x; S.e2 += x * x; if (x === i0.min || x === i0.max) S.ends++; if (x < i0.min || x > i0.max) S.out++;
+    }
+  }
+  const off = PROB.filter((k) => k !== 'benevolent').filter((k) => {
+    const S = sums[k], m = S.e / n, sd = Math.sqrt(S.e2 / n - m * m);
+    return Math.abs(m - A0[k].mean) > 0.004 || Math.abs(sd - A0[k].sd) > 0.004 || S.ends > n * 0.001 || S.out;
+  });
+  check('Each probability unknown samples with its slider mean and sd (±0.004), inside its range, without piling at the ends', !off.length, off.join(', ') || 'ok');
+  // Kindness: the coin's rate is the mean, and its probability is spread over (0, 1) instead of 35% at exactly 0.
+  const kb = M.betaOf(A0.benevolent, 0, 1);
+  let zeros = 0; for (let i = 0; i < 2000; i++) if (M.betaAtZ(kb, -3 + 6 * i / 1999) === 0) zeros++;
+  check('Default kindness is a Beta with mean 16% and sd 18 points (none of its mass at exactly 0)', A0.benevolent.mean === 0.16 && A0.benevolent.sd === 0.18 && kb.a > 0.4 && kb.a < 0.6 && !zeros && M.meanWorld().pBenevolent === 0.16);
+  // The spread is capped below the largest a Beta can have, and a zero spread is a point mass that still takes two RNG calls.
+  const capped = M.betaOf({ mean: 0.1, sd: 0.33 }, 0, 1);
+  check('Spread capped at 0.95·√(m(1-m))', Math.abs(capped.s - M.BETA_SD_CAP * Math.sqrt(0.09)) < 1e-12 && Math.abs(M.probSpread('benevolent', { mean: 0.1, sd: 0.33 }) - 0.285) < 1e-9 && capped.a > 0);
+  let calls = 0; const counting = (r) => () => { calls++; return r(); };
+  M.sampleWorld({ ...A0, share: { mean: 0.3, sd: 0 } }, counting(M.mulberry32(5))); const c0 = calls; calls = 0;
+  M.sampleWorld(A0, counting(M.mulberry32(5)));
+  check('A zero spread is a point mass and the RNG stream is unchanged', calls === c0 && M.betaAtZ(M.betaOf({ mean: 0.3, sd: 0 }, 0, 1), 1.7) === 0.3 && M.betaAtZ(M.betaOf({ mean: 0, sd: 0.2 }, 0, 1), 1.7) === 0);
+  // Belief nodes: the exact mean, and averages that match sampling for a nonlinear function at a skewed edge.
+  const p = { mean: 0.05, sd: 0.3 }, nodes = M.probNodes(p).nodes, B = M.betaOf(p, 0, 1);
+  const f = (x) => Math.sqrt(x);
+  let mc = 0; const r2 = M.mulberry32(23); for (let i = 0; i < 400000; i++) mc += f(M.betaAtZ(B, Math.sqrt(-2 * Math.log(1 - r2())) * Math.cos(2 * Math.PI * r2())));
+  const q = nodes.reduce((a, [w, v]) => a + w * f(v), 0);
+  check('Belief nodes keep the Beta\'s mean exactly and average a nonlinear function like sampling does (edge case, ±0.005)',
+    Math.abs(nodes.reduce((a, [w, v]) => a + w * v, 0) - 0.05) < 1e-9 && Math.abs(q - mc / 400000) < 0.005, `${q.toFixed(4)} vs ${(mc / 400000).toFixed(4)}`);
+  // Old links: center:spread meant a clipped normal. The default Beta is the old default converted,
+  // and any old setting converts to the Beta with the clipped normal's mean and sd.
+  const OLD = { evalGap: [0.15, 0.1], benevolent: [0.1, 0.25], valueAlign: [0.25, 0.2], share: [0.3, 0.2], whistle: [0.25, 0.15], cnAlign: [0.35, 0.25], cnCaution: [0.25, 0.25] };
+  check('Each default is the old clipped-normal default converted', PROB.every((k) => { const [m, sd] = M.legacyProbAssumption(k, ...OLD[k]); return m === A0[k].mean && sd === A0[k].sd; }),
+    PROB.map((k) => `${k} ${OLD[k].join('±')} -> ${M.legacyProbAssumption(k, ...OLD[k]).join('±')}`).join(', '));
+  const clip = (m, sd, lo, hi) => { const r = M.mulberry32(3); let e = 0, e2 = 0; const N = 200000;
+    for (let i = 0; i < N; i++) { const x = Math.min(hi, Math.max(lo, m + sd * Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r()))); e += x; e2 += x * x; }
+    return [e / N, Math.sqrt(e2 / N - (e / N) ** 2)]; };
+  const miss = [];
+  for (const [k, m, sd] of [['share', 0.7, 0.3], ['benevolent', 0, 0.33], ['cnCaution', 1, 0.2], ['evalGap', 0.5, 0.2], ['whistle', 0.5, 0]]) {
+    const [bm, bs] = M.assumptionFromURL(k, m, sd, true), [cm, cs] = clip(m, sd, M.ASSUMPTION_INFO[k].min, M.ASSUMPTION_INFO[k].max);
+    if (Math.abs(bm - cm) > 0.006 || Math.abs(bs - cs) > 0.006) miss.push(`${k} ${m}:${sd} -> ${bm}:${bs} vs ${cm.toFixed(3)}:${cs.toFixed(3)}`);
+  }
+  const fresh = M.assumptionFromURL('share', 0.7, 0.3, false);
+  check('An old link\'s clipped normal loads as the Beta with its mean and sd (±0.006); a new link loads as written',
+    !miss.length && Math.abs(fresh[0] - 0.7) < 1e-9 && fresh[1] === 0.3 && M.assumptionFromURL('speed', 1.3, 0.3, true)[0] === M.assumptionFromURL('speed', 1.3, 0.3)[0], miss.join('; ') || 'ok');
+  const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+  check('The sliders label a probability\'s spread in points of a 0–100% distribution', html.includes("' pts'") && html.includes('M.probSpread(k, labA[k])'));
+}
+
 // --- C20-1: share links are short (3 decimals) but every slider position round-trips exactly ---
 {
   const PR = globalThis.SimPresets, bad = [];
@@ -593,7 +651,8 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   }
   check('Every unknown slider position and preset round-trips exactly through a share link', !bad.length, bad.slice(0, 3).join('; ') || 'ok');
   const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
-  check('New share links carry v=2, and only links without it are migrated', html.includes("['v=2', ...parts]") && html.includes("if (!q.has('v')) for (const [k, raw]"));
+  check('New share links carry v=3, and only links without v get the speed migration', html.includes("['v=3', ...parts]") && html.includes("if (!q.has('v')) for (const [k, raw]"));
+  check('Links before v=3 load probability unknowns as the old clipped normals', html.includes("const legacyProb = !(+q.get('v') >= 3)") && html.includes('M.assumptionFromURL(k, num(m), num(sd), legacyProb)'));
 }
 
 // --- Loss-of-control onset follows how much of AI research AI does ---
@@ -689,8 +748,8 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
     ['historical', '\\sigma\\big(\\tfrac{C-78}{4}\\big)'], ['historical', '0.25\\,(0.4+0.9\\,H/100)'],
     ['historical', '(0.8+0.4\\,r)(1.3-0.6\\,T/100)'], ['historical', '4.0 \\times 1.04 \\times 0.6'], ['historical', '0.55\\,(1.9 + 10\\,e(s) + 1.5\\,v)'],
   ];
-  // Distributions of the unknowns, \mathcal{N}(mean, sd) or \mathcal{N}(mean,\ sd): ASSUMPTION_INFO's defaults, not constants in K.
-  const DIST = /\\mathcal\{N\}\(-?\d+(\.\d+)?,\\? -?\d+(\.\d+)?\)/g;
+  // Distributions of the unknowns, \mathcal{N}(mean, sd) or \mathcal{B}(mean,\ sd) (a Beta by its mean and sd): ASSUMPTION_INFO's defaults, not constants in K.
+  const DIST = /\\mathcal\{[NB]\}\(-?\d+(\.\d+)?,\\? -?\d+(\.\d+)?\)/g;
   const handTyped = (pg) => {
     const els = [...pg.matchAll(/<div class="math">([\s\S]*?)<\/div>|<span class="mi">([\s\S]*?)<\/span>|class="kv">([\s\S]*?)<\/(?:td|span)>/g)].map((m) => m[1] ?? m[2] ?? m[3]);
     // The 2027 column: the third cell of each row of the state table (header ending in 2027).

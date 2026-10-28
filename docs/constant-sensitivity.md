@@ -10,7 +10,7 @@ Most of the model's 159 constants are judgment calls, so we tested how much each
 
 **The plan comparisons are more sensitive.** 7 constants move a plan's risk or alignment odds by more than 10 points, up to 18.0 points (where safety spending stops paying fully). Most are about how fast AI improves, how alignment research pays off, and whether a US–China deal forms. Several of them are fitted to AI 2040's timeline or plan odds, so their swings say how much hitting that target matters rather than adding uncertainty of their own.
 
-**Most constants barely matter.** 53 of 159 move some headline number by 1 point or more and 24 by more than 3; the other 106 move none by even 1 point.
+**Most constants barely matter.** 52 of 159 move some headline number by 1 point or more and 23 by more than 3; the other 107 move none by even 1 point.
 
 Baseline, with every constant at its default: today's-path catastrophe 79%, Plan A catastrophe 18%, Safest mix catastrophe 1%, Plan A alignment odds 76%, Plan B alignment odds 46%, Plan C alignment odds 41%, Plan D alignment odds 17%.
 
@@ -21,15 +21,15 @@ Three limits: each constant moves alone, so interactions are not explored; only 
 | Constant | Value | Biggest effect | Topic | Type |
 |---|---|---|---|---|
 | Where safety spending stops paying fully | 0.3 | at 0.15: Plan C alignment odds +18.0 points | Alignment research and the handoff | Judgment call |
-| Overall alignment progress rate | 1.04 | at 0.522: Plan C alignment odds −15.7 points | Alignment research and the handoff | Fitted to a target |
+| Overall alignment progress rate | 1.04 | at 0.522: Plan B alignment odds −15.8 points | Alignment research and the handoff | Fitted to a target |
 | Coordination from diplomacy | 13 | at 6.5: Plan A catastrophe +14.0 points | Deals and diplomacy | Judgment call |
-| Easy-by-default difficulty | 0.3 | at 0.45: Plan D alignment odds +13.2 points | Alignment research and the handoff | Judgment call |
-| Alignment progress from safety spending | 5.26 | at 2.63: Plan B alignment odds −11.1 points | Alignment research and the handoff | Judgment call |
-| Base pace of AI progress | 7 | at 3.5: Plan C alignment odds +10.4 points | How fast AI improves | Fitted to a target |
-| Handoff bar per unit difficulty | 32 | at 48: Plan A alignment odds −10.4 points | Alignment research and the handoff | Fitted to a target |
-| China's race intensity | 0.6 | at 0.9: Plan A catastrophe +10.0 points | China | Judgment call |
-| Handoff bar at zero difficulty | 45 | at 55: Plan B alignment odds −7.3 points | Alignment research and the handoff | Fitted to a target |
-| Lock-in scale | 2.5 | at 1.25: today's-path catastrophe −5.7 points | Power and lock-in | Fitted to a target |
+| Easy-by-default difficulty | 0.3 | at 0.45: Plan D alignment odds +13.3 points | Alignment research and the handoff | Judgment call |
+| Alignment progress from safety spending | 5.26 | at 2.63: Plan B alignment odds −11.3 points | Alignment research and the handoff | Judgment call |
+| Base pace of AI progress | 7 | at 3.5: Plan C alignment odds +10.5 points | How fast AI improves | Fitted to a target |
+| Handoff bar per unit difficulty | 32 | at 48: Plan A alignment odds −10.3 points | Alignment research and the handoff | Fitted to a target |
+| China's race intensity | 0.6 | at 0.9: Plan A catastrophe +9.9 points | China | Judgment call |
+| Handoff bar at zero difficulty | 45 | at 55: Plan B alignment odds −7.4 points | Alignment research and the handoff | Fitted to a target |
+| Lock-in scale | 2.5 | at 1.25: today's-path catastrophe −5.8 points | Power and lock-in | Fitted to a target |
 
 Types: **from a source** = taken from a cited forecast, mostly AI 2040; **fitted to a target** = tuned so the model hits AI 2040's timeline, its Plans A–C alignment odds or the lock-in share; **2027 baseline** = a starting level in 2027, or a yearly drift that sets today's trend; **judgment call** = a modelling choice.
 
@@ -43,8 +43,8 @@ Each year frontier capability grows by a base pace, scaled by compute (set by th
 
 | Constant | What it does | Value | Biggest effect | Moves | Type |
 |---|---|---|---|---|---|
-| Base pace of AI progress | Capability points gained per year before compute, speed and uplift; fitted so an Automated Coder arrives around 2030 | 7 | at 3.5: Plan C alignment odds +10.4 points | today's-path risk; Plan A risk; Safest mix risk; Plans A–C alignment odds | Fitted to a target |
-| Returns to compute | Progress speed grows as compute to this power (AI 2040: 10× compute ≈ 5.5× speed) | 0.74 | at 0.37: Safest mix catastrophe +3.7 points | Plan A risk; Safest mix risk; Plans A–C alignment odds | From a source |
+| Base pace of AI progress | Capability points gained per year before compute, speed and uplift; fitted so an Automated Coder arrives around 2030 | 7 | at 3.5: Plan C alignment odds +10.5 points | Plan A risk; Safest mix risk; Plans A–C alignment odds | Fitted to a target |
+| Returns to compute | Progress speed grows as compute to this power (AI 2040: 10× compute ≈ 5.5× speed) | 0.74 | at 0.37: Safest mix catastrophe +3.6 points | Plan A risk; Safest mix risk; Plans A–C alignment odds | From a source |
 | Where AI starts speeding up AI research | Capability at which AI begins to speed up its own R&D (AI 2040) | 50 | at 40: Plan A catastrophe +3.6 points | Plan A risk; Plans A, C alignment odds | From a source |
 | Speed-up at top-expert-dominating AI | How much faster AI research goes at capability 90 (AI 2040: about 40×) | 40 | at 20: Plan C alignment odds −3.2 points | Plans A–C alignment odds | From a source |
 | Speed-up at an Automated Coder | How much faster AI research goes at capability 70 (AI 2040: 3×) | 3 | at 1.5: Plan A catastrophe −2.1 points | Plan A risk; Plans B, C alignment odds | From a source |
@@ -58,20 +58,20 @@ Alignment grows each year with safety spending, oversight, shared research and h
 | Constant | What it does | Value | Biggest effect | Moves | Type |
 |---|---|---|---|---|---|
 | Where safety spending stops paying fully | Safety share of compute up to which each extra point buys full progress; past it, returns shrink | 0.3 | at 0.15: Plan C alignment odds +18.0 points | today's-path risk; Plan A risk; Plans A–C alignment odds | Judgment call |
-| Overall alignment progress rate | Yearly alignment progress with no safety spending or oversight, before AI help, sharing and difficulty; scales all of it; fitted to Plans A–C | 1.04 | at 0.522: Plan C alignment odds −15.7 points | today's-path risk; Plan A risk; Plans A–D alignment odds | Fitted to a target |
-| Easy-by-default difficulty | Below this difficulty (above 3.3× ease) alignment works out without a general solution | 0.3 | at 0.45: Plan D alignment odds +13.2 points | today's-path risk; Plans B–D alignment odds | Judgment call |
-| Alignment progress from safety spending | Extra yearly progress at the safety knee, relative to progress with none (10/1.9) | 5.26 | at 2.63: Plan B alignment odds −11.1 points | Plan A risk; Plans A–C alignment odds | Judgment call |
-| Handoff bar per unit difficulty | How much more alignment a harder world needs at the handoff; fitted to Plans A–C | 32 | at 48: Plan A alignment odds −10.4 points | today's-path risk; Plan A risk; Plans A–C alignment odds | Fitted to a target |
-| Handoff bar at zero difficulty | Alignment the handoff needs before difficulty is added; fitted to Plans A–C | 45 | at 55: Plan B alignment odds −7.3 points | today's-path risk; Plan A risk; Plans A–C alignment odds | Fitted to a target |
+| Overall alignment progress rate | Yearly alignment progress with no safety spending or oversight, before AI help, sharing and difficulty; scales all of it; fitted to Plans A–C | 1.04 | at 0.522: Plan B alignment odds −15.8 points | today's-path risk; Plan A risk; Plans A–D alignment odds | Fitted to a target |
+| Easy-by-default difficulty | Below this difficulty (above 3.3× ease) alignment works out without a general solution | 0.3 | at 0.45: Plan D alignment odds +13.3 points | today's-path risk; Plans B–D alignment odds | Judgment call |
+| Alignment progress from safety spending | Extra yearly progress at the safety knee, relative to progress with none (10/1.9) | 5.26 | at 2.63: Plan B alignment odds −11.3 points | Plan A risk; Plans A–C alignment odds | Judgment call |
+| Handoff bar per unit difficulty | How much more alignment a harder world needs at the handoff; fitted to Plans A–C | 32 | at 48: Plan A alignment odds −10.3 points | Plan A risk; Plans A–C alignment odds | Fitted to a target |
+| Handoff bar at zero difficulty | Alignment the handoff needs before difficulty is added; fitted to Plans A–C | 45 | at 55: Plan B alignment odds −7.4 points | today's-path risk; Plan A risk; Plans A–C alignment odds | Fitted to a target |
 | Alignment in 2027 | Where alignment maturity starts | 16 | at 26: Plan C alignment odds +5.1 points | today's-path risk; Plan A risk; Plans A–C alignment odds | 2027 baseline |
-| AI labor on safety from spending | Extra share of AI help on safety, up to the knee | 0.35 | at 0.175: Plan C alignment odds −4.2 points | Plan A risk; Plans A–C alignment odds | Judgment call |
-| Alignment boost from published research | Multiplier on progress from research transparency | 0.4 | at 0.2: Plan A alignment odds −2.2 points | Plan A risk; Plan A alignment odds | Judgment call |
-| AI labor on safety, baseline | Share of AI research help that goes to safety with no safety spending | 0.08 | at 0.04: Plan C alignment odds −1.8 points | Plans A–C alignment odds | Judgment call |
-| Alignment progress from oversight | Extra yearly progress with full independent oversight, relative to progress with none (1.5/1.9) | 0.789 | at 0.395: Plan A alignment odds −1.7 points | Plan A risk; Plan A alignment odds | Judgment call |
+| AI labor on safety from spending | Extra share of AI help on safety, up to the knee | 0.35 | at 0.175: Plan B alignment odds −4.3 points | Plan A risk; Plans A–C alignment odds | Judgment call |
+| Alignment boost from published research | Multiplier on progress from research transparency | 0.4 | at 0.2: Plan A alignment odds −2.1 points | Plan A risk; Plan A alignment odds | Judgment call |
+| AI labor on safety, baseline | Share of AI research help that goes to safety with no safety spending | 0.08 | at 0.04: Plan C alignment odds −1.9 points | Plans A–C alignment odds | Judgment call |
+| Alignment progress from oversight | Extra yearly progress with full independent oversight, relative to progress with none (1.5/1.9) | 0.789 | at 0.395: Plan A alignment odds −1.6 points | Plan A risk; Plan A alignment odds | Judgment call |
 | Alignment boost from coordination | Multiplier on progress from shared international research | 0.35 | at 0.175: Plan A alignment odds −1.2 points | Plan A alignment odds | Judgment call |
-| Handoff sharpness | Width of the handoff's success curve | 6 | at 9: Plan A alignment odds −1.2 points | Plans A, B alignment odds | Judgment call |
+| Handoff sharpness | Width of the handoff's success curve | 6 | at 9: Plan A alignment odds −1.2 points | Plan A alignment odds | Judgment call |
 
-12 others, each under 1 point: chance of an alignment breakthrough; handoff bar lowered by neural interfaces; alignment breakthrough spread; alignment boost from neural interfaces; neural-interface adoption in 2027; neural-interface push; alignment breakthrough size; neural-interface market pace; AI help for neurotech; neural-interface speed limit; AI labor on safety past the knee; safety effect past the knee.
+12 others, each under 1 point: chance of an alignment breakthrough; handoff bar lowered by neural interfaces; neural-interface adoption in 2027; neural-interface push; alignment boost from neural interfaces; alignment breakthrough size; alignment breakthrough spread; neural-interface market pace; AI help for neurotech; neural-interface speed limit; AI labor on safety past the knee; safety effect past the knee.
 
 ### Loss of control and hidden AI
 
@@ -79,16 +79,16 @@ Before the handoff, a yearly loss-of-control hazard grows once AI does most of i
 
 | Constant | What it does | Value | Biggest effect | Moves | Type |
 |---|---|---|---|---|---|
-| Hidden AI from racing | Yearly growth of hidden internal AI under an all-out race | 4 | at 2: Plan B alignment odds +3.6 points | Plans B, C alignment odds | Judgment call |
-| Hidden share of the test gap | Base share of the tested-vs-real alignment gap that stays hidden | 0.6 | at 0.3: Plan B alignment odds +3.6 points | Plans A–C alignment odds | Judgment call |
-| Test gap hidden by internal AI | Extra hidden share from hidden internal AI | 0.8 | at 0.4: Plan B alignment odds +2.6 points | Plans B, C alignment odds | Judgment call |
-| Gap where loss-of-control risk is half | How far capability must outrun alignment for half the peak hazard | 36 | at 26: Plan A catastrophe +2.3 points | Plan A risk; Plan A alignment odds | Judgment call |
-| Loss-of-control scale | Yearly loss-of-control scale before the onset, hidden-AI (up to ×3.25) and delegation (up to ×1.44) factors (0.25 × 0.4, unchanged); fitted with Plans A–C | 0.1 | at 0.15: Plan A catastrophe +1.8 points | Plan A risk; Plans A, B alignment odds | Fitted to a target |
-| Handoff bar raised by hidden AI | Extra alignment the handoff needs per point of hidden AI | 0.2 | at 0.1: Plan A alignment odds −1.6 points | Plans A, B alignment odds | Judgment call |
+| Hidden AI from racing | Yearly growth of hidden internal AI under an all-out race | 4 | at 2: Plan B alignment odds +3.5 points | Plans B, C alignment odds | Judgment call |
+| Hidden share of the test gap | Base share of the tested-vs-real alignment gap that stays hidden | 0.6 | at 0.3: Plan B alignment odds +3.5 points | Plans A–C alignment odds | Judgment call |
+| Test gap hidden by internal AI | Extra hidden share from hidden internal AI | 0.8 | at 0.4: Plan B alignment odds +2.4 points | Plans B, C alignment odds | Judgment call |
+| Gap where loss-of-control risk is half | How far capability must outrun alignment for half the peak hazard | 36 | at 26: Plan A catastrophe +2.1 points | Plan A risk; Plan A alignment odds | Judgment call |
+| Loss-of-control scale | Yearly loss-of-control scale before the onset, hidden-AI (up to ×3.25) and delegation (up to ×1.44) factors (0.25 × 0.4, unchanged); fitted with Plans A–C | 0.1 | at 0.05: Plan A catastrophe −1.8 points | Plan A risk; Plans A, B alignment odds | Fitted to a target |
+| Handoff bar raised by hidden AI | Extra alignment the handoff needs per point of hidden AI | 0.2 | at 0.1: Plan A alignment odds −1.5 points | Plans A, B alignment odds | Judgment call |
 | Test gap exposed by safety work | Hidden share removed by safety spending at the knee | 0.3 | at 0.45: Plan B alignment odds +1.4 points | Plan B alignment odds | Judgment call |
-| Hidden internal AI in 2027 | Where hidden internal AI starts (also the handoff bar's reference) | 30 | at 20: Plan B alignment odds +1.3 points | Plans A, B alignment odds | 2027 baseline |
+| Hidden internal AI in 2027 | Where hidden internal AI starts (also the handoff bar's reference) | 30 | at 40: Plan B alignment odds −1.3 points | Plan B alignment odds | 2027 baseline |
 
-11 others, each under 1 point: onset of loss-of-control risk; hidden AI exposed by oversight; test gap exposed by oversight; hidden AI exposed by transparency; difficulty ramp; hazard from hidden AI; loss-of-control sharpness; onset sharpness; hidden AI drift; hidden AI exposed by neural interfaces; test gap exposed by transparency.
+11 others, each under 1 point: hidden AI exposed by oversight; onset of loss-of-control risk; hidden AI exposed by transparency; test gap exposed by oversight; difficulty ramp; hazard from hidden AI; loss-of-control sharpness; hidden AI drift; test gap exposed by transparency; hidden AI exposed by neural interfaces; onset sharpness.
 
 ### War
 
@@ -98,7 +98,7 @@ Great-power war is likelier when the race is close, coordination is low and the 
 |---|---|---|---|---|---|
 | Where the stakes are half | Capability at which strategic stakes are half their peak | 60 | at 50: Plan A catastrophe +1.2 points | Plan A risk; Safest mix risk | Judgment call |
 
-8 others, each under 1 point: peak war hazard; strike risk from a China falling behind; stakes sharpness; what counts as a close race; war risk from sabotage; war risk when not close; what counts as behind; strike risk when not behind.
+8 others, each under 1 point: peak war hazard; strike risk from a China falling behind; what counts as a close race; stakes sharpness; war risk from sabotage; war risk when not close; what counts as behind; strike risk when not behind.
 
 ### Pandemic and open weights
 
@@ -118,13 +118,13 @@ Diplomacy builds international coordination. Once coordination and diplomacy bot
 | Constant | What it does | Value | Biggest effect | Moves | Type |
 |---|---|---|---|---|---|
 | Coordination from diplomacy | Yearly coordination gained at full diplomacy | 13 | at 6.5: Plan A catastrophe +14.0 points | Plan A risk; Safest mix risk; Plan A alignment odds | Judgment call |
-| Deal ceiling | Capability a deal stops at: top-human-expert level (AI 2040) | 78 | at 68: Plan A catastrophe −3.0 points | Plan A risk; Plan A alignment odds | From a source |
-| Coordination in 2027 | Where international coordination starts | 22 | at 12: Plan A catastrophe +2.9 points | Plan A risk; Plans A, C alignment odds | 2027 baseline |
+| Coordination in 2027 | Where international coordination starts | 22 | at 12: Plan A catastrophe +3.0 points | Plan A risk; Plans A, C alignment odds | 2027 baseline |
+| Deal ceiling | Capability a deal stops at: top-human-expert level (AI 2040) | 78 | at 68: Plan A catastrophe −2.9 points | Plan A risk; Plan A alignment odds | From a source |
 | Coordination a deal needs | Coordination level needed for a verified US–China deal | 60 | at 70: Plan A catastrophe +1.9 points | Plan A risk; Plan A alignment odds | Judgment call |
 | Deal failure rate, years 0–2 | Yearly chance a deal dissolves, and separately that it is impaired (AI 2040) | 0.06 | at 0.03: Plan A catastrophe −1.6 points | Plan A risk | From a source |
-| Coordination from transparency | Yearly coordination gained with all research public | 3 | at 1.5: Plan A catastrophe +1.5 points | Plan A risk | Judgment call |
-| Coordination lost to racing | Yearly coordination lost under an all-out race | 6 | at 9: Plan A catastrophe +1.3 points | Plan A risk; Plan C alignment odds | Judgment call |
-| Deal failure rate, years 2–5 | The same yearly chances in years 2–5 (AI 2040) | 0.035 | at 0.0525: Plan A catastrophe +1.2 points | Plan A risk | From a source |
+| Coordination from transparency | Yearly coordination gained with all research public | 3 | at 1.5: Plan A catastrophe +1.6 points | Plan A risk | Judgment call |
+| Coordination lost to racing | Yearly coordination lost under an all-out race | 6 | at 9: Plan A catastrophe +1.4 points | Plan A risk; Plan C alignment odds | Judgment call |
+| Deal failure rate, years 2–5 | The same yearly chances in years 2–5 (AI 2040) | 0.035 | at 0.0525: Plan A catastrophe +1.1 points | Plan A risk | From a source |
 
 10 others, each under 1 point: coordination from oversight; coordination lost when a deal weakens; deal failure rate after year 5; coordination drift; coordination lost to sabotage; coordination lost when a deal dissolves; coordination noise; ceiling rise when a deal weakens; diplomacy a deal needs; coordination for the careful-path ending.
 
@@ -134,12 +134,12 @@ China's race intensity responds to how hard the US pushes and to coordination. I
 
 | Constant | What it does | Value | Biggest effect | Moves | Type |
 |---|---|---|---|---|---|
-| China's race intensity | How hard China races against a middling US push | 0.6 | at 0.9: Plan A catastrophe +10.0 points | today's-path risk; Plan A risk; Safest mix risk; Plans A–C alignment odds | Judgment call |
-| China calmed by coordination | How much coordination cools China's race | 0.55 | at 0.275: Safest mix catastrophe +3.4 points | Plan A risk; Safest mix risk | Judgment call |
+| China's race intensity | How hard China races against a middling US push | 0.6 | at 0.9: Plan A catastrophe +9.9 points | today's-path risk; Plan A risk; Safest mix risk; Plans A–C alignment odds | Judgment call |
+| China calmed by coordination | How much coordination cools China's race | 0.55 | at 0.275: Safest mix catastrophe +3.4 points | Safest mix risk | Judgment call |
 | US alignment work China can use | Default share of US alignment work a leading Chinese lab can use | 0.55 | at 0.275: Plan C alignment odds −1.5 points | Plan C alignment odds | Judgment call |
-| China slowed by sabotage | Share of China's progress lost to full sabotage | 0.35 | at 0.175: Plan B alignment odds −1.0 point | Plan B alignment odds | Judgment call |
+| China's starting gap | Capability points China starts behind the US | 7 | at 10.5: Plan C alignment odds +1.0 point | Plan C alignment odds | 2027 baseline |
 
-13 others, each under 1 point: China's response to the US push; China's starting gap; catch-up from published research; safety spending read as slowing; China's reciprocity; what counts as China leading; extra sharing from published research; extra sharing from coordination; where China sees warning signs; what reads as the US slowing; alignment gap that alarms China; warning sharpness; most China slows.
+13 others, each under 1 point: China's response to the US push; China slowed by sabotage; catch-up from published research; safety spending read as slowing; what counts as China leading; China's reciprocity; extra sharing from coordination; extra sharing from published research; where China sees warning signs; what reads as the US slowing; warning sharpness; alignment gap that alarms China; most China slows.
 
 ### Power and lock-in
 
@@ -147,18 +147,18 @@ If humans keep control at the handoff, power can still lock in with a few. The l
 
 | Constant | What it does | Value | Biggest effect | Moves | Type |
 |---|---|---|---|---|---|
-| Lock-in scale | Overall scale of the lock-in odds; fitted so about 70% of today's controlled futures lock in before value alignment (about 54% with it) | 2.5 | at 1.25: today's-path catastrophe −5.7 points | today's-path risk; Plan A risk | Fitted to a target |
+| Lock-in scale | Overall scale of the lock-in odds; fitted so about 70% of today's controlled futures lock in before value alignment (about 54% with it) | 2.5 | at 1.25: today's-path catastrophe −5.8 points | today's-path risk; Plan A risk | Fitted to a target |
 | Lock-in with power spread out | Lock-in factor when power is not concentrated | 0.45 | at 0.225: today's-path catastrophe −3.9 points | today's-path risk; Plan A risk | Judgment call |
-| Power concentration in 2027 | Where power concentration starts | 45 | at 55: today's-path catastrophe +3.1 points | today's-path risk | 2027 baseline |
-| Concentration from racing | Yearly concentration added by an all-out race | 10 | at 15: today's-path catastrophe +3.1 points | today's-path risk | Judgment call |
-| Concentration that tips lock-in | Concentration where its lock-in factor is halfway up | 64 | at 54: today's-path catastrophe +3.1 points | today's-path risk | Judgment call |
+| Power concentration in 2027 | Where power concentration starts | 45 | at 55: today's-path catastrophe +3.3 points | today's-path risk | 2027 baseline |
+| Concentration that tips lock-in | Concentration where its lock-in factor is halfway up | 64 | at 54: today's-path catastrophe +3.3 points | today's-path risk | Judgment call |
+| Concentration from racing | Yearly concentration added by an all-out race | 10 | at 15: today's-path catastrophe +3.2 points | today's-path risk | Judgment call |
 | Lock-in stopped by value-aligned AI | Share of lock-in pressure removed when an aligned AI surely refuses to help a few seize power (1: a value-aligned AI always counters lock-in) | 1 | at 0.5: today's-path catastrophe +2.0 points | today's-path risk | Judgment call |
-| Lock-in pressure removed by trust | Share of the pressure removed when public trust is full (0.6/1.3; 1 with no trust) | 0.462 | at 0.231: today's-path catastrophe +1.8 points | today's-path risk | Judgment call |
-| Lock-in pressure from racing | Relative rise in pressure under an all-out race (1 at race 0) | 0.5 | at 0.75: today's-path catastrophe +1.3 points | today's-path risk | Judgment call |
-| Concentration sharpness | Width of that curve | 6 | at 3: today's-path catastrophe −1.2 points | today's-path risk | Judgment call |
-| Racing concentration offset by openness | Share of that offset by releasing weights | 0.5 | at 0.25: today's-path catastrophe +1.0 point | today's-path risk | Judgment call |
+| Lock-in pressure removed by trust | Share of the pressure removed when public trust is full (0.6/1.3; 1 with no trust) | 0.462 | at 0.231: today's-path catastrophe +1.9 points | today's-path risk | Judgment call |
+| Lock-in pressure from racing | Relative rise in pressure under an all-out race (1 at race 0) | 0.5 | at 0.75: today's-path catastrophe +1.5 points | today's-path risk | Judgment call |
+| Racing concentration offset by openness | Share of that offset by releasing weights | 0.5 | at 0.25: today's-path catastrophe +1.2 points | today's-path risk | Judgment call |
+| Concentration sharpness | Width of that curve | 6 | at 3: today's-path catastrophe −1.1 points | today's-path risk | Judgment call |
 
-26 others, each under 1 point: public trust in 2027; lock-in stopped by whistleblowers; concentration removed by openness; lock-in removed by oversight; lock-in removed by transparency; concentration drift; concentration removed by transparency; racing concentration offset by transparency; lock-in removed by diplomacy; trust from transparency; concentration from capability; concentration removed by oversight; lock-in removed by the wealth fund; lock-in removed by open weights; lock-in removed by rivals; concentration from neural interfaces; what counts as a close rival; trust lost to capability; trust from oversight; trust lost to racing with concentrated power; trust drift; trust from safety work; wealth fund speed; concentration from sabotage; trust below which power locks in by 2040; buying in gets expensive.
+26 others, each under 1 point: lock-in stopped by whistleblowers; public trust in 2027; lock-in removed by oversight; lock-in removed by transparency; concentration removed by openness; concentration drift; concentration removed by transparency; racing concentration offset by transparency; lock-in removed by diplomacy; concentration from capability; concentration removed by oversight; trust from transparency; lock-in removed by the wealth fund; lock-in removed by rivals; lock-in removed by open weights; concentration from neural interfaces; wealth fund speed; trust lost to capability; trust from oversight; trust lost to racing with concentrated power; trust drift; trust from safety work; what counts as a close rival; buying in gets expensive; concentration from sabotage; trust below which power locks in by 2040.
 
 ### Delegation
 
@@ -167,9 +167,8 @@ Decisions handed to AI with little human checking grow with automation and racin
 | Constant | What it does | Value | Biggest effect | Moves | Type |
 |---|---|---|---|---|---|
 | Handoff bar raised by delegation | Extra alignment the handoff needs per point of delegation | 0.15 | at 0.075: Plan B alignment odds +1.7 points | Plans B, C alignment odds | Judgment call |
-| Delegation from AI doing AI research | Yearly growth as AI does more of its own research | 10 | at 5: Plan B alignment odds +1.1 points | Plan B alignment odds | Judgment call |
 
-10 others, each under 1 point: delegation growth without racing; lock-in from delegation; delegation growth, base; delegation in 2027; delegation from capability; delegation taken back by oversight; delegation taken back by transparency; delegation taken back by safety work; hazard from delegation; oversight lost to rubber-stamping.
+11 others, each under 1 point: delegation from AI doing AI research; lock-in from delegation; delegation growth, base; delegation growth without racing; delegation in 2027; delegation from capability; delegation taken back by oversight; delegation taken back by transparency; delegation taken back by safety work; oversight lost to rubber-stamping; hazard from delegation.
 
 ## How to reproduce
 

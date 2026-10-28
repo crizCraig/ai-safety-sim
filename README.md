@@ -29,7 +29,9 @@ people without economic leverage or a say even when humans keep control of AI.
 ## Two modes
 
 - **Futures Lab**. Set ten policy levers and eleven uncertain
-  assumptions (mean ± spread, as in the original), run 2,000 Monte Carlo futures,
+  assumptions (mean ± spread, as in the original; the seven probabilities are Beta
+  distributions on 0–100% with that mean and standard deviation, the spread in percentage points,
+  and the others normal or lognormal), run 2,000 Monte Carlo futures,
   and see every trajectory as a 3D fan, colored by how it ends. Hover a line to
   read its values; click an outcome to read it and isolate its futures.
 - **Campaign (2027–2040; opens on a one-line title screen; Play starts right away, with a tutorial on the first visit; the page remembers the mode you used last; "Show secret facts" reveals the hidden world and real risks while you play).** Each year you get a decision card. Hover a choice to

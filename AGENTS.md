@@ -72,7 +72,7 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
   renders and before Copy for LLMs reads the page. A test fails if any `.math`, `.mi` or `.kv`
   element, or a cell of the state table's 2027 column, types a number by hand, unless the number
   is a unit (1 or 0 that is not a coefficient, a /100 scale, log base 10), an unknown's
-  distribution `\mathcal{N}(…)`, or part of one of the expressions in the test's `LITERAL_OK`,
+  distribution `\mathcal{N}(…)` or `\mathcal{B}(mean,\ sd)` (a Beta by its mean and sd), or part of one of the expressions in the test's `LITERAL_OK`,
   each tagged structural, example or historical. Allow a new literal there by its whole
   expression, never by its value alone, and the test also fails on an allowance no longer used.
   Numbers in the prose are still typed by hand.
@@ -81,8 +81,15 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
 
 1. `model.js` `ASSUMPTION_INFO`: `{ label, mean, sd, min, max, fmt, help }` and a source comment,
    plus `world(A, v)`: the fields a world carries for value `v`, belief nodes included (e.g.
-   `({ x, xNodes: clippedNodes(A.x, 0, 1).nodes })`). Add `sample(A, rng, draw)` and `atMean(A)`
-   only if it is not a clipped normal (see `ease`, `speed`, `benevolent`, `bioDecade`). Give it
+   `({ x, xNodes: probNodes(A.x).nodes })`). A probability or share gets `fmt: 'pct'`, which
+   makes it a Beta on [min, max] (usually [0, 1]) whose mean and sd are the sliders' center and
+   spread: `draw` samples it from one standard normal (`betaAtZ(betaOf(...), z)`, two RNG calls
+   like every draw), `probNodes(A.x, min, max)` gives its belief nodes (exact mean, values inside
+   each bin) and `probMean` its mean, the default `atMean`. Never clip a normal to [0, 1] for a
+   probability: the clipped mass piles up at the ends and the label stops being the mean. Set the
+   default from your best guess of the mean and sd; a spread above 0.95·√(m(1−m)) is capped
+   (`BETA_SD_CAP`). Add `sample(A, rng, draw)` and `atMean(A)` only if it is neither a Beta nor
+   a clipped normal (see `ease`, `speed`, `benevolent`, `bioDecade`). Give it
    `revealOrder`, `roll: [label, (r) => sample text]` (the campaign's roll screen) and
    `secret: [label, (w, c) => html]` (the campaign's "Show secret facts" and the ending reveal;
    `c` has the page's `pct`, the state `s`, levers `L` and `over`). This one
@@ -100,7 +107,7 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
    clamp inside the average, not outside it.
 5. `model.js` exports, if tests or the page call new helpers.
 6. `index.html` model page §2 Notation: a row in the "Hidden unknowns" table (symbol, meaning
-   with sources, distribution).
+   with sources, distribution; a probability as `\mathcal{B}(mean,\ sd)`, plus "on [min, max]" if its range is not [0, 1]).
 7. `index.html` the equation(s) in §3/§4 that use it (constants as `⟦name⟧`).
 8. `index.html` the Lab path tooltip ("Secret facts in this future", `tip-world`) only if it is
    one of the headline unknowns (today: ease, speed, bio).
