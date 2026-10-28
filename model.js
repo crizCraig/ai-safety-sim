@@ -1116,6 +1116,46 @@
     return { counts, n, paths, meanYears: yearsSum / n };
   }
 
+  // The campaign's outlook: of the futures that start from a state the player can see and run
+  // under fixed levers, the share that end in catastrophe (by 2040, when every future ends) and
+  // the mean years after 2027 at which they do (as the Lab's meanYears counts them). Only visible
+  // fields of `s` are read: each future gets a fresh hidden world drawn from the default unknowns,
+  // never the game's own (s.world), and starts with fresh expected bookkeeping (survival, alive,
+  // safeEnded), which the caller combines with the catastrophe so far. Future i draws from its own
+  // seeded stream, so the result does not depend on how the work is sliced. Call it with
+  // [from, to) ranges and one accumulator to spread the work over idle time.
+  const OUTLOOK_SEED = 20270101;
+  const OUTLOOK_SKIP = new Set(['world', 'log', 'outcome', 'survival', 'alive', 'safeEnded', 'fast']);
+  let outlookBase = null; // a fresh state (its keys, and the bookkeeping a future starts with)
+  function outlookStart(s) {
+    outlookBase = outlookBase || initialState(meanWorld());
+    const o = { ...outlookBase, log: [] };
+    for (const k of Object.keys(o)) if (!OUTLOOK_SKIP.has(k)) o[k] = s[k];
+    return o;
+  }
+  function outlook(s, L, n = 800, seed = OUTLOOK_SEED, from = 0, to = n, acc = { n: 0, cat: 0, catYears: 0 }, A = defaultAssumptions()) {
+    const base = outlookStart(s), Lc = { ...L };
+    for (let i = from; i < Math.min(to, n); i++) {
+      const rng = mulberry32((seed + Math.imul(i + 1, 0x9e3779b1)) | 0);
+      const f = { ...base, world: sampleWorld(A, rng), log: [], fast: true };
+      let ev = null;
+      for (let guard = 0; !ev && guard < 40; guard++) ev = step(f, Lc, rng, true).event;
+      acc.n++;
+      if (CATASTROPHES.includes(ev)) { acc.cat++; acc.catYears += f.year - START_YEAR; }
+    }
+    return acc;
+  }
+
+  // The campaign's "by 2040" figure: the catastrophe so far (1 - survival) plus the share of
+  // futures still running (alive) times the outlook's catastrophe share. Its mean date weighs the
+  // catastrophe so far by when it accrued (pastCatYears: the sum over past years of the rise in
+  // the catastrophe so far times that year's years after 2027) and the outlook's by its mean.
+  function outlookTotal(s, acc, pastCatYears = 0) {
+    const f = acc.n ? acc.cat / acc.n : 0, fy = acc.n ? acc.catYears / acc.n : 0;
+    const byEnd = 1 - s.survival + s.alive * f;
+    return { byEnd, meanYears: byEnd > 0 ? (pastCatYears + s.alive * fy) / byEnd : null, n: acc.n };
+  }
+
   // A future's p(alignment) score: 0 after loss of control, 1 after an aligned handoff (whether or
   // not power then locked in), and the handoff odds in the hidden world for futures still short of
   // superintelligence in 2040. Pandemic and war futures are left out by the caller.
@@ -1196,6 +1236,6 @@
     AC, TOP_EXPERT, TEDAI, DELEG0, oversightBite, delegHazard, uplift, rdShare, locGate, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, assumptionToURL, assumptionFromURL, legacyProbAssumption, betaOf, betaAtZ, probNodes, LOCK_DX, probMean, probSpread, BETA_SD_CAP, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
-    risks, transitionOdds, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, summarize, alignmentScore, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
+    risks, transitionOdds, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, outlook, outlookStart, outlookTotal, OUTLOOK_SEED, summarize, alignmentScore, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

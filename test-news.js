@@ -37,10 +37,20 @@ function playCampaign(seed) {
   return years;
 }
 
+// What is wrong with a story's deck, caption or picture, or '' if nothing.
+function storyProblem(h) {
+  const okImg = N.IMAGES.includes(h.img) || (/^ending:(\w+)$/.test(h.img || '') && h.img.slice(7) in M.OUTCOMES);
+  for (const [k, lo, hi] of [['deck', 8, 20], ['caption', 3, 12]]) {
+    const v = h[k];
+    if (typeof v !== 'string' || /undefined|NaN|null|\[object/.test(v) || N.words(v) < lo || N.words(v) > hi) return `${k} ${N.words(String(v))} words: ${v}`;
+  }
+  return okImg ? '' : `img ${h.img}`;
+}
+
 function run(check, report = false) {
   const RUNS = 500, fired = {}, perCat = {}, counts = { 1: 0, 2: 0, 3: 0, other: 0 };
   for (const t of N.TEMPLATES) { fired[t.id] = 0; perCat[t.cat] = (perCat[t.cat] || 0) + 1; }
-  let bad = [], badWords = [], calmDoom = 0, years = 0, endingYears = 0, sample = null;
+  let bad = [], badWords = [], badStory = [], imgsUsed = new Set(), calmDoom = 0, years = 0, endingYears = 0, sample = null;
   for (let i = 0; i < RUNS; i++) {
     const game = playCampaign(1000 + i);
     if (i === 3) sample = game;
@@ -54,6 +64,9 @@ function run(check, report = false) {
         if (/undefined|NaN|null|\[object/.test(h.text + h.desk)) bad.push(h.text);
         const w = N.words(h.text);
         if (w < 6 || w > 14) badWords.push(`${w}: ${h.text}`);
+        const story = storyProblem(h);
+        if (story) badStory.push(story);
+        imgsUsed.add(h.img);
       }
       const alarms = news.filter((h) => h.tone === 'alarm').length;
       const major = news.some((h) => N.TEMPLATES.find((t) => t.id === h.id).prio >= 80);
@@ -63,6 +76,15 @@ function run(check, report = false) {
   check('News: every year gets 2–3 headlines (1–2 in the final year)', counts.other === 0, JSON.stringify(counts));
   check('News: no undefined, NaN or null in any headline', !bad.length, bad.slice(0, 3).join(' | '));
   check('News: every headline is 6–14 words', !badWords.length, badWords.slice(0, 3).join(' | '));
+  check('News: every story has an 8–20 word deck, a 3–12 word caption and a known picture, with no undefined or NaN', !badStory.length, badStory.slice(0, 3).join(' | '));
+  {
+    const fs = require('fs'), path = require('path');
+    const missing = N.IMAGES.filter((k) => !fs.existsSync(path.join(__dirname, 'assets', 'news', k + '.webp')));
+    const endMissing = Object.keys(M.OUTCOMES).filter((k) => !fs.existsSync(path.join(__dirname, 'assets', 'endings-gpt', k + '.webp')) && !fs.existsSync(path.join(__dirname, 'assets', 'endings-gpt', k + '-vance-newsom.webp')));
+    check('News: every story picture exists (assets/news, and the ending pictures)', !missing.length && !endMissing.length, [...missing, ...endMissing].join(', '));
+    const unused = N.IMAGES.filter((k) => !imgsUsed.has(k));
+    check(`News: every one of the ${N.IMAGES.length} story pictures appears in ${RUNS} random campaigns`, !unused.length, unused.join(', '));
+  }
   check('News: a calm year has at most one alarming headline', calmDoom === 0, `${calmDoom} calm years with more`);
   const never = Object.keys(fired).filter((k) => !fired[k]);
   check(`News: every one of the ${N.TEMPLATES.length} templates fires in ${RUNS} random campaigns`, !never.length, never.join(', '));
@@ -71,11 +93,13 @@ function run(check, report = false) {
   {
     let fails = [];
     for (let i = 0; i < 60; i++) for (const { input } of playCampaign(5000 + i)) {
-      for (const t of N.TEMPLATES) for (const v of N.allVariants(t, input)) {
-        if (typeof v !== 'string' || /undefined|NaN/.test(v) || N.words(v) < 6 || N.words(v) > 14) fails.push(`${t.id}: ${v}`);
+      for (const t of N.TEMPLATES) for (const v of N.allStories(t, input)) {
+        if (typeof v.text !== 'string' || /undefined|NaN/.test(v.text) || N.words(v.text) < 6 || N.words(v.text) > 14) fails.push(`${t.id}: ${v.text}`);
+        const story = storyProblem(v);
+        if (story) fails.push(`${t.id}: ${story}`);
       }
     }
-    check('News: every variant of every template is a 6–14 word string', !fails.length, [...new Set(fails)].slice(0, 3).join(' | '));
+    check('News: every variant of every template is a 6–14 word string, with a clean deck, caption and picture', !fails.length, [...new Set(fails)].slice(0, 3).join(' | '));
   }
 
   // Fictional mastheads only.
@@ -122,7 +146,7 @@ function run(check, report = false) {
     console.log(`Firing over ${RUNS} campaigns (${years} years, ${endingYears} final):`);
     for (const t of N.TEMPLATES) console.log(`  ${t.cat.padEnd(9)} ${t.id.padEnd(14)} ${String(fired[t.id]).padStart(5)}  ${(100 * fired[t.id] / years).toFixed(1)}%`);
     console.log('\nSample campaign:');
-    for (const { input, news } of sample) console.log(`  ${input.year} (${input.choice.label})\n${news.map((h) => `      ${h.desk}: ${h.text}`).join('\n')}`);
+    for (const { input, news } of sample) console.log(`  ${input.year} (${input.choice.label})\n${news.map((h) => `      ${h.desk}: ${h.text}\n        ${h.deck} [${h.img}: ${h.caption}]`).join('\n')}`);
   }
 }
 

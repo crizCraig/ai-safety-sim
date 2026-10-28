@@ -843,6 +843,39 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check(`README gives the number of named constants (${n})`, readme.includes(`its ${n} named constants`), (readme.match(/its \d+ named constants/) || ['no count'])[0]);
 }
 
+// --- Campaign outlook (est. chance of catastrophe by 2040, from what the player can see) ---
+{
+  const E = (require('./events.js'), globalThis.SimEvents);
+  // Two games with the same visible history (same choices, same dice) in different hidden worlds:
+  // the visible state is copied, the worlds differ, and the outlook must not change.
+  const play = (worldSeed) => {
+    const s = M.initialState(M.sampleWorld(M.defaultAssumptions(), M.mulberry32(worldSeed))), L = M.defaultLevers();
+    E.applyChoice(s, L, { lev: { race: 0.1, safety: 0.03 }, st: { align: 3 } });
+    M.step(s, L, () => 0.5, false);
+    return { s, L };
+  };
+  const a = play(11), b = play(12);
+  const vis = (s) => JSON.stringify(M.outlookStart(s));
+  const b2 = { ...a.s, world: b.s.world, survival: a.s.survival }; // same visible state, other hidden world
+  const oa = M.outlook(a.s, a.L, 300), ob = M.outlook(b2, a.L, 300);
+  check('Outlook: two games with the same visible history and different hidden worlds give the identical estimate',
+    a.s.world.difficulty !== b.s.world.difficulty && vis(a.s) === vis(b2) && JSON.stringify(oa) === JSON.stringify(ob), `${oa.cat}/${oa.n} vs ${ob.cat}/${ob.n}`);
+  const poisoned = M.outlook({ ...a.s, world: { speed: NaN, difficulty: NaN } }, a.L, 300);
+  check('Outlook: the game\'s hidden world is never read', JSON.stringify(poisoned) === JSON.stringify(oa));
+  // Slicing the work does not change it.
+  const acc = { n: 0, cat: 0, catYears: 0 };
+  for (let i = 0; i < 300; i += 70) M.outlook(a.s, a.L, 300, M.OUTLOOK_SEED, i, i + 70, acc);
+  check('Outlook: computing it in slices gives the same result', JSON.stringify(acc) === JSON.stringify(oa));
+  // From 2027 under the status quo it matches the Futures Lab's status quo (within sampling noise).
+  const start = M.outlook(M.initialState(M.sampleWorld(M.defaultAssumptions(), M.mulberry32(3))), M.defaultLevers(), 2000);
+  const mc = M.monteCarlo(M.defaultLevers(), 2000, 0, 42), lab = M.CATASTROPHES.reduce((x, k) => x + mc.counts[k], 0) / mc.n;
+  check('Outlook: from 2027 under the status quo it matches the Futures Lab (±4 points)', Math.abs(start.cat / start.n - lab) < 0.04, `${(100 * start.cat / start.n).toFixed(1)}% vs ${(100 * lab).toFixed(1)}%`);
+  // By 2040 is at least the catastrophe so far, and equals it when nothing is still running.
+  const t = M.outlookTotal(a.s, oa), so = 1 - a.s.survival;
+  check('Outlook: the by-2040 figure is at least the catastrophe so far', t.byEnd >= so && t.byEnd <= 1, `${t.byEnd} vs ${so}`);
+  check('Outlook: with no future still running, by 2040 equals the catastrophe so far', Math.abs(M.outlookTotal({ ...a.s, alive: 0 }, oa).byEnd - so) < 1e-12);
+}
+
 // --- News clips (news.js): see test-news.js ---
 require('./test-news.js').run(check);
 

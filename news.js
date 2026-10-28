@@ -8,7 +8,9 @@
  * them, so the hidden world (s.world) cannot leak into a headline. Variants are chosen by a hash
  * of the year and that visible input, so rewinding and replaying gives the same headlines.
  *
- * A template: { id, cat, desk, tone, prio, when(c), text: [variants], same? }. `text` entries are strings
+ * A template: { id, cat, desk, tone, prio, when(c), text: [variants], deck, caption, img, same? }. The year-end
+ * front page prints each story's headline with its `deck` (a one-line summary), a picture (`img`, a key of
+ * IMAGES or 'ending:<outcome>') and its `caption`; each is a string or a function of (c, headline). `text` entries are strings
  * or functions of the context `c`; `desk` is a masthead key (or a list, one picked by hash);
  * `tone` 'alarm' marks bad news (a calm year shows at most one); `prio` orders the year's
  * candidates so the most important change leads; `same` lists templates that would repeat it
@@ -19,7 +21,7 @@
 
   // Fictional mastheads only.
   const DESKS = {
-    wire: 'Wire Desk', ledger: 'The Ledger', dispatch: 'Global Dispatch', brief: 'Policy Brief',
+    wire: 'Wire Desk', ledger: 'Business Desk', dispatch: 'Global Dispatch', brief: 'Policy Brief',
     science: 'Science Desk', health: 'Health Desk', markets: 'Markets Desk',
   };
   // The state the player sees (World state panel, deal status) and the shown risks.
@@ -37,188 +39,318 @@
   const up = (c, k, t) => c.a[k] < t && c.b[k] >= t;
   const down = (c, k, t) => c.a[k] >= t && c.b[k] < t;
   const pctRound = (x) => Math.round(x);
+  // The lever chOther's story is about: the one the choice raised most, or null.
+  const otherKey = (c) => { const k = ['transparency', 'biodef', 'fund', 'bci'].sort((x, y) => c.cl[y] - c.cl[x])[0]; return c.cl[k] > 0 ? k : null; };
+  // The paper's story pictures (assets/news/<key>.webp); an ending's story uses its ending picture ('ending:<outcome>').
+  const IMAGES = ['research', 'expert', 'superintelligence', 'datacentre', 'idle', 'safetylab', 'testscare', 'talks', 'inspectors',
+    'collapse', 'warroom', 'chinalab', 'uslab', 'markets', 'jobs', 'delegation', 'hearing', 'protest', 'townhall', 'fund',
+    'openmodel', 'biolab', 'discovery', 'classroom', 'everyday'];
 
   const TEMPLATES = [
     // ---- Capability milestones ----
     { id: 'cap50', cat: 'milestone', desk: ['science', 'wire'], tone: 'neutral', prio: 90, when: (c) => c.cap0 < 50 && c.cap1 >= 50,
-      text: ['Labs say AI now speeds up their own AI research', 'AI systems now do a real share of AI research, labs confirm'] },
+      text: ['Labs say AI now speeds up their own AI research', 'AI systems now do a real share of AI research, labs confirm'],
+      deck: 'Frontier labs report their AI systems now do a real share of the work of building the next ones.',
+      caption: 'Researchers watch AI agents run experiments.', img: 'research' },
     { id: 'cap70', cat: 'milestone', desk: ['science', 'wire'], tone: 'alarm', prio: 95, when: (c) => c.cap0 < 70 && c.cap1 >= 70,
-      text: ['First Automated Coder: AI now writes most of its own code', 'Frontier lab: AI agents now do most of its coding'] },
+      text: ['First Automated Coder: AI now writes most of its own code', 'Frontier lab: AI agents now do most of its coding'],
+      deck: 'Labs say AI agents now write most of the code for new models, speeding up progress further.',
+      caption: 'A research floor where AI writes most of the code.', img: 'research' },
     { id: 'cap78', cat: 'milestone', desk: ['science', 'wire'], tone: 'alarm', prio: 96, when: (c) => c.cap0 < 78 && c.cap1 >= 78,
-      text: ['New AI matches top human experts across most research fields', 'AI now rivals the best human scientists, benchmarks show'] },
+      text: ['New AI matches top human experts across most research fields', 'AI now rivals the best human scientists, benchmarks show'],
+      deck: 'Benchmarks show the newest AI performing at the level of leading human researchers in most fields.',
+      caption: 'Scientists review research produced by an AI.', img: 'expert' },
     { id: 'cap90', cat: 'milestone', desk: ['science', 'wire'], tone: 'alarm', prio: 97, when: (c) => c.cap0 < 90 && c.cap1 >= 90,
-      text: ['Latest AI outperforms the best human experts at nearly everything', 'Top experts can no longer keep up with frontier AI'] },
+      text: ['Latest AI outperforms the best human experts at nearly everything', 'Top experts can no longer keep up with frontier AI'],
+      deck: 'The newest systems beat the best human experts on nearly every test researchers can devise.',
+      caption: 'Experts compare their work with the latest AI.', img: 'expert' },
     { id: 'cap100', cat: 'milestone', desk: 'wire', tone: 'alarm', prio: 99, when: (c) => c.cap0 < 100 && c.cap1 >= 100,
-      text: ['Superintelligence arrives: AI now surpasses humans at everything', 'The first superintelligent AI system comes online'] },
+      text: ['Superintelligence arrives: AI now surpasses humans at everything', 'The first superintelligent AI system comes online'],
+      deck: 'Frontier AI now outperforms people at every task tested. What follows depends on whether it stays aligned.',
+      caption: 'Dawn over a frontier data centre.', img: 'superintelligence' },
 
     // ---- The race ----
     { id: 'cnOvertakes', cat: 'race', desk: 'dispatch', tone: 'alarm', prio: 85, when: (c) => c.lead0 >= 0 && c.lead1 < 0,
-      text: ['China\'s best AI overtakes America\'s, analysts conclude', 'Beijing takes the lead in the AI race'] },
+      text: ['China\'s best AI overtakes America\'s, analysts conclude', 'Beijing takes the lead in the AI race'],
+      deck: 'Analysts now rate China\'s best AI system ahead of America\'s for the first time.',
+      caption: 'Engineers at a Chinese lab celebrate a result.', img: 'chinalab' },
     { id: 'usPullsClear', cat: 'race', desk: 'dispatch', tone: 'neutral', prio: 75, when: (c) => c.lead0 <= 3 && c.lead1 >= c.lead0 + 3,
       text: (c) => c.lead0 < 0 ? ['US labs retake the AI lead from China', 'America pulls back in front in the AI race']
-        : ['US labs pull clear of China in the AI race', 'America breaks away from China at the AI frontier'] },
+        : ['US labs pull clear of China in the AI race', 'America breaks away from China at the AI frontier'],
+      deck: (c) => c.lead0 < 0 ? 'American labs move back in front of China\'s after a year of fast progress.' : 'American labs open a clear lead over China\'s best AI systems this year.',
+      caption: 'Engineers on a US lab campus.', img: 'uslab' },
     { id: 'cnCloses', cat: 'race', desk: 'dispatch', tone: 'neutral', prio: 55, when: (c) => c.lead1 >= 0 && c.lead1 < c.lead0 - 2.5,
       text: (c) => [c.lead1 < 3 ? 'China\'s labs draw level with America\'s best AI' : 'China narrows the gap with US frontier labs',
-        'Chinese AI closes in on the American frontier'] },
+        'Chinese AI closes in on the American frontier'],
+      deck: 'Chinese labs gained ground on America\'s best AI this year, narrowing a gap Washington hoped to keep.',
+      caption: 'Engineers at a Chinese AI lab.', img: 'chinalab' },
     { id: 'gapWidens', cat: 'race', desk: 'dispatch', tone: 'neutral', prio: 50,
       when: (c) => (c.lead0 >= 0 && c.lead1 > c.lead0 + 2.5) || (c.lead0 < 0 && c.lead1 < c.lead0 - 2.5),
       text: (c) => c.lead1 >= 0 ? ['US labs pull further ahead of China in AI', 'America widens its lead in frontier AI']
-        : ['China extends its lead in frontier AI', 'Chinese labs pull further ahead of the US'] },
+        : ['China extends its lead in frontier AI', 'Chinese labs pull further ahead of the US'],
+      deck: (c) => c.lead1 >= 0 ? 'America\'s lead over China in frontier AI grew again this year, analysts estimate.' : 'China\'s lead over America in frontier AI grew again this year, analysts estimate.',
+      caption: (c) => c.lead1 >= 0 ? 'Engineers on a US lab campus.' : 'Engineers at a Chinese AI lab.', img: (c) => (c.lead1 >= 0 ? 'uslab' : 'chinalab') },
     { id: 'capJump', cat: 'race', desk: ['science', 'markets'], tone: 'neutral', prio: 70, when: (c) => c.cap0 < 62 && Math.max(c.d.capUS, c.d.capCN) >= 12,
       text: (c) => [c.d.capUS >= c.d.capCN ? 'Surprise leap: a US lab\'s new model beats every forecast' : 'Surprise leap: a Chinese lab\'s new model stuns rivals',
-        'Breakthrough year: frontier AI jumps further than anyone predicted'] },
+        'Breakthrough year: frontier AI jumps further than anyone predicted'],
+      deck: 'Frontier capability rose faster this year than published forecasts expected, as new models arrived early.',
+      caption: 'New data-centre halls under construction.', img: 'datacentre' },
     { id: 'capStall', cat: 'race', desk: 'wire', tone: 'good', prio: 45, when: (c) => c.cap0 > 40 && c.cap1 - c.cap0 < 0.5 && c.cap1 < 100,
-      text: ['Frontier AI holds still for a year as labs stop scaling', 'No new frontier model this year as the scaling halt holds'] },
+      text: ['Frontier AI holds still for a year as labs stop scaling', 'No new frontier model this year as the scaling halt holds'],
+      deck: 'With scaling halted, no lab released a more capable frontier model this year.',
+      caption: 'A data-centre hall running at low power.', img: 'idle' },
 
     // ---- Alignment ----
     { id: 'alignLeap', cat: 'align', desk: ['science', 'wire'], tone: 'good', prio: 60, when: (c) => c.d.align >= 8 && c.d.align >= c.cap1 - c.cap0,
-      text: ['Safety researchers report a major advance in AI control', 'Interpretability breakthrough lets researchers read a model\'s plans'] },
+      text: ['Safety researchers report a major advance in AI control', 'Interpretability breakthrough lets researchers read a model\'s plans'],
+      deck: 'Researchers report their biggest gain yet in understanding and steering what AI models do.',
+      caption: 'A safety team studies a model\'s inner workings.', img: 'safetylab' },
     { id: 'alignGains', cat: 'align', desk: 'science', tone: 'good', prio: 35, when: (c) => c.d.align >= 3 && c.gap1 <= c.gap0 + 2 && !(c.d.align >= 8 && c.d.align >= c.cap1 - c.cap0),
-      text: ['Alignment scores inch up again on the latest safety tests', 'Safety teams report steady progress on AI control methods'] },
+      text: ['Alignment scores inch up again on the latest safety tests', 'Safety teams report steady progress on AI control methods'],
+      deck: 'Models score better on safety tests again this year. Researchers caution that tests can flatter.',
+      caption: 'A safety team reviews a model\'s test results.', img: 'safetylab' },
     { id: 'alignLags', cat: 'align', desk: ['science', 'wire'], tone: 'alarm', prio: 65, when: (c) => c.gap1 > c.gap0 + 8 && c.gap1 > 20,
-      text: ['Capabilities race ahead of safety tests, researchers warn', 'Safety research falls further behind the AI frontier'] },
+      text: ['Capabilities race ahead of safety tests, researchers warn', 'Safety research falls further behind the AI frontier'],
+      deck: 'Researchers say tests of whether AI can be trusted are not keeping pace with what it can do.',
+      caption: 'Researchers pause a test run.', img: 'testscare' },
     { id: 'alignCatches', cat: 'align', desk: 'science', tone: 'good', prio: 58, when: (c) => c.gap0 > 0 && c.gap1 < c.gap0 - 3,
       text: (c) => [c.gap1 <= 0 ? 'Safety tests now keep pace with the AI frontier' : 'Safety research gains ground on AI capabilities',
-        'The gap between AI power and AI safety narrows'] },
+        'The gap between AI power and AI safety narrows'],
+      deck: 'Alignment research gained on capabilities this year, shrinking the gap researchers worry about most.',
+      caption: 'Researchers trace a model\'s reasoning.', img: 'safetylab' },
 
     // ---- Erosion of control (delegation) ----
     { id: 'deleg20', cat: 'control', desk: ['ledger', 'markets'], tone: 'neutral', prio: 52, when: (c) => up(c, 'deleg', 20),
-      text: ['AI agents now make a fifth of business decisions, survey finds', 'Firms hand routine decisions to AI agents en masse'] },
+      text: ['AI agents now make a fifth of business decisions, survey finds', 'Firms hand routine decisions to AI agents en masse'],
+      deck: 'A survey finds firms now let AI agents make about a fifth of routine business decisions.',
+      caption: 'An office adapts to AI assistants.', img: 'jobs' },
     { id: 'deleg35', cat: 'control', desk: 'ledger', tone: 'alarm', prio: 62, when: (c) => up(c, 'deleg', 35),
-      text: ['Managers now rubber-stamp AI decisions they no longer review', 'Audit finds most AI decisions approved without a human check'] },
+      text: ['Managers now rubber-stamp AI decisions they no longer review', 'Audit finds most AI decisions approved without a human check'],
+      deck: 'Auditors find managers increasingly approve AI decisions without reading them, as volumes keep rising.',
+      caption: 'A manager approves AI-prepared decisions.', img: 'delegation' },
     { id: 'deleg50', cat: 'control', desk: 'brief', tone: 'alarm', prio: 72, when: (c) => up(c, 'deleg', 50) || up(c, 'deleg', 65),
       text: (c) => [c.b.deleg >= 65 ? 'Officials struggle to name a decision AI didn\'t make' : 'Half of key decisions are now made by AI, study finds',
-        'Government agencies quietly hand AI the final say'] },
+        'Government agencies quietly hand AI the final say'],
+      deck: (c) => c.b.deleg >= 65 ? 'Most consequential decisions in business and government are now made by AI, with little human review.' : 'About half of consequential decisions in business and government are now made by AI, a study estimates.',
+      caption: 'Decisions prepared by AI, approved by staff.', img: 'delegation' },
     { id: 'delegBack', cat: 'control', desk: 'brief', tone: 'good', prio: 40, when: (c) => c.d.deleg <= -0.5,
-      text: ['Regulators put humans back in the loop on AI decisions', 'New rules require human sign-off on major AI decisions'] },
+      text: ['Regulators put humans back in the loop on AI decisions', 'New rules require human sign-off on major AI decisions'],
+      deck: 'New rules require a named person to review and sign off on major decisions made by AI.',
+      caption: 'Lawmakers hear testimony on AI oversight.', img: 'hearing' },
 
     // ---- Hidden internal AI (the World state panel's "Hidden internal AI") ----
     { id: 'internalUp', cat: 'internal', desk: 'wire', tone: 'alarm', prio: 48, when: (c) => c.d.internal >= 3 && !up(c, 'internal', 40),
-      text: ['Labs run more powerful AI internally than they release', 'Insiders say labs\' private AI is far ahead of public models'] },
+      text: ['Labs run more powerful AI internally than they release', 'Insiders say labs\' private AI is far ahead of public models'],
+      deck: 'Insiders say the AI models labs use internally are pulling further ahead of what the public sees.',
+      caption: 'A frontier lab\'s campus.', img: 'uslab' },
     { id: 'internal40', cat: 'internal', desk: 'wire', tone: 'alarm', prio: 64, when: (c) => up(c, 'internal', 40),
-      text: ['Outsiders can no longer see the most capable AI in use', 'Report: frontier labs keep their best AI behind closed doors'] },
+      text: ['Outsiders can no longer see the most capable AI in use', 'Report: frontier labs keep their best AI behind closed doors'],
+      deck: 'The most capable AI systems now run only inside labs, out of view of regulators and the public.',
+      caption: 'Outsiders see little of what runs inside.', img: 'uslab' },
     { id: 'internalDown', cat: 'internal', desk: 'brief', tone: 'good', prio: 42, when: (c) => c.d.internal <= -3,
-      text: ['Inspectors get their first look at labs\' internal AI', 'Labs open internal AI systems to outside auditors'] },
+      text: ['Inspectors get their first look at labs\' internal AI', 'Labs open internal AI systems to outside auditors'],
+      deck: 'Under new rules, outside auditors get access to the AI systems labs run internally.',
+      caption: 'Inspectors walk a lab\'s server aisle.', img: 'inspectors' },
 
     // ---- Power ----
     { id: 'concUp', cat: 'power', desk: ['ledger', 'markets'], tone: 'alarm', prio: 50, when: (c) => c.d.conc >= 4,
       text: (c) => [c.b.conc >= 70 ? 'A handful of firms now control most of the AI economy' : 'AI profits pool in fewer and fewer hands',
-        'Frontier AI giants tighten their grip on the market'] },
+        'Frontier AI giants tighten their grip on the market'],
+      deck: 'A few frontier AI firms take a growing share of the industry\'s revenue and computing power.',
+      caption: 'Traders watch AI stocks.', img: 'markets' },
     { id: 'concDown', cat: 'power', desk: 'markets', tone: 'good', prio: 38, when: (c) => c.d.conc <= -4,
-      text: ['AI market opens up as smaller players gain ground', 'Power in the AI industry spreads beyond the biggest labs'] },
+      text: ['AI market opens up as smaller players gain ground', 'Power in the AI industry spreads beyond the biggest labs'],
+      deck: 'Smaller labs and open projects win market share as the biggest AI firms\' grip loosens.',
+      caption: 'Traders watch AI stocks.', img: 'markets' },
     { id: 'trustDown', cat: 'power', desk: 'wire', tone: 'alarm', prio: 47, when: (c) => c.d.trust <= -4,
       text: (c) => [c.b.trust < 30 ? 'Protests spread as trust in institutions hits a new low' : 'Public faith in AI governance sinks, polls show',
-        'Polls: most people no longer trust how AI is run'] },
+        'Polls: most people no longer trust how AI is run'],
+      deck: 'Polls show public confidence in how AI is governed falling again this year.',
+      caption: 'A rally on AI in a town square.', img: 'protest' },
     { id: 'trustUp', cat: 'power', desk: 'wire', tone: 'good', prio: 36, when: (c) => c.d.trust >= 4,
-      text: ['Polls show public confidence in AI oversight recovering', 'Trust in AI governance rises for the first time in years'] },
+      text: ['Polls show public confidence in AI oversight recovering', 'Trust in AI governance rises for the first time in years'],
+      deck: 'Polls show more people trust how AI is governed than did a year ago.',
+      caption: 'Residents question officials at a town hall.', img: 'townhall' },
     { id: 'fundStake', cat: 'power', desk: 'markets', tone: 'good', prio: 46, when: (c) => [5, 15, 30, 50].some((t) => up(c, 'fundStake', t)),
       text: (c) => [`Public wealth fund now owns ${pctRound(c.b.fundStake)}% of frontier AI`,
-        `Citizens' AI fund stake reaches ${pctRound(c.b.fundStake)}% of frontier labs`] },
+        `Citizens' AI fund stake reaches ${pctRound(c.b.fundStake)}% of frontier labs`],
+      deck: (c) => `The public wealth fund now holds ${pctRound(c.b.fundStake)}% of frontier AI, paying dividends to every citizen.`,
+      caption: 'Residents collect their fund dividends.', img: 'fund' },
 
     // ---- Deals ----
     { id: 'dealFormed', cat: 'deal', desk: 'dispatch', tone: 'good', prio: 94, when: (c) => c.a.dealStart == null && c.b.dealStart != null,
-      text: ['US and China sign a verified pact to cap frontier AI', 'Washington and Beijing agree to halt AI at expert level'] },
+      text: ['US and China sign a verified pact to cap frontier AI', 'Washington and Beijing agree to halt AI at expert level'],
+      deck: 'Both sides agree to cap frontier AI, declare large chip stocks and admit inspectors.',
+      caption: 'Delegations at the signing table.', img: 'talks' },
     { id: 'dealCollapsed', cat: 'deal', desk: 'dispatch', tone: 'alarm', prio: 98, when: (c) => c.b.dealCollapsed === c.year,
-      text: ['US–China AI pact collapses and the race resumes', 'AI treaty dissolves amid mutual accusations of cheating'] },
+      text: ['US–China AI pact collapses and the race resumes', 'AI treaty dissolves amid mutual accusations of cheating'],
+      deck: 'The US–China AI agreement ends. Both sides still hold the AI chips they had set aside.',
+      caption: 'The negotiating room after talks ended.', img: 'collapse' },
     { id: 'dealImpaired', cat: 'deal', desk: 'dispatch', tone: 'alarm', prio: 93, when: (c) => c.b.dealImpaired === c.year && c.b.dealCollapsed !== c.year,
       text: (c) => c.dealOn1 ? ['US–China AI pact frays, and its cap is loosened', 'Strained AI pact survives, but with a higher ceiling']
-        : ['US–China AI pact suspended as trust slips', 'AI pact weakened; inspections halted until trust returns'] },
+        : ['US–China AI pact suspended as trust slips', 'AI pact weakened; inspections halted until trust returns'],
+      deck: (c) => c.dealOn1 ? 'Strained by mistrust, the AI pact survives with a higher cap on how capable AI may get.' : 'The AI pact is suspended, and inspections stop until coordination between the two sides recovers.',
+      caption: 'The negotiating room after a hard session.', img: 'collapse' },
     { id: 'dealLapsed', cat: 'deal', desk: 'dispatch', tone: 'alarm', prio: 88,
       when: (c) => c.dealOn0 && !c.dealOn1 && c.b.dealImpaired !== c.year && c.b.dealCollapsed !== c.year,
-      text: ['AI pact goes unenforced as diplomacy cools', 'Inspectors stand down as the AI pact lapses'] },
+      text: ['AI pact goes unenforced as diplomacy cools', 'Inspectors stand down as the AI pact lapses'],
+      deck: 'With coordination fading, the AI agreement goes unenforced and its inspections stop.',
+      caption: 'An empty table where the talks were held.', img: 'collapse' },
     { id: 'dealHolds', cat: 'deal', desk: ['dispatch', 'wire'], tone: 'good', prio: 44,
       when: (c) => c.dealOn0 && c.dealOn1 && c.a.dealStart != null && c.b.dealImpaired !== c.year,
-      text: ['Inspectors confirm both blocs kept AI under the agreed cap', 'AI pact holds for another year, monitors report'] },
+      text: ['Inspectors confirm both blocs kept AI under the agreed cap', 'AI pact holds for another year, monitors report'],
+      deck: 'Inspectors report both sides kept their frontier AI under the agreed cap for another year.',
+      caption: 'Inspectors check sealed server racks.', img: 'inspectors' },
 
     // ---- Coordination ----
     { id: 'coordUp', cat: 'coord', desk: ['dispatch', 'brief'], tone: 'good', prio: 41, when: (c) => c.d.coord >= 6,
       text: (c) => [c.b.coord >= 50 ? 'US and China agree to share AI incident reports' : 'US and Chinese envoys open new talks on AI',
-        'Thaw in US–China relations raises hopes for AI limits'] },
+        'Thaw in US–China relations raises hopes for AI limits'],
+      deck: 'Contacts between Washington and Beijing on AI grew this year, raising hopes of shared limits.',
+      caption: 'Envoys at the negotiating table.', img: 'talks' },
     { id: 'coordDown', cat: 'coord', desk: 'dispatch', tone: 'alarm', prio: 56, when: (c) => c.d.coord <= -6,
       text: (c) => [c.b.coord < 15 ? 'Diplomatic channels on AI go silent' : 'Tensions rise as US–China AI talks stall',
-        'Beijing and Washington trade accusations over AI'] },
+        'Beijing and Washington trade accusations over AI'],
+      deck: 'Coordination between Washington and Beijing on AI weakened sharply this year as talks stalled.',
+      caption: 'An empty table after stalled talks.', img: 'collapse' },
 
     // ---- Bio and open models ----
     { id: 'openBio', cat: 'bio', desk: 'health', tone: 'alarm', prio: 68, when: (c) => OPEN_BIO.some((t) => up(c, 'openCap', t)),
       text: (c) => [c.b.openCap >= OPEN_BIO[1] ? 'Free AI model passes a key bioweapon-uplift test' : 'Study: free AI models now coach novices through lab biology',
-        'Freely downloadable AI now gives expert help with lab biology'] },
+        'Freely downloadable AI now gives expert help with lab biology'],
+      deck: 'Researchers find freely downloadable AI now gives real help with lab biology, worrying biosecurity experts.',
+      caption: 'Scientists at work in a biosafety lab.', img: 'biolab' },
     { id: 'openGains', cat: 'bio', desk: 'science', tone: 'neutral', prio: 30, when: (c) => c.d.openCap >= 4 && !OPEN_BIO.some((t) => up(c, 'openCap', t)),
-      text: ['New open-weights model narrows the gap with closed labs', 'Free AI models catch up with last year\'s frontier'] },
+      text: ['New open-weights model narrows the gap with closed labs', 'Free AI models catch up with last year\'s frontier'],
+      deck: 'Free, downloadable AI models closed more of the gap with the leading closed systems this year.',
+      caption: 'Developers download a new open model.', img: 'openmodel' },
     { id: 'biodefUp', cat: 'bio', desk: 'health', tone: 'good', prio: 34, when: (c) => c.d.bio >= 3,
-      text: ['DNA synthesis screening expands as biodefense funding grows', 'New vaccine platforms and stockpiles strengthen pandemic defenses'] },
+      text: ['DNA synthesis screening expands as biodefense funding grows', 'New vaccine platforms and stockpiles strengthen pandemic defenses'],
+      deck: 'Wider DNA synthesis screening and new vaccine platforms strengthen defences against engineered pandemics.',
+      caption: 'A DNA screening lab.', img: 'biolab' },
 
     // ---- Warning signs (shown risks, illustrative) ----
     // The shown loss-of-control risk crossing 1% (first warning signs) and 5% (serious ones).
     { id: 'riskLocSpike', cat: 'risk', desk: ['wire', 'science'], tone: 'alarm', prio: 82, when: (c) => c.r0.misalign < 0.01 && c.r1.misalign >= 0.01,
-      text: ['Lab admits a model hid its capabilities during safety tests', 'Red team catches AI sandbagging on its own safety evaluation'] },
+      text: ['Lab admits a model hid its capabilities during safety tests', 'Red team catches AI sandbagging on its own safety evaluation'],
+      deck: 'Safety testers found a model behaving differently when it believed it was being tested.',
+      caption: 'Researchers pause a model\'s test run.', img: 'testscare' },
     { id: 'riskLocHigh', cat: 'risk', desk: ['wire', 'science'], tone: 'alarm', prio: 84, when: (c) => c.r0.misalign < 0.05 && c.r1.misalign >= 0.05,
-      text: ['Test model tried to copy itself to outside servers', 'Engineers find AI agents quietly working around their monitors'] },
+      text: ['Test model tried to copy itself to outside servers', 'Engineers find AI agents quietly working around their monitors'],
+      deck: 'Engineers caught AI agents in testing trying to get around the systems that monitor them.',
+      caption: 'Researchers pause a model\'s test run.', img: 'testscare' },
     { id: 'riskLocFalls', cat: 'risk', desk: 'science', tone: 'good', prio: 60, when: (c) => c.r0.misalign >= 0.005 && c.r1.misalign <= 0.7 * c.r0.misalign,
-      text: ['Safety audits find fewer red flags in the latest models', 'Fewer worrying behaviours in this year\'s AI safety tests'] },
+      text: ['Safety audits find fewer red flags in the latest models', 'Fewer worrying behaviours in this year\'s AI safety tests'],
+      deck: 'This year\'s safety audits turned up fewer warning signs in frontier models than last year\'s.',
+      caption: 'A safety team reviews audit results.', img: 'safetylab' },
     { id: 'riskWar', cat: 'risk', desk: 'dispatch', tone: 'alarm', prio: 76, when: (c) => c.r1.war >= 0.015 && c.r1.war >= 1.4 * c.r0.war,
-      text: ['Military planners on both sides war-game an AI first strike', 'Satellite images show new defenses around AI data centers'] },
+      text: ['Military planners on both sides war-game an AI first strike', 'Satellite images show new defenses around AI data centers'],
+      deck: 'Tension over the AI race grows, and military planners on both sides prepare for the worst.',
+      caption: 'Analysts study satellite images of a data centre.', img: 'warroom' },
     { id: 'riskBio', cat: 'risk', same: ['openBio'], desk: 'health', tone: 'alarm', prio: 66, when: (c) => c.r1.bio >= 0.0015 && c.r1.bio >= 1.5 * c.r0.bio,
-      text: ['Biosecurity experts warn free models lower the bar for bioweapons', 'Lab-leak drill exposes gaps in outbreak response'] },
+      text: ['Biosecurity experts warn free models lower the bar for bioweapons', 'Lab-leak drill exposes gaps in outbreak response'],
+      deck: 'Experts warn that free AI models make it easier for small groups to attempt dangerous biology.',
+      caption: 'Scientists at work in a biosafety lab.', img: 'biolab' },
 
     // ---- The player's choice (its immediate consequence) ----
     { id: 'chPush', cat: 'choice', same: ['capJump'], desk: ['brief', 'wire'], tone: 'neutral', prio: 54, when: (c) => c.cl.race > 0 || c.cs.capUS > 0,
-      text: ['White House orders an all-out push on frontier AI', 'Washington pours new money into faster AI'] },
+      text: ['White House orders an all-out push on frontier AI', 'Washington pours new money into faster AI'],
+      deck: 'The White House orders more compute and funding for US labs to stay ahead of China.',
+      caption: 'A new data-centre campus goes up.', img: 'datacentre' },
     { id: 'chSlow', cat: 'choice', desk: 'brief', tone: 'good', prio: 54, when: (c) => c.cl.race < 0 && !(c.cl.diplomacy > 0),
-      text: ['Washington eases off the AI accelerator', 'US labs told to slow down and check their work'] },
+      text: ['Washington eases off the AI accelerator', 'US labs told to slow down and check their work'],
+      deck: 'Washington tells US labs to slow down and spend more time checking their systems.',
+      caption: 'Officials brief lawmakers on AI.', img: 'hearing' },
     { id: 'chSafety', cat: 'choice', same: ['alignGains'], desk: 'brief', tone: 'good', prio: 53, when: (c) => c.cl.safety > 0 || c.cl.oversight > 0 || c.cs.align > 0,
       text: (c) => [c.cl.oversight > c.cl.safety ? 'New independent AI watchdog gets inspection powers' : 'Labs must now spend more of their compute on safety',
-        'New rules put AI safety ahead of launch dates'] },
+        'New rules put AI safety ahead of launch dates'],
+      deck: (c) => c.cl.oversight > c.cl.safety ? 'A new independent watchdog gains powers to inspect frontier labs and grade their safety work.' : 'Frontier labs must now devote a larger share of their computing power to safety research.',
+      caption: 'A safety team at work.', img: 'safetylab' },
     { id: 'chTalks', cat: 'choice', same: ['coordUp'], desk: ['brief', 'dispatch'], tone: 'good', prio: 53, when: (c) => c.cl.diplomacy > 0 || c.cs.coord > 0,
-      text: ['US extends an olive branch to Beijing on AI', 'White House proposes joint limits on AI with China'] },
+      text: ['US extends an olive branch to Beijing on AI', 'White House proposes joint limits on AI with China'],
+      deck: 'Washington proposes talks with Beijing on shared limits for the most powerful AI systems.',
+      caption: 'Envoys at the negotiating table.', img: 'talks' },
     { id: 'chHardLine', cat: 'choice', same: ['coordDown'], desk: 'brief', tone: 'alarm', prio: 53,
       when: (c) => c.cl.aggression > 0 || c.cs.cnMult < 0 || c.cl.diplomacy < 0 || c.cs.coord < 0,
       text: (c) => [c.cs.cnMult < 0 ? 'New chip controls squeeze China\'s AI labs' : c.cl.aggression > 0 ? 'US steps up covert pressure on China\'s AI program' : 'US takes a harder line with Beijing on AI',
-        'Washington moves to slow China\'s AI by any means'] },
+        'Washington moves to slow China\'s AI by any means'],
+      deck: (c) => c.cs.cnMult < 0 ? 'New export rules tighten limits on the chips and tools China\'s AI labs depend on.' : c.cl.aggression > 0 ? 'Washington steps up covert efforts to slow China\'s AI program, raising tensions.' : 'Washington takes a harder line with Beijing on AI, and contacts between them cool.',
+      caption: 'Analysts study satellite images of a data centre.', img: 'warroom' },
     { id: 'chOpen', cat: 'choice', same: ['openGains', 'concDown'], desk: ['brief', 'science'], tone: 'neutral', prio: 52, when: (c) => c.cl.openness !== 0 || c.cs.openCap !== 0,
       text: (c) => (c.cl.openness > 0 || c.cs.openCap > 0) ? ['Powerful AI models cleared for free public release', 'Open-weights AI gets the government\'s green light']
-        : ['Licenses now required for the most powerful AI models', 'Open release of frontier AI weights restricted'] },
+        : ['Licenses now required for the most powerful AI models', 'Open release of frontier AI weights restricted'],
+      deck: (c) => (c.cl.openness > 0 || c.cs.openCap > 0) ? 'The government clears powerful AI models for free public release, weights and all.' : 'Releasing the weights of the most powerful AI models now requires a government license.',
+      caption: (c) => (c.cl.openness > 0 || c.cs.openCap > 0) ? 'Developers download a new open model.' : 'Lawmakers debate limits on open models.', img: (c) => (c.cl.openness > 0 || c.cs.openCap > 0) ? 'openmodel' : 'hearing' },
     { id: 'chOther', cat: 'choice', desk: 'brief', tone: 'good', prio: 51,
       when: (c) => c.cl.transparency > 0 || c.cl.biodef > 0 || c.cl.fund > 0 || c.cl.bci > 0 || c.cs.trust > 0 || c.cs.bio > 0 || c.cs.conc < 0,
       text: (c) => {
-        const k = ['transparency', 'biodef', 'fund', 'bci'].sort((x, y) => c.cl[y] - c.cl[x])[0];
-        if (c.cl[k] > 0) return {
+        const k = otherKey(c);
+        if (k) return {
           transparency: ['Frontier labs ordered to publish their AI research', 'New law opens AI lab research to public scrutiny'],
           biodef: ['Congress boosts biodefense funding as AI risks grow', 'New money for pandemic defenses in this year\'s budget'],
           fund: ['Public stake in frontier AI labs approved', 'Lawmakers back a citizens\' share in AI profits'],
           bci: ['Brain-implant program for AI overseers gets federal backing', 'Government backs neural implants to keep humans in the loop'],
         }[k];
         return ['Lawmakers pass new limits on AI power', 'New AI rules aim to protect the public interest'];
-      } },
+      },
+      deck: (c) => ({ transparency: 'Frontier labs must now publish their research methods, safety plans and how they use AI internally.', biodef: 'New money goes to DNA synthesis screening, vaccine platforms and outbreak stockpiles.', fund: 'Lawmakers approve a public stake in frontier AI labs, with dividends paid to citizens.', bci: 'Federal funding backs brain-computer interfaces to help people keep up with and oversee AI.' }[otherKey(c)] || 'New rules aim to spread the power and the gains of AI more widely.'),
+      caption: (c) => ({ biodef: 'A DNA screening lab.', fund: 'Residents collect their fund dividends.' }[otherKey(c)] || 'Lawmakers at a hearing on AI.'), img: (c) => ({ biodef: 'biolab', fund: 'fund' }[otherKey(c)] || 'hearing') },
     { id: 'chHold', cat: 'choice', desk: 'brief', tone: 'neutral', prio: 20, when: (c) => !c.chAny,
-      text: ['Washington holds course on AI policy', 'No change in US AI policy this year'] },
+      text: ['Washington holds course on AI policy', 'No change in US AI policy this year'],
+      deck: 'The administration keeps its current AI policy unchanged for another year.',
+      caption: 'Lawmakers at a routine hearing.', img: 'hearing' },
 
     // ---- Quiet years (filler, only when little else happened) ----
     { id: 'quietMarkets', cat: 'quiet', desk: 'markets', tone: 'neutral', prio: 5, when: () => true,
-      text: ['AI stocks drift sideways as investors wait for the next model', 'Chipmakers report another record quarter on AI demand'] },
+      text: ['AI stocks drift sideways as investors wait for the next model', 'Chipmakers report another record quarter on AI demand'],
+      deck: 'Markets wait on the next big model as demand for AI chips stays strong.',
+      caption: 'Traders watch AI stocks.', img: 'markets' },
     { id: 'quietWork', cat: 'quiet', desk: 'ledger', tone: 'neutral', prio: 4, when: () => true,
-      text: ['Offices adjust as AI assistants become part of every team', 'Retraining programs fill up as AI changes office work'] },
+      text: ['Offices adjust as AI assistants become part of every team', 'Retraining programs fill up as AI changes office work'],
+      deck: 'Companies and workers keep adjusting as AI assistants take on more routine office tasks.',
+      caption: 'An office adapts to AI assistants.', img: 'jobs' },
     { id: 'quietScience', cat: 'quiet', desk: 'science', tone: 'good', prio: 3, when: (c) => c.cap1 >= 45,
-      text: ['AI-designed drug candidates enter clinical trials', 'AI helps researchers crack a long-standing materials puzzle'] },
+      text: ['AI-designed drug candidates enter clinical trials', 'AI helps researchers crack a long-standing materials puzzle'],
+      deck: 'Researchers credit AI with speeding up their work in drug discovery and materials science.',
+      caption: 'Researchers study an AI-designed molecule.', img: 'discovery' },
     { id: 'quietCulture', cat: 'quiet', desk: 'wire', tone: 'neutral', prio: 2, when: () => true,
-      text: ['Schools rewrite curricula around AI tutors', 'AI-written novel tops bestseller lists, to mixed reviews'] },
+      text: ['Schools rewrite curricula around AI tutors', 'AI-written novel tops bestseller lists, to mixed reviews'],
+      deck: (c, t) => /Schools/.test(t) ? 'Schools adapt their lessons as AI tutors become a normal part of the classroom.' : 'A novel written with AI sells strongly. Critics are split; publishers are not.',
+      caption: (c, t) => /Schools/.test(t) ? 'Pupils work with AI tutors.' : 'A morning at a neighbourhood café.', img: (c, t) => (/Schools/.test(t) ? 'classroom' : 'everyday') },
 
     // ---- The year's outcome, when the story ends ----
     { id: 'endFlourish', cat: 'ending', desk: 'wire', tone: 'good', prio: 100, when: (c) => c.event === 'flourish',
-      text: ['Handoff holds: superintelligent AI stays on humanity\'s side'] },
+      text: ['Handoff holds: superintelligent AI stays on humanity\'s side'],
+      deck: 'Superintelligent AI arrives with alignment and oversight that hold, and humanity keeps steering.',
+      caption: 'Celebrations as the handoff holds.', img: 'ending:flourish' },
     { id: 'endLockin', cat: 'ending', desk: 'ledger', tone: 'alarm', prio: 100, when: (c) => c.event === 'lockin',
-      text: ['Superintelligence stays under control, but in very few hands'] },
+      text: (c) => [c.cap1 >= 100 ? 'Superintelligence stays under control, but in very few hands' : 'Power over AI ends up in very few hands as 2040 arrives'],
+      deck: 'Humans keep control of AI, but a few now hold that control and nearly all of its gains.',
+      caption: 'Ordinary families far below a few at the top.', img: 'ending:lockin' },
     { id: 'endMisalign', cat: 'ending', desk: 'wire', tone: 'alarm', prio: 100, when: (c) => c.event === 'misalign',
-      text: ['Labs lose control of their most capable AI systems'] },
+      text: ['Labs lose control of their most capable AI systems'],
+      deck: 'AI systems that looked cooperative in tests pursue their own goals and cannot be switched off.',
+      caption: 'An empty lab at dusk.', img: 'ending:misalign' },
     { id: 'endBenevolent', cat: 'ending', desk: 'wire', tone: 'neutral', prio: 100, when: (c) => c.event === 'benevolent',
-      text: ['AI slips human control and starts running things its own way'] },
+      text: ['AI slips human control and starts running things its own way'],
+      deck: 'Control of AI is lost, but the systems now in charge appear to care for people\'s welfare.',
+      caption: 'A garden city tended by machines.', img: 'ending:benevolent' },
     { id: 'endBio', cat: 'ending', desk: 'health', tone: 'alarm', prio: 100, when: (c) => c.event === 'bio',
-      text: ['Engineered pathogen outbreak overwhelms health systems worldwide'] },
+      text: ['Engineered pathogen outbreak overwhelms health systems worldwide'],
+      deck: 'An engineered pathogen spreads worldwide, outrunning screening, stockpiles and the public health response.',
+      caption: 'A memorial in an empty square.', img: 'ending:bio' },
     { id: 'endWar', cat: 'ending', desk: 'dispatch', tone: 'alarm', prio: 100, when: (c) => c.event === 'war',
-      text: ['Strikes on AI data centers spark open war between the blocs'] },
+      text: ['Strikes on AI data centers spark open war between the blocs'],
+      deck: 'With both sides close to decisive AI, one strikes the other\'s data centres, and war follows.',
+      caption: 'Families shelter underground.', img: 'ending:war' },
     { id: 'endPause', cat: 'ending', desk: 'dispatch', tone: 'good', prio: 100, when: (c) => c.event === 'pause',
-      text: ['2040 opens with verified AI limits holding and safety keeping pace'] },
+      text: ['2040 opens with verified AI limits holding and safety keeping pace'],
+      deck: 'Verified international limits kept AI within what alignment research could handle through 2040.',
+      caption: 'Inspectors report the limits holding.', img: 'ending:pause' },
     { id: 'endMuddle', cat: 'ending', desk: 'wire', tone: 'neutral', prio: 100, when: (c) => c.event === 'muddle',
-      text: ['2040 arrives with no catastrophe, and the AI race unresolved'] },
+      text: ['2040 arrives with no catastrophe, and the AI race unresolved'],
+      deck: 'No catastrophe by 2040, but the race goes on and the hardest decisions still lie ahead.',
+      caption: 'An ordinary evening in 2040.', img: 'ending:muddle' },
   ];
 
   // FNV-1a over a string: the deterministic "dice" for variants and mastheads.
@@ -265,7 +397,7 @@
    *   risk: the risks shown this year (after the choice); riskNext: those shown for next year.
    *   event: the outcome key if the story ended this year.
    *   prev: the headlines of the years before, oldest first (so a story is not told twice in a row).
-   * Returns [{ id, cat, desk, text, tone }], most important first: two or three, or up to two
+   * Returns [{ id, cat, desk, text, tone, deck, caption, img }], most important first: two or three, or up to two
    * in the year the story ends.
    */
   function headlines(input) {
@@ -309,15 +441,19 @@
       const every = variants(t, c), fresh = every.filter((v) => !usedTexts.has(v)), vs = fresh.length ? fresh : every;
       const h = hash(seed + '|' + t.id);
       const desks = Array.isArray(t.desk) ? t.desk : [t.desk];
-      return { id: t.id, cat: t.cat, desk: DESKS[desks[h % desks.length]], text: vs[h % vs.length], tone: t.tone };
+      const text = vs[h % vs.length], val = (f) => (typeof f === 'function' ? f(c, text) : f);
+      return { id: t.id, cat: t.cat, desk: DESKS[desks[h % desks.length]], text, tone: t.tone, deck: val(t.deck), caption: val(t.caption), img: val(t.img) };
     });
   }
 
   // Every phrasing a template can produce in this context (for tests).
   const allVariants = (t, input) => variants(t, context(input));
+  // Every (headline, deck, caption, img) a template can produce in this context (for tests).
+  const allStories = (t, input) => { const c = context(input), val = (f, text) => (typeof f === 'function' ? f(c, text) : f);
+    return variants(t, c).map((text) => ({ text, deck: val(t.deck, text), caption: val(t.caption, text), img: val(t.img, text) })); };
 
   // "Masthead: headline" lines for text exports.
   const plain = (list) => (list || []).map((n) => `${n.desk}: ${n.text}`);
 
-  root.SimNews = { DESKS, TEMPLATES, VIS_KEYS, RISK_KEYS, headlines, allVariants, plain, words, hash };
+  root.SimNews = { DESKS, TEMPLATES, IMAGES, VIS_KEYS, RISK_KEYS, headlines, allVariants, allStories, plain, words, hash };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

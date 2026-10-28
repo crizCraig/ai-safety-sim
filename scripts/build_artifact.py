@@ -14,7 +14,7 @@ out = Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
 for name in ("model.js", "events.js", "news.js", "landmask.js", "presets.js", "trees.js"):
     shutil.copy(root / name, out / name)
-for sub in ("cards", "cards-gpt", "endings-gpt"):
+for sub in ("cards", "cards-gpt", "endings-gpt", "news"):
     if (root / "assets" / sub).is_dir():
         shutil.copytree(root / "assets" / sub, out / "assets" / sub, dirs_exist_ok=True)
 
