@@ -502,12 +502,12 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261028130408"></script>
-<script src="events.js?v=20261028130408"></script>
-<script src="news.js?v=20261028130408"></script>
-<script src="landmask.js?v=20261028130408"></script>
-<script src="presets.js?v=20261028130408"></script>
-<script src="trees.js?v=20261028130408"></script>
+<script src="model.js?v=20261028133927"></script>
+<script src="events.js?v=20261028133927"></script>
+<script src="news.js?v=20261028133927"></script>
+<script src="landmask.js?v=20261028133927"></script>
+<script src="presets.js?v=20261028133927"></script>
+<script src="trees.js?v=20261028133927"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -845,7 +845,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents, NEWS = window.SimNews;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261028130408';
+const ASSET_VERSION = '20261028133927';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1765,15 +1765,20 @@ function newsHTML(list) {
 // outcome where that fits (phones, mostly); otherwise into the row beside "How the dice fell"
 // (desktop, where the outcome column has no room to spare); on a small phone with a full card,
 // into that row as a single line (the dice label shrinks to its icon; tapping the headline
-// unfolds it). If even that would push Continue out of view, the ticker goes. Every headline
+// unfolds it). On a phone, if even that would push Continue out of view, the ticker goes;
+// on desktop the card may grow by the ticker's line instead. Every headline
 // stays in the ending's list and Copy for AI.
 function fitNews(card, h0) {
   const box = card.querySelector('#verdict .news');
   if (!box) return;
-  const fits = () => card.getBoundingClientRect().height <= h0 + 1 && card.scrollHeight <= card.clientHeight + 1;
+  // Fits: nothing scrolls inside the card, and the whole card (Continue included) is on screen.
+  // The card may grow a little for the headlines; the growth animates with the result.
+  const fits = () => card.scrollHeight <= card.clientHeight + 1 && card.getBoundingClientRect().bottom <= innerHeight - 8;
   if (phoneLayout() && fits()) return;
   $('newsSlot').append(box);
-  if (fits()) return;
+  // Desktop has room to spare: keep the headlines even if the card grows by a line (the
+  // growth animates with the rest of the result). Only phones trade the ticker for space.
+  if (fits() || !phoneLayout()) return;
   box.closest('.rollfoot').classList.add('compact');
   box.querySelector('ul').onclick = () => box.classList.toggle('open');
   if (!fits()) { box.closest('.rollfoot').classList.remove('compact'); box.remove(); }
