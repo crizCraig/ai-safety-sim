@@ -93,6 +93,17 @@
   .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; transition: width .7s cubic-bezier(.2,.8,.2,1); }
   .bar b { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #fff; opacity: .0; transition: left .3s, opacity .3s; }
   .divider { height: 1px; background: var(--line); margin: 14px 0; }
+  /* Campaign: capability, alignment and loss-of-control risk year by year. */
+  .capchart { margin: 0 0 12px; }
+  .capchart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .capchart text { font-family: var(--mono); font-size: 9px; fill: var(--muted); }
+  .capchart text.halo { paint-order: stroke; stroke: var(--panel-solid); stroke-width: 3px; stroke-linejoin: round; }
+  .capchart .ref { stroke: rgba(230,237,248,.28); stroke-width: 1; stroke-dasharray: 3 3; }
+  .capchart .ref.si { stroke: rgba(255,77,106,.5); }
+  .capchart .lg { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 10.5px; color: var(--muted); margin-top: 4px; }
+  .capchart .lg i { display: inline-block; width: 10px; height: 2px; vertical-align: middle; margin-right: 4px; border-radius: 1px; }
+  .capchart .lg i.dash { background: none !important; border-top: 2px dashed; height: 0; }
+  .capchart .lg i.barsw { width: 4px; height: 8px; }
 
   .risk { margin-bottom: 12px; }
   .risk .row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; }
@@ -461,11 +472,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261027171821"></script>
-<script src="events.js?v=20261027171821"></script>
-<script src="landmask.js?v=20261027171821"></script>
-<script src="presets.js?v=20261027171821"></script>
-<script src="trees.js?v=20261027171821"></script>
+<script src="model.js?v=20261027172721"></script>
+<script src="events.js?v=20261027172721"></script>
+<script src="landmask.js?v=20261027172721"></script>
+<script src="presets.js?v=20261027172721"></script>
+<script src="trees.js?v=20261027172721"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -489,6 +500,7 @@
 <div class="panel" id="left">
   <div class="campaign-only">
     <h3>World state</h3>
+    <div id="capChart" class="capchart"></div>
     <div id="stats"></div>
     <div class="divider"></div>
     <h3>Your decisions</h3>
@@ -799,7 +811,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261027171821';
+const ASSET_VERSION = '20261027172721';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1657,9 +1669,16 @@ function rollYear() {
     const verdict = res.event
       ? `<span style="color:${M.OUTCOMES[res.event].color}">${M.OUTCOMES[res.event].title}</span>${how}`
       : `<span style="color:var(--good)">${year} passes without catastrophe.</span>${s.dealCollapsed === year ? '<div class="youchose" style="color:var(--bad)">The US–China deal collapsed this year. The race is back on.</div>' : s.dealImpaired === year ? `<div class="youchose" style="color:var(--${M.dealActive(s, L) ? 'warn' : 'bad'})">${M.dealImpairedText(s, L)}</div>` : ''}`;
+    // Crossing a capability line gets one line of its own, so the climb in loss-of-control
+    // risk that follows does not come out of nowhere.
+    const c0 = M.maxCap(game.before), c1 = M.maxCap(s);
+    const cue = res.event ? '' : c0 < M.TOP_EXPERT && c1 >= M.TOP_EXPERT
+      ? 'AI now rivals top human experts and does most of its own research: loss-of-control risk climbs fast from here.'
+      : c0 < M.AC && c1 >= M.AC ? 'AI now does most of its own coding and research: loss-of-control risk starts rising.' : '';
+    const cueHTML = cue ? `<div class="youchose" style="color:var(--warn)">${cue}</div>` : '';
     if (res.event) { vis.outcome = res.event; vis.outT = 0; preloadImg(endArtUrl(res.event)); }
     game.phase = res.event ? 'ended' : 'result';
-    renderTimeline(); renderHistory();
+    renderTimeline(); renderHistory(); renderChart();
     // Stage 2: the card fades to the outcome (the headline, what changed,
     // Continue, the settled bars and the note) and takes its new height in one movement.
     morphCard(() => {
@@ -1669,7 +1688,7 @@ function rollYear() {
       // The picture keeps its choosing size and tone in the result (tap still opens it whole).
       // The outcome sits on the left and Continue on the right on desktop; on phones Continue
       // grows to fill the space, so the card keeps the size it had while choosing.
-      $('verdict').innerHTML = `<div class="vtext">${verdict}<div class="youchose">You chose: ${game.lastChoice}</div>${yearChanges(game.before, s)}</div>
+      $('verdict').innerHTML = `<div class="vtext">${verdict}<div class="youchose">You chose: ${game.lastChoice}</div>${cueHTML}${yearChanges(game.before, s)}</div>
         <div class="nxcol"><button class="btn next" id="nextBtn"><span class="nxl"><small>${res.event ? 'The story ends' : 'Next year'}</small>${res.event ? 'See the ending' : `Continue to ${s.year}`}</span><span class="nxa" aria-hidden="true">→</span></button>
         <button class="linkbtn rechoose" data-rewind="${game.decisions.length - 1}">↺ Change my choice</button></div>`;
       const short = h0 - card.getBoundingClientRect().height;
@@ -1733,7 +1752,7 @@ function mcBar(mc) {
 }
 
 /* ---------- campaign HUD ---------- */
-function renderAll() { renderTimeline(); renderStats(); renderRisks(); renderLevers(); renderHistory(); }
+function renderAll() { renderTimeline(); renderChart(); renderStats(); renderRisks(); renderLevers(); renderHistory(); }
 
 function decisionItems() {
   return game.decisions.map((d, i) => `<li><b>${d.year}</b>${d.title}: ${d.label}
@@ -1769,6 +1788,60 @@ function renderStats() {
   ).join('') + `<div class="note" style="margin-top:10px">Gap between capability and alignment: <b style="color:${M.maxCap(s) - s.align > 30 ? 'var(--bad)' : 'var(--good)'}">${Math.round(M.maxCap(s) - s.align)}</b>. Capability 70 is an Automated Coder, 90 dominates top experts, 100 is superintelligence.${M.dealActive(s, game.L) ? ` <b style="color:var(--accent)">A verified US–China deal is holding frontier capability at ${s.dealImpaired ? 'a weakened cap' : 'top-expert level'} (${M.dealCeiling(s)}), or where a bloc already was if higher.</b>` : ''}${s.dealCollapsed ? ` <b style="color:var(--bad)">The US–China deal collapsed in ${s.dealCollapsed}.</b>` : s.dealImpaired ? ` <b style="color:var(--warn)">The US–China deal weakened in ${s.dealImpaired}.</b>` : ''}</div>`;
 }
 
+// The campaign so far, one point per year: the state each year began in (game.history, so a
+// rewind redraws it), plus where the year just played left things once it has resolved.
+function chartPoints() {
+  const pts = game.history.map((h) => ({ s: h.s, L: h.L }));
+  if (['result', 'ended', 'over'].includes(game.phase)) {
+    const cur = { s: game.s, L: game.L }, last = pts[pts.length - 1];
+    if (last && last.s.year === game.s.year) pts[pts.length - 1] = cur; else pts.push(cur);
+  }
+  return pts;
+}
+// A small year-by-year chart: AI capability for each bloc against the Automated Coder (70),
+// top-expert (78) and superintelligence (100) lines; alignment as tests measure it (and the
+// real value when the secret facts are shown); this year's loss-of-control risk as bars.
+function renderChart() {
+  const pts = chartPoints(), SI = M.STAT_INFO;
+  const W = 260, x0 = 2, x1 = 258, yTop = 12, yBot = 100, rTop = 116, rBot = 134;
+  // The years shown run a few years past the latest point (the whole decade once the game gets
+  // there), so a short game's climb fills the chart instead of its first few columns.
+  const y0 = M.START_YEAR, last = pts.length ? pts[pts.length - 1].s.year : y0;
+  const yN = Math.min(M.END_YEAR + 1, Math.max(y0 + 6, last + 2)), span = yN - y0;
+  const X = (yr) => x0 + 4 + (x1 - x0 - 8) * (Math.min(yN, yr) - y0) / span;
+  const Y = (v) => yBot - (yBot - yTop) * Math.max(0, Math.min(100, v)) / 100;
+  const line = (f, color, extra = '') => {
+    if (!pts.length) return '';
+    const xy = pts.map((p) => [X(p.s.year), Y(f(p))]);
+    const d = xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join('');
+    const [lx, ly] = xy[xy.length - 1];
+    return `<path d="${d}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" ${extra}/><circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2.4" fill="${color}"/>`;
+  };
+  // Reference lines go under the data; their labels go on top at the right, with a halo.
+  const refs = [[100, 'Superintelligence 100', 'si', -2.5], [M.TOP_EXPERT, 'Top expert 78', '', -2.5], [M.AC, 'Automated Coder 70', '', 9.5]];
+  const refLines = refs.map(([v, , cls]) => `<line class="ref ${cls}" x1="${x0}" x2="${x1}" y1="${Y(v)}" y2="${Y(v)}"/>`).join('');
+  const refLabels = refs.map(([v, label, , dy]) => `<text class="halo" x="${x1}" y="${Y(v) + dy}" text-anchor="end">${label}</text>`).join('');
+  const risk = pts.map((p) => { const r = M.risks(p.s, p.L); return secretsOn ? r.misalignTrue : r.misalign; });
+  const peak = Math.max(0, ...risk), scale = Math.max(0.02, peak), bw = Math.min(10, (x1 - x0) / span * 0.5);
+  const bars = pts.map((p, i) => {
+    const h = (rBot - rTop) * Math.min(1, risk[i] / scale);
+    return h < 0.3 ? '' : `<rect x="${(X(p.s.year) - bw / 2).toFixed(1)}" y="${(rBot - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1" fill="#ff3b5c" opacity=".85"><title>${p.s.year}: ${pct(risk[i])}</title></rect>`;
+  }).join('');
+  const step = span <= 7 ? 1 : span <= 10 ? 2 : 3, tickYears = [];
+  for (let yr = y0; yr <= Math.min(yN, M.END_YEAR); yr += step) tickYears.push(yr);
+  const ticks = tickYears.map((yr) => `<text x="${X(yr)}" y="${rBot + 11}" text-anchor="${yr === yN ? 'end' : 'middle'}">${step === 1 && yr !== y0 ? "'" + String(yr).slice(2) : yr}</text>`).join('');
+  const realLbl = secretsOn ? `<span><i class="dash" style="border-color:${SI.align.color}"></i>Real alignment (secret)</span>` : '';
+  $('capChart').innerHTML = `<svg viewBox="0 0 ${W} ${rBot + 14}" role="img" aria-label="AI capability, alignment and loss-of-control risk by year">
+    ${refLines}
+    <line x1="${x0}" x2="${x1}" y1="${yBot}" y2="${yBot}" stroke="var(--line)"/>
+    ${secretsOn ? line((p) => M.realAlign(p.s, p.L), SI.align.color, 'stroke-dasharray="3 2" opacity=".75"') : ''}
+    ${line((p) => p.s.align, SI.align.color)}${line((p) => p.s.capCN, SI.capCN.color)}${line((p) => p.s.capUS, SI.capUS.color)}${refLabels}
+    <line x1="${x0}" x2="${x1}" y1="${rBot}" y2="${rBot}" stroke="var(--line)"/>${bars}
+    <text x="${x0}" y="${rTop - 3}">Loss-of-control risk per year${secretsOn ? ' (real)' : ''}${peak > 0 ? ' · peak ' + pct(peak, peak < 0.1 ? 1 : 0) : ''}</text>
+    ${ticks}</svg>
+    <div class="lg"><span><i style="background:${SI.capUS.color}"></i>US AI</span><span><i style="background:${SI.capCN.color}"></i>China AI</span><span><i style="background:${SI.align.color}"></i>Alignment (as tested)</span>${realLbl}</div>`;
+}
+
 // The hidden facts of this game's world, as a list (ending reveal and the campaign's secrets view).
 function secretList(s, L) {
   const rows = M.secretRows(s, L, { pct, over: !!(game && game.phase === 'over') });
@@ -1784,7 +1857,7 @@ function syncSecrets() {
   $('secretsBtn').textContent = secretsOn ? 'Hide secret facts' : 'Show secret facts';
   $('secretsBtn').setAttribute('aria-pressed', String(secretsOn));
   $('secrets').hidden = !secretsOn;
-  if (game) renderRisks();
+  if (game) { renderRisks(); renderChart(); }
 }
 $('secretsBtn').onclick = () => { secretsOn = !secretsOn; try { localStorage.setItem('goagi-secrets', secretsOn ? '1' : '0'); } catch (e) {} syncSecrets(); };
 // Chances shown as words at the extremes, so 0.000020% does not read as a precise number.
@@ -2433,10 +2506,10 @@ const TOURS = {
   campaign: [
     ['#card', 'One decision a year', 'Each year brings a new situation. Read it, then pick one of the options.'],
     ['#choices', 'What each option does', 'The tags under each option show what it changes: green makes things safer, red riskier. Hover or tap an option to preview next year\'s risk. You can also press 1, 2 or 3.'],
+    ['#left', 'Watch AI climb', 'The chart shows each side\'s AI capability year by year. Past the Automated Coder line (70), AI does most of its own research and control can start to slip; alignment (green) has to keep up. The red bars are the yearly risk of losing control. Below: the rest of the world\'s state and your past decisions.'],
     ['#right', 'This year\'s risk', 'Your estimate of each catastrophe this year. After you choose, a die is rolled for each one. When AI becomes superintelligent, there is one more test: whether its alignment is good enough to keep it on our side. The big number is your chance of having made it this far without catastrophe.'],
-    ['#left', 'The state of the world', 'How powerful each side\'s AI is, how ready safety research is, and more. Your past decisions are listed underneath.'],
     ['#timeline', 'Go back in time', 'Click any earlier year to rewind and choose differently. Each year keeps its luck, so only your choice changes.'],
-    ['#statsToggle', 'World state and risk', 'Tap Stats for the state of the world, this year\'s risk and your past decisions. Tap it again to return to the decision.'],
+    ['#statsToggle', 'World state and risk', 'Tap Stats to watch AI capability climb year by year toward the line where control can be lost, with this year\'s risk and your past decisions. Tap it again to return to the decision.'],
     ['#modelBtn', 'Curious how it works?', 'Every number comes from formulas you can read here, with their sources.'],
   ],
   lab: [
@@ -2533,19 +2606,31 @@ document.addEventListener('click', (e) => {
   // Clicks in the control panels keep it open, so it can follow the settings as they change.
   if (distOpen && !e.target.closest('#catDist, #catBig, .panel')) closeDist();
 });
-function endTour() {
+function endTour(interrupted) {
   if (tour) { try { localStorage.setItem('goagi-tour-' + tour.mode, '1'); } catch (e) {} }
   // The Lab tour ends with the policy panel back at the plans: on phones just below the
-  // pinned graph, on desktop at the top of the panel.
-  if (tour && tour.mode === 'lab') {
+  // pinned graph, on desktop at the top of the panel. Not when the visitor ended it by using
+  // the page: the page stays where they are.
+  if (tour && tour.mode === 'lab' && interrupted !== true) {
     const cover = pinnedCover();
     if (cover) scrollBelow($('left'), cover);
     else $('left').scrollTo({ top: 0, behavior: 'smooth' });
   }
   tour = null; $('tour').hidden = true;
 }
+// Using the page during the tutorial ends it as Skip would, so nothing is ever used with the
+// rest of the page dimmed: any click or tap outside the note (a choice, Continue, a panel, the
+// globe, a header button), Tab moving focus into the page, or a game shortcut. These listeners
+// run first (capture) and never stop the event, so the same click or key does its normal job.
+const outsideTour = (el) => !(el instanceof Element && el.closest('#tour'));
+document.addEventListener('click', (e) => { if (tour && outsideTour(e.target)) endTour(true); }, true);
+document.addEventListener('focusin', (e) => { if (tour && outsideTour(e.target)) endTour(true); }, true);
+document.addEventListener('keydown', (e) => {
+  if (!tour) return;
+  if (['1', '2', '3'].includes(e.key) || (['Enter', ' ', 'ArrowRight'].includes(e.key) && outsideTour(e.target))) endTour(true);
+}, true);
 $('tourNext').onclick = () => { if (++tour.i >= tour.steps.length) endTour(); else showTourStep(); };
-$('tourSkip').onclick = endTour;
+$('tourSkip').onclick = () => endTour();
 addEventListener('resize', () => { if (tour) showTourStep(); });
 // Crossing the phone breakpoint while the spread is open moves it to the right place.
 addEventListener('resize', () => { if (distOpen && $('catDist').classList.contains('cd-inline') !== phoneLayout()) openDist(); });
