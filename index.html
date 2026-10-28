@@ -93,17 +93,20 @@
   .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; transition: width .7s cubic-bezier(.2,.8,.2,1); }
   .bar b { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #fff; opacity: .0; transition: left .3s, opacity .3s; }
   .divider { height: 1px; background: var(--line); margin: 14px 0; }
-  /* Campaign: capability, alignment and loss-of-control risk year by year. */
+  /* Campaign: chance of no catastrophe, then capability vs alignment, year by year. */
   .capchart { margin: 0 0 12px; }
+  .capchart .ct { font-size: 12px; color: var(--text); margin: 0 0 4px; }
+  .capchart svg + .ct { margin-top: 12px; }
   .capchart svg { display: block; width: 100%; height: auto; overflow: visible; }
-  .capchart text { font-family: var(--mono); font-size: 9px; fill: var(--muted); }
+  .capchart text { font-family: var(--mono); font-size: 11.6px; fill: var(--muted); }
+  .capchart text.now { font-size: 14px; font-weight: 600; }
   .capchart text.halo { paint-order: stroke; stroke: var(--panel-solid); stroke-width: 3px; stroke-linejoin: round; }
+  .capchart .grid { stroke: rgba(230,237,248,.14); stroke-width: 1; }
   .capchart .ref { stroke: rgba(230,237,248,.28); stroke-width: 1; stroke-dasharray: 3 3; }
   .capchart .ref.si { stroke: rgba(255,77,106,.5); }
-  .capchart .lg { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 10.5px; color: var(--muted); margin-top: 4px; }
+  .capchart .lg { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 11px; color: var(--muted); margin-top: 6px; }
   .capchart .lg i { display: inline-block; width: 10px; height: 2px; vertical-align: middle; margin-right: 4px; border-radius: 1px; }
   .capchart .lg i.dash { background: none !important; border-top: 2px dashed; height: 0; }
-  .capchart .lg i.barsw { width: 4px; height: 8px; }
 
   .risk { margin-bottom: 12px; }
   .risk .row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; }
@@ -472,11 +475,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261027172721"></script>
-<script src="events.js?v=20261027172721"></script>
-<script src="landmask.js?v=20261027172721"></script>
-<script src="presets.js?v=20261027172721"></script>
-<script src="trees.js?v=20261027172721"></script>
+<script src="model.js?v=20261027175518"></script>
+<script src="events.js?v=20261027175518"></script>
+<script src="landmask.js?v=20261027175518"></script>
+<script src="presets.js?v=20261027175518"></script>
+<script src="trees.js?v=20261027175518"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -811,7 +814,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261027172721';
+const ASSET_VERSION = '20261027175518';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1798,48 +1801,68 @@ function chartPoints() {
   }
   return pts;
 }
-// A small year-by-year chart: AI capability for each bloc against the Automated Coder (70),
-// top-expert (78) and superintelligence (100) lines; alignment as tests measure it (and the
-// real value when the secret facts are shown); this year's loss-of-control risk as bars.
+// Two small year-by-year panels. First, the headline: the expected chance of getting this far
+// without catastrophe, as it stood each year (s.survival, the number shown in the right panel).
+// Second, AI capability for each bloc against the Automated Coder (70), top-expert (78) and
+// superintelligence (100) lines, with alignment as tests measure it (and the real value when
+// the secret facts are shown).
+const survivalColor = (p) => p > 0.75 ? 'var(--good)' : p > 0.45 ? 'var(--warn)' : 'var(--bad)';
 function renderChart() {
   const pts = chartPoints(), SI = M.STAT_INFO;
-  const W = 260, x0 = 2, x1 = 258, yTop = 12, yBot = 100, rTop = 116, rBot = 134;
+  const W = 260, x0 = 2, x1 = 258;
   // The years shown run a few years past the latest point (the whole decade once the game gets
   // there), so a short game's climb fills the chart instead of its first few columns.
   const y0 = M.START_YEAR, last = pts.length ? pts[pts.length - 1].s.year : y0;
   const yN = Math.min(M.END_YEAR + 1, Math.max(y0 + 6, last + 2)), span = yN - y0;
-  const X = (yr) => x0 + 4 + (x1 - x0 - 8) * (Math.min(yN, yr) - y0) / span;
-  const Y = (v) => yBot - (yBot - yTop) * Math.max(0, Math.min(100, v)) / 100;
+  const X = (yr) => x0 + 36 + (x1 - x0 - 40) * (Math.min(yN, yr) - y0) / span;
+  const step = span <= 10 ? 2 : 3, tickYears = [];
+  for (let yr = y0; yr <= Math.min(yN, M.END_YEAR); yr += step) tickYears.push(yr);
+  // The first year label starts at its point and one at the right edge ends there, so neither
+  // runs into the axis labels or past the panel.
+  const ticks = (y) => tickYears.map((yr) => `<text x="${X(yr) - (yr === y0 ? 3 : 0)}" y="${y}" text-anchor="${yr === y0 ? 'start' : X(yr) > x1 - 14 ? 'end' : 'middle'}">${yr}</text>`).join('');
+  const path = (xy) => xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join('');
+
+  // Panel 1: chance of no catastrophe so far, 0–100%.
+  const aTop = 8, aBot = 78, A = (p) => aBot - (aBot - aTop) * Math.max(0, Math.min(1, p));
+  const grid = [[1, '100%'], [0.5, '50%'], [0, '0%']].map(([p, t]) =>
+    `<line class="grid" x1="${X(y0) - 4}" x2="${x1}" y1="${A(p)}" y2="${A(p)}"/><text x="${X(y0) - 8}" y="${A(p) + 4}" text-anchor="end">${t}</text>`).join('');
+  let surv = '';
+  if (pts.length) {
+    const xy = pts.map((p) => [X(p.s.year), A(p.s.survival)]);
+    const segs = xy.slice(1).map(([x, y], i) => `<path d="${path([xy[i], [x, y]])}" stroke="${survivalColor(pts[i + 1].s.survival)}" stroke-width="2.4" stroke-linecap="round" fill="none"/>`).join('');
+    const dots = xy.map(([x, y], i) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${i === xy.length - 1 ? 3.6 : 2.4}" fill="${survivalColor(pts[i].s.survival)}"><title>${pts[i].s.year}: ${pct(pts[i].s.survival, 1)}</title></circle>`).join('');
+    const p = pts[pts.length - 1].s.survival, [lx, ly] = xy[xy.length - 1];
+    // The current value sits in the open space under the line (over it once the line is low),
+    // to the right of the last point when there is room, else ending just past it.
+    const right = lx + 56 < x1, ty = p > 0.5 ? ly + 19 : ly - 9;
+    surv = `${segs}${dots}<text class="now halo" x="${(lx + (right ? 6 : 4)).toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="${right ? 'start' : 'end'}" style="fill:${survivalColor(p)}">${pct(p, 1)}</text>`;
+  }
+  const p1 = `<div class="ct">Chance of no catastrophe so far</div>
+    <svg viewBox="0 0 ${W} ${aBot + 16}" role="img" aria-label="Expected chance of no catastrophe so far, by year">
+    ${grid}${surv}${ticks(aBot + 14)}</svg>`;
+
+  // Panel 2: capability vs alignment.
+  const yTop = 14, yBot = 120, Y = (v) => yBot - (yBot - yTop) * Math.max(0, Math.min(100, v)) / 100;
   const line = (f, color, extra = '') => {
     if (!pts.length) return '';
-    const xy = pts.map((p) => [X(p.s.year), Y(f(p))]);
-    const d = xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join('');
-    const [lx, ly] = xy[xy.length - 1];
-    return `<path d="${d}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" ${extra}/><circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2.4" fill="${color}"/>`;
+    const xy = pts.map((p) => [X(p.s.year), Y(f(p))]), [lx, ly] = xy[xy.length - 1];
+    return `<path d="${path(xy)}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" ${extra}/><circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2.8" fill="${color}"/>`;
   };
   // Reference lines go under the data; their labels go on top at the right, with a halo.
-  const refs = [[100, 'Superintelligence 100', 'si', -2.5], [M.TOP_EXPERT, 'Top expert 78', '', -2.5], [M.AC, 'Automated Coder 70', '', 9.5]];
-  const refLines = refs.map(([v, , cls]) => `<line class="ref ${cls}" x1="${x0}" x2="${x1}" y1="${Y(v)}" y2="${Y(v)}"/>`).join('');
+  const refs = [[100, 'Superintelligence 100', 'si', -3], [M.TOP_EXPERT, 'Top expert 78', '', -3], [M.AC, 'Automated Coder 70', '', 12]];
+  const refLines = refs.map(([v, , cls]) => `<line class="ref ${cls}" x1="${X(y0) - 4}" x2="${x1}" y1="${Y(v)}" y2="${Y(v)}"/>`).join('');
   const refLabels = refs.map(([v, label, , dy]) => `<text class="halo" x="${x1}" y="${Y(v) + dy}" text-anchor="end">${label}</text>`).join('');
-  const risk = pts.map((p) => { const r = M.risks(p.s, p.L); return secretsOn ? r.misalignTrue : r.misalign; });
-  const peak = Math.max(0, ...risk), scale = Math.max(0.02, peak), bw = Math.min(10, (x1 - x0) / span * 0.5);
-  const bars = pts.map((p, i) => {
-    const h = (rBot - rTop) * Math.min(1, risk[i] / scale);
-    return h < 0.3 ? '' : `<rect x="${(X(p.s.year) - bw / 2).toFixed(1)}" y="${(rBot - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1" fill="#ff3b5c" opacity=".85"><title>${p.s.year}: ${pct(risk[i])}</title></rect>`;
-  }).join('');
-  const step = span <= 7 ? 1 : span <= 10 ? 2 : 3, tickYears = [];
-  for (let yr = y0; yr <= Math.min(yN, M.END_YEAR); yr += step) tickYears.push(yr);
-  const ticks = tickYears.map((yr) => `<text x="${X(yr)}" y="${rBot + 11}" text-anchor="${yr === yN ? 'end' : 'middle'}">${step === 1 && yr !== y0 ? "'" + String(yr).slice(2) : yr}</text>`).join('');
+  const axis = [[100, '100'], [50, '50'], [0, '0']].map(([v, t]) => `<text x="${X(y0) - 8}" y="${Y(v) + 4}" text-anchor="end">${t}</text>`).join('');
   const realLbl = secretsOn ? `<span><i class="dash" style="border-color:${SI.align.color}"></i>Real alignment (secret)</span>` : '';
-  $('capChart').innerHTML = `<svg viewBox="0 0 ${W} ${rBot + 14}" role="img" aria-label="AI capability, alignment and loss-of-control risk by year">
-    ${refLines}
-    <line x1="${x0}" x2="${x1}" y1="${yBot}" y2="${yBot}" stroke="var(--line)"/>
+  const p2 = `<div class="ct">AI capability vs alignment</div>
+    <svg viewBox="0 0 ${W} ${yBot + 16}" role="img" aria-label="AI capability and alignment by year">
+    ${refLines}${axis}
+    <line x1="${X(y0) - 4}" x2="${x1}" y1="${yBot}" y2="${yBot}" stroke="var(--line)"/>
     ${secretsOn ? line((p) => M.realAlign(p.s, p.L), SI.align.color, 'stroke-dasharray="3 2" opacity=".75"') : ''}
     ${line((p) => p.s.align, SI.align.color)}${line((p) => p.s.capCN, SI.capCN.color)}${line((p) => p.s.capUS, SI.capUS.color)}${refLabels}
-    <line x1="${x0}" x2="${x1}" y1="${rBot}" y2="${rBot}" stroke="var(--line)"/>${bars}
-    <text x="${x0}" y="${rTop - 3}">Loss-of-control risk per year${secretsOn ? ' (real)' : ''}${peak > 0 ? ' · peak ' + pct(peak, peak < 0.1 ? 1 : 0) : ''}</text>
-    ${ticks}</svg>
+    ${ticks(yBot + 14)}</svg>
     <div class="lg"><span><i style="background:${SI.capUS.color}"></i>US AI</span><span><i style="background:${SI.capCN.color}"></i>China AI</span><span><i style="background:${SI.align.color}"></i>Alignment (as tested)</span>${realLbl}</div>`;
+  $('capChart').innerHTML = p1 + p2;
 }
 
 // The hidden facts of this game's world, as a list (ending reveal and the campaign's secrets view).
@@ -2506,7 +2529,7 @@ const TOURS = {
   campaign: [
     ['#card', 'One decision a year', 'Each year brings a new situation. Read it, then pick one of the options.'],
     ['#choices', 'What each option does', 'The tags under each option show what it changes: green makes things safer, red riskier. Hover or tap an option to preview next year\'s risk. You can also press 1, 2 or 3.'],
-    ['#left', 'Watch AI climb', 'The chart shows each side\'s AI capability year by year. Past the Automated Coder line (70), AI does most of its own research and control can start to slip; alignment (green) has to keep up. The red bars are the yearly risk of losing control. Below: the rest of the world\'s state and your past decisions.'],
+    ['#left', 'Watch AI climb', 'The top chart tracks your chance of no catastrophe so far, year by year. Below it, each side\'s AI capability: past the Automated Coder line (70), AI does most of its own research and control can start to slip; alignment (green) has to keep up. Further down: the rest of the world\'s state and your past decisions.'],
     ['#right', 'This year\'s risk', 'Your estimate of each catastrophe this year. After you choose, a die is rolled for each one. When AI becomes superintelligent, there is one more test: whether its alignment is good enough to keep it on our side. The big number is your chance of having made it this far without catastrophe.'],
     ['#timeline', 'Go back in time', 'Click any earlier year to rewind and choose differently. Each year keeps its luck, so only your choice changes.'],
     ['#statsToggle', 'World state and risk', 'Tap Stats to watch AI capability climb year by year toward the line where control can be lost, with this year\'s risk and your past decisions. Tap it again to return to the decision.'],
