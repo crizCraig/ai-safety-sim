@@ -475,11 +475,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261027181329"></script>
-<script src="events.js?v=20261027181329"></script>
-<script src="landmask.js?v=20261027181329"></script>
-<script src="presets.js?v=20261027181329"></script>
-<script src="trees.js?v=20261027181329"></script>
+<script src="model.js?v=20261027214011"></script>
+<script src="events.js?v=20261027214011"></script>
+<script src="landmask.js?v=20261027214011"></script>
+<script src="presets.js?v=20261027214011"></script>
+<script src="trees.js?v=20261027214011"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -814,7 +814,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261027181329';
+const ASSET_VERSION = '20261027214011';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1806,7 +1806,8 @@ function chartPoints() {
 // Second, AI capability for each bloc against the Automated Coder (70), top-expert (78) and
 // superintelligence (100) lines, with alignment as tests measure it (and the real value when
 // the secret facts are shown).
-const riskColor = (r) => r < 0.25 ? 'var(--good)' : r < 0.55 ? 'var(--warn)' : 'var(--bad)';
+// Catastrophe risk is always shown in red, like the Futures Lab's headline.
+const riskColor = () => 'var(--bad)';
 const catSoFar = (s) => 1 - s.survival;
 function renderChart() {
   const pts = chartPoints(), SI = M.STAT_INFO;
