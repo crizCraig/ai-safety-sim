@@ -404,6 +404,31 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   // Belief over value alignment: raising its mean lowers the shown odds; the default world carries its nodes.
   const vw = (m) => Object.assign({}, low, { world: Object.assign({}, low.world, M.sampleWorld({ ...A, valueAlign: { mean: m, sd: 0.2 } }, M.mulberry32(2)), { valueAlign: 0 }) });
   check('Shown lock-in odds fall as value alignment becomes more likely', M.lockinBelief(vw(0.1), L) > M.lockinBelief(vw(0.6), L) && Array.isArray(st.world.valueNodes) && st.world.valueAlign >= 0 && st.world.valueAlign <= 1);
+  // Skewed priors (Codex C29-1): a U-shaped Beta's wide bins straddle the 0.95 cap's kink, so the
+  // lock-in unknowns' nodes are sliced to 0.02 in x. Truth comes without probNodes: a fine
+  // integral over the Beta's quantiles (one unknown) and independent gamma-ratio sampling (all three).
+  const edge = { capUS: 99, capCN: 60, align: 90, internal: 80, coord: 0, trust: 10, conc: 60, deleg: 60 }, Le = { ...L, oversight: 0, transparency: 0, safety: 0 };
+  const skew = (keys) => { const Ak = { ...A, share: { mean: 0.31, sd: 0 }, whistle: { mean: 0.25, sd: 0 }, valueAlign: { mean: 0.26, sd: 0 } };
+    for (const k of keys) Ak[k] = { mean: 0.05, sd: 0.3 }; return [Ak, Object.assign(M.initialState(M.sampleWorld(Ak, M.mulberry32(1))), edge)]; };
+  const [A1, s1] = skew(['share']), B1 = M.betaOf(A1.share);
+  let t1 = 0; const NZ = 200000, dz = 16 / NZ;
+  for (let i = 0; i < NZ; i++) { const z = -8 + (i + 0.5) * dz; t1 += Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI) * dz * M.lockinOdds(s1, Le, 0.25, M.betaAtZ(B1, z), 0.26); }
+  const sh1 = M.lockinBelief(s1, Le);
+  const [A3, s3] = skew(['share', 'whistle', 'valueAlign']), B3 = ['whistle', 'share', 'valueAlign'].map((k) => M.betaOf(A3[k]));
+  const gr = M.mulberry32(178), gauss = () => Math.sqrt(-2 * Math.log(1 - gr())) * Math.cos(2 * Math.PI * gr());
+  const gamma = (a) => { if (a < 1) return gamma(a + 1) * gr() ** (1 / a); const d = a - 1 / 3, c = 1 / Math.sqrt(9 * d);
+    for (;;) { const z = gauss(), v = (1 + c * z) ** 3; if (v <= 0) continue; const u = gr(); if (u < 1 - 0.0331 * z ** 4 || Math.log(u) < 0.5 * z * z + d * (1 - v + Math.log(v))) return d * v; } };
+  const betaDraw = (B) => { const x = gamma(B.a), y = gamma(B.b); return x / (x + y); };
+  let t3 = 0, q3 = 0; const N3 = 3000000;
+  for (let i = 0; i < N3; i++) { const v = M.lockinOdds(s3, Le, ...B3.map(betaDraw)); t3 += v; q3 += v * v; }
+  t3 /= N3; const se3 = Math.sqrt((q3 / N3 - t3 * t3) / N3), sh3 = M.lockinBelief(s3, Le);
+  check('Skewed priors: shown lock-in odds match the true average where the cap binds (sharing 0.05 ± 0.30 alone: ±0.05 pts of a fine integral; all three: ±0.05 pts of independent sampling)',
+    Math.abs(sh1 - t1) < 0.0005 && Math.abs(sh3 - t3) < 0.0005 && se3 < 0.0002 && t1 > 0.5 && t3 > 0.5,
+    `${(100 * sh1).toFixed(3)}% vs ${(100 * t1).toFixed(3)}%; ${(100 * sh3).toFixed(3)}% vs ${(100 * t3).toFixed(3)}% (SE ${(100 * se3).toFixed(3)})`);
+  const tw3 = (v) => Object.assign({}, s3, { world: Object.assign({}, s3.world, { share: v, whistle: v, valueAlign: v }) });
+  const z3 = Object.assign(M.initialState(M.sampleWorld({ ...A3, share: { mean: 0.05, sd: 0 }, whistle: { mean: 0.05, sd: 0 }, valueAlign: { mean: 0.05, sd: 0 } }, M.mulberry32(1))), edge);
+  check('…with the hidden draws still ignored, and a zero spread still the point value', M.lockinBelief(tw3(0), Le) === M.lockinBelief(tw3(1), Le)
+    && Math.abs(M.lockinBelief(z3, Le) - M.lockinOdds(z3, Le, 0.05, 0.05, 0.05)) < 1e-12 && M.LOCK_DX === 0.02);
   // Determinism: the sharing draw is appended last, so a seed gives the same world and the
   // earlier draws are unchanged from a world drawn without it.
   const a = M.sampleWorld(A, M.mulberry32(42)), b = M.sampleWorld(A, M.mulberry32(42));
@@ -607,6 +632,19 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   M.sampleWorld({ ...A0, share: { mean: 0.3, sd: 0 } }, counting(M.mulberry32(5))); const c0 = calls; calls = 0;
   M.sampleWorld(A0, counting(M.mulberry32(5)));
   check('A zero spread is a point mass and the RNG stream is unchanged', calls === c0 && M.betaAtZ(M.betaOf({ mean: 0.3, sd: 0 }, 0, 1), 1.7) === 0.3 && M.betaAtZ(M.betaOf({ mean: 0, sd: 0.2 }, 0, 1), 1.7) === 0);
+  // Codex C29-3: quantiles stay monotone and in range at huge shapes (spreads far below the sliders'
+  // 0.01, where the normal approximation takes over), at tiny ones (a U-shaped Beta whose small
+  // quantiles above the median were once 1 minus a number near 1), and at the e^-700 floor.
+  const nm = []; let nq = 0;
+  for (const m of [1e-8, 1e-4, 0.01, 0.1, 0.3, 0.5, 0.9, 0.999]) for (let e = -10; e <= 0; e += 0.5) {
+    const Bq = M.betaOf({ mean: m, sd: Math.min(0.95, 10 ** e) * Math.sqrt(m * (1 - m)) }); if (Bq.point !== undefined) continue;
+    let prev = -1; for (let i = 0; i <= 1200; i++) { const q = M.betaAtZ(Bq, -6 + i * 0.01); nq++; if (!(q >= prev && q <= 1)) { nm.push(`${m}/1e${e} z ${(-6 + i * 0.01).toFixed(2)}`); break; } prev = q; }
+  }
+  const huge = M.betaOf({ mean: 0.1, sd: 1e-6 }), hq = [-1.1, -1.05, 0, 1.05].map((z) => M.betaAtZ(huge, z));
+  calls = 0; M.sampleWorld({ ...A0, share: { mean: 0.1, sd: 1e-6 } }, counting(M.mulberry32(5)));
+  check('Beta quantiles are monotone in z at huge, tiny and floor-level shapes (Codex C29-3), in range, with the same two RNG calls', !nm.length && nq > 100000
+    && huge.a > 1e9 && hq[0] < hq[1] && hq[1] < hq[2] && hq[2] < hq[3] && Math.abs(hq[2] - 0.1) < 1e-7 && Math.abs((hq[3] - 0.1) / 1e-6 - 1.05) < 0.01 && calls === c0,
+    nm.slice(0, 3).join('; ') || `${nq} quantiles`);
   // Belief nodes: the exact mean, and averages that match sampling for a nonlinear function at a skewed edge.
   const p = { mean: 0.05, sd: 0.3 }, nodes = M.probNodes(p).nodes, B = M.betaOf(p, 0, 1);
   const f = (x) => Math.sqrt(x);

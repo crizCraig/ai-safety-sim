@@ -475,11 +475,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261027181026"></script>
-<script src="events.js?v=20261027181026"></script>
-<script src="landmask.js?v=20261027181026"></script>
-<script src="presets.js?v=20261027181026"></script>
-<script src="trees.js?v=20261027181026"></script>
+<script src="model.js?v=20261027181329"></script>
+<script src="events.js?v=20261027181329"></script>
+<script src="landmask.js?v=20261027181329"></script>
+<script src="presets.js?v=20261027181329"></script>
+<script src="trees.js?v=20261027181329"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -517,7 +517,7 @@
     <div id="sliders"></div>
     <div class="divider"></div>
     <h3>Unknowns about the world</h3>
-    <div class="sub">Each future draws these at random: the center you set is the average and the spread its standard deviation. Probabilities follow a Beta distribution on 0–100%, so their spread is in percentage points; the others follow a bell curve (on a log scale for ease, speed and bio risk).</div>
+    <div class="sub">Each future draws these at random: the center you set is the average and the spread its standard deviation. Probabilities follow a Beta distribution on 0–100% (0–60% for how much tests overstate alignment), so their spread is in percentage points; the others follow a bell curve (on a log scale for ease, speed and bio risk).</div>
     <div class="presets" id="unkPresets"></div>
     <div id="assumptions"></div>
   </div>
@@ -690,7 +690,7 @@
         <tr><td><span class="mi">f</span></td><td>Public AI wealth fund: the share of AI returns the public owns, like Norway's or Alaska's funds</td><td>none → public owns most AI</td><td>0.05</td></tr>
       </tbody>
     </table></div>
-    <p><b>Hidden unknowns</b>, drawn once per future. The risk panel shows risks averaged over them; the dice use the hidden draw. <span class="mi">\mathcal{N}(\mu,\ \sigma)</span> is a normal; <span class="mi">\mathcal{B}(\mu,\ \sigma)</span> is a Beta distribution on [0, 1] (or the range given) with mean <span class="mi">\mu</span> and standard deviation <span class="mi">\sigma</span>, so a probability stays between 0 and 100% without piling up at the ends. Its shape parameters follow from the two by the method of moments, <span class="mi">\alpha = \mu k</span> and <span class="mi">\beta = (1-\mu)\,k</span> with <i>k</i> = μ(1−μ)/σ² − 1; the spread is capped at 0.95 × √(μ(1−μ)), just under the largest a Beta allows, and a spread of 0 fixes the value at its mean. Until October 2026 these probabilities were normals clipped to [0, 1]; the Betas keep those curves' actual means and spreads (kindness was labelled 10% ± 25 but averaged about 16%, with 35% of worlds at exactly 0).</p>
+    <p><b>Hidden unknowns</b>, drawn once per future. The risk panel shows risks averaged over them; the dice use the hidden draw. <span class="mi">\mathcal{N}(\mu,\ \sigma)</span> is a normal; <span class="mi">\mathcal{B}(\mu,\ \sigma)</span> is a Beta distribution on [0, 1] (or the range given) with mean <span class="mi">\mu</span> and standard deviation <span class="mi">\sigma</span>, so a probability stays between 0 and 100% without piling up at the ends. Its shape parameters follow from the two by the method of moments, after rescaling the range [lo, hi] to [0, 1]: with <i>m</i> = (μ − lo)/(hi − lo) and <i>s</i> = σ/(hi − lo), <span class="mi">\alpha = m k</span> and <span class="mi">\beta = (1-m)\,k</span> with <i>k</i> = m(1−m)/s² − 1, and the draw is scaled back to [lo, hi]. The spread is capped at <i>s</i> = 0.95 × √(m(1−m)), just under the largest a Beta allows, and a spread of 0 fixes the value at its mean. Until October 2026 these probabilities were normals clipped to [0, 1]; the Betas keep those curves' actual means and spreads (kindness was labelled 10% ± 25 but averaged about 16%, with 35% of worlds at exactly 0).</p>
     <div class="tablewrap"><table>
       <thead><tr><th>Symbol</th><th>Meaning</th><th>Distribution</th></tr></thead>
       <tbody>
@@ -814,7 +814,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261027181026';
+const ASSET_VERSION = '20261027181329';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';

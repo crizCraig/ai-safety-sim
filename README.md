@@ -30,7 +30,8 @@ people without economic leverage or a say even when humans keep control of AI.
 
 - **Futures Lab**. Set ten policy levers and eleven uncertain
   assumptions (mean ± spread, as in the original; the seven probabilities are Beta
-  distributions on 0–100% with that mean and standard deviation, the spread in percentage points,
+  distributions on 0–100% (0–60% for how much tests overstate alignment) with that mean and
+  standard deviation, the spread in percentage points,
   and the others normal or lognormal), run 2,000 Monte Carlo futures,
   and see every trajectory as a 3D fan, colored by how it ends. Hover a line to
   read its values; click an outcome to read it and isolate its futures.

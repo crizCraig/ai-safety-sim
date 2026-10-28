@@ -206,7 +206,7 @@
     // no case of Beijing slowing frontier AI for safety. Hence the wide spreads.
     valueAlign: { group: 'Does AI care about everyone?', label: 'Aligned AI fights corruption', mean: 0.26, sd: 0.18, min: 0, max: 1, fmt: 'pct',
       help: 'Value alignment: the chance an aligned superintelligence cares about humanity broadly, not just about whoever controls it, and so declines to help a few seize power even when its controllers ask. Unlike "Kind even if uncontrolled", which is about an AI that has escaped control, this is about one that is still under control: alignment can succeed technically yet serve only a powerful few if governance fails. Labs aim for this (e.g. constitutions that tell models to refuse illegitimate power grabs), but it\'s unproven under pressure from whoever controls the weights. An AI that surely refuses stops lock-in entirely. At the default it cuts status-quo lock-in from about 70% to about 54% of futures where humans keep control.',
-      world: (A, valueAlign) => ({ valueAlign, valueNodes: probNodes(A.valueAlign).nodes }),
+      world: (A, valueAlign) => ({ valueAlign, valueNodes: probNodes(A.valueAlign, 0, 1, LOCK_DX).nodes }),
       revealOrder: 70, roll: ['Whether aligned AI fights corruption', (r) => `${Math.round(r * 70)}%`],
       secret: ['Aligned AI fights corruption', (w, c) => `A <b>${c.pct(w.valueAlign, 0)}</b> chance an aligned AI would refuse to help a few seize power, even if its controllers asked.`] },
     // Lognormal, set in log10 units. Calibrated to a separate factored Monte Carlo
@@ -214,7 +214,7 @@
     // P(>1%) ≈ 5.5%, P(>10%) ≈ 0.7%. That is median 10^-3.92 with a log10 sd of about 1.2.
     share: { group: 'Does power stay in check?', label: 'The powerful share the gains', mean: 0.31, sd: 0.19, min: 0, max: 1, fmt: 'pct',
       help: 'If a few control AI and nothing forces them, the chance they share its gains broadly anyway. Low means the powerful keep AI and its gains once most people\'s work is no longer needed. The wealth fund, oversight, transparency and whistleblowers can still force sharing.',
-      world: (A, share) => ({ share, shareNodes: probNodes(A.share).nodes }),
+      world: (A, share) => ({ share, shareNodes: probNodes(A.share, 0, 1, LOCK_DX).nodes }),
       revealOrder: 60, roll: ['Whether the powerful would share AI\'s gains', (r) => `${Math.round(r * 70)}%`],
       secret: ['The powerful', (w, c) => `A <b>${c.pct(w.share, 0)}</b> chance they would share AI's gains if nothing forced them.`] },
     // Value alignment, as opposed to intent alignment ("aligned" elsewhere means the AI does what
@@ -222,7 +222,7 @@
     // illegitimate power grabs, but nothing shows it holds when the weights' owners push.
     whistle: { group: 'Does power stay in check?', label: 'Whistleblower odds', mean: 0.25, sd: 0.14, min: 0, max: 1, fmt: 'pct',
       help: 'Chance that insiders expose or refuse to carry out a power grab by whoever controls AGI.',
-      world: (A, whistle) => ({ whistle, whistleNodes: probNodes(A.whistle).nodes }),
+      world: (A, whistle) => ({ whistle, whistleNodes: probNodes(A.whistle, 0, 1, LOCK_DX).nodes }),
       revealOrder: 50, roll: ['Whether insiders would expose a power grab', (r) => `${Math.round(r * 60)}%`],
       secret: ['Insiders', (w, c) => `A <b>${c.pct(w.whistle, 0)}</b> chance they would expose a power grab.`] },
     // Whether those who hold AI share its gains when nothing forces them. Arguments that they
@@ -353,6 +353,7 @@
   // probability onto the ends (35% of worlds had kindness exactly 0) and moved the mean away
   // from the label; legacyProbAssumption converts those parameters for old share links.
   const BETA_SD_CAP = 0.95;
+  const BETA_NORMAL = 1e6; // both shapes above this: Beta quantiles from the normal approximation
   const isProb = (k) => ASSUMPTION_INFO[k] && ASSUMPTION_INFO[k].fmt === 'pct';
   // ln Γ(x), Lanczos (g = 7, 9 terms), relative error about 1e-15 for x > 0.
   const LANCZOS = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
@@ -384,20 +385,24 @@
     const bt = Math.exp(a * Math.log(x) + b * Math.log1p(-x) - lnB);
     return x < (a + 1) / (a + b + 2) ? bt * betaCF(a, b, x) / a : 1 - bt * betaCF(b, a, 1 - x) / b;
   }
-  // x with I_x(a, b) = t, for a lower-tail target t ≤ 0.5: Newton in ln x, kept inside a bracket.
+  // x with I_x(a, b) = t, for a target at or below the CDF at x = 1/2: Newton in ln x, kept inside a bracket.
   function betaInvLower(a, b, t, lnB) {
     if (t <= 0) return 0;
-    let lo = -1000, hi = 0; // ln x
+    // Quantiles below e^-700 are returned as 0 (decided at the floor itself, so the answer is
+    // monotone in t); lo stays -Infinity until an iterate lands below the solution.
+    const FLOOR = -700;
+    let lo = -Infinity, hi = 0; // ln x
     let y = Math.min(-1e-9, (Math.log(t) + Math.log(a) + lnB) / a); // the small-x approximation I ≈ x^a / (a B)
-    if (!(y > lo)) y = lo / 2;
+    if (!(y > FLOOR)) y = FLOOR;
     for (let i = 0; i < 200; i++) {
-      if (y < -740) return 0; // below the smallest double: the value is 0 for every purpose here
       const x = Math.exp(y), f = betaInc(a, b, x, lnB) - t;
       if (f === 0) return x;
+      if (f > 0 && y === FLOOR) return 0;
       if (f > 0) hi = y; else lo = y;
       const dens = Math.exp(a * y + (b - 1) * Math.log1p(-x) - lnB); // dI / d ln x
       let next = y - f / dens;
-      if (!(next > lo && next < hi)) next = lo < -900 ? (hi - 1 < lo ? (lo + hi) / 2 : hi - 1) : (lo + hi) / 2;
+      if (!(next > lo && next < hi)) next = lo === -Infinity ? Math.max(FLOOR, Math.min(hi - 1, 2 * hi)) : (lo + hi) / 2;
+      if (next < FLOOR) next = FLOOR;
       if (Math.abs(next - y) < 1e-13) return Math.exp(next);
       y = next;
     }
@@ -420,7 +425,11 @@
       if (!(s > 1e-9)) B = { lo, w, m, s: 0, point: lo + w * m };
       else {
         const k = m * (1 - m) / (s * s) - 1, a = m * k, b = (1 - m) * k;
-        B = { lo, w, m, s, a, b, lnB: lnGamma(a) + lnGamma(b) - lnGamma(a + b) };
+        const lnB = lnGamma(a) + lnGamma(b) - lnGamma(a + b);
+        B = { lo, w, m, s, a, b, lnB, half: betaInc(a, b, 0.5, lnB) };
+        if (Math.min(a, b) > BETA_NORMAL) { // skewness, for the normal approximation in betaAtZ
+          B.skew = 2 * (b - a) * Math.sqrt(a + b + 1) / ((a + b + 2) * Math.sqrt(a * b));
+        }
       }
       BETA_CACHE.set(key, B);
     }
@@ -431,7 +440,15 @@
   // and every per-year die keeps its stream, and each world keeps its rank (its z) when a slider moves.
   function betaAtZ(B, z) {
     if (B.point !== undefined) return B.point;
-    const x = z <= 0 ? betaInvLower(B.a, B.b, normTail(z), B.lnB) : 1 - betaInvLower(B.b, B.a, normTail(z), B.lnB);
+    // Both shapes huge (a spread far below the sliders' 0.01): the incomplete beta loses
+    // precision there, so use the normal with a skewness correction (Cornish-Fisher), which is
+    // exact to well below the spread at these shapes and monotone for |z| < 3 / |skew| ≥ 1500.
+    if (B.skew !== undefined) return B.lo + B.w * clamp(B.m + B.s * (z + B.skew * (z * z - 1) / 6), 0, 1);
+    // Invert on the side of 1/2 the quantile lies on, so a tiny x is never computed as 1 minus
+    // a number close to 1 (which loses its digits and its order). t is Φ(z) or 1 - Φ(z), exact
+    // in its own tail.
+    const t = normTail(z), lower = z <= 0 ? t : 1 - t;
+    const x = lower <= B.half ? betaInvLower(B.a, B.b, lower, B.lnB) : 1 - betaInvLower(B.b, B.a, z <= 0 ? 1 - t : t, B.lnB);
     return B.lo + B.w * x;
   }
   // The spread an unknown actually has after the cap (in its own units), for the sliders' labels.
@@ -440,11 +457,16 @@
   // Belief nodes [weight, value] over the Beta: 42 bins between z = -5, -4.75, …, 5 (and the two
   // tails), each at the exact mean of the Beta inside it (from E[X; X ≤ x] = m I_x(a+1, b)), so the
   // nodes' mean is the Beta's mean exactly and each value stays inside its bin, however skewed the
-  // Beta is. Cached per distribution.
+  // Beta is. With a slice width dx, bins wider than dx in x are
+  // split further (the lock-in unknowns use this: their consumer has a kink at the 0.95 cap). Cached
+  // per distribution.
   const PROB_Z = Array.from({ length: 41 }, (_, i) => -5 + i * 0.25);
+  // Slice width for the lock-in unknowns' nodes (see probNodes): keeps the shown lock-in odds within
+  // about 0.01 points of the true average for any supported prior, however skewed.
+  const LOCK_DX = 0.02;
   const NODE_CACHE = new Map();
-  function probNodes(p, lo = 0, hi = 1) {
-    const key = p.mean + '|' + p.sd + '|' + lo + '|' + hi;
+  function probNodes(p, lo = 0, hi = 1, dx = Infinity) {
+    const key = p.mean + '|' + p.sd + '|' + lo + '|' + hi + '|' + dx;
     if (!NODE_CACHE.has(key)) {
       const B = betaOf(p, lo, hi);
       let nodes;
@@ -455,11 +477,23 @@
         const F = [0, ...PROB_Z.map((z) => (z <= 0 ? normTail(z) : 1 - normTail(z))), 1];
         const G = xs.map((x) => betaInc(B.a + 1, B.b, x, lnB1));
         nodes = [];
+        const push = (wgt, g, x0, x1) => { if (wgt > 0) nodes.push([wgt, lo + B.w * clamp(B.m * g / wgt, x0, x1)]); };
         for (let i = 0; i + 1 < xs.length; i++) {
           const wgt = F[i + 1] - F[i];
           if (!(wgt > 0)) continue;
-          const v = clamp(B.m * (G[i + 1] - G[i]) / wgt, xs[i], xs[i + 1]);
-          nodes.push([wgt, lo + B.w * v]);
+          const parts = Math.ceil((xs[i + 1] - xs[i]) / dx - 1e-9);
+          if (parts <= 1) { push(wgt, G[i + 1] - G[i], xs[i], xs[i + 1]); continue; }
+          // A bin wider than dx (a skewed or U-shaped Beta jumping across its range) is split
+          // into equal slices of x, each with its exact mass and mean, so a kink inside it (the
+          // lock-in cap) is averaged over a narrow slice, not evaluated at one wide bin's mean.
+          let x0 = xs[i], F0 = F[i], G0 = G[i];
+          for (let j = 1; j <= parts; j++) {
+            const x1 = j === parts ? xs[i + 1] : xs[i] + (xs[i + 1] - xs[i]) * j / parts;
+            const F1 = j === parts ? F[i + 1] : clamp(betaInc(B.a, B.b, x1, B.lnB), F0, F[i + 1]);
+            const G1 = j === parts ? G[i + 1] : clamp(betaInc(B.a + 1, B.b, x1, lnB1), G0, G[i + 1]);
+            push(F1 - F0, G1 - G0, x0, x1);
+            x0 = x1; F0 = F1; G0 = G1;
+          }
         }
         const t = nodes.reduce((x, [w]) => x + w, 0);
         nodes = nodes.map(([w, v]) => [w / t, v]);
@@ -845,11 +879,23 @@
     const wm = wn.map(([w, v]) => [w, 1 - K.lockWhistle * v]), vm = vn.map(([w, v]) => [w, 1 - K.lockValue * v]);
     const mean = (nodes) => nodes.reduce((a, [w, f]) => a + w * f, 0), Ew = mean(wm), Ev = mean(vm);
     const maxW = Math.max(...wm.map(([, f]) => f)), maxV = Math.max(...vm.map(([, f]) => f));
+    // The innermost average, over value alignment, from prefix sums over its factors sorted high to
+    // low: for c = k·f_w ≥ 0 the factors above 0.95 / c are capped, those below 0 count 0, and the
+    // rest are linear, so each (sharing, whistleblower) pair costs a binary search, not a loop.
+    const vs = vm.slice().sort((x, y) => y[1] - x[1]), n = vs.length, U = [0], UF = [0];
+    for (const [u, fv] of vs) { U.push(U[U.length - 1] + u); UF.push(UF[UF.length - 1] + u * fv); }
+    const firstBelow = (t) => { let lo = 0, hi = n; while (lo < hi) { const mid = (lo + hi) >> 1; if (vs[mid][1] > t) lo = mid + 1; else hi = mid; } return lo; };
+    const pos = firstBelow(0); // factors > 0 come first
+    const inner = (c) => {
+      if (!(c > 0)) return c === 0 ? 0 : vs.reduce((a, [u, fv]) => a + u * clamp(c * fv, 0, 0.95), 0);
+      const j = firstBelow(0.95 / c);
+      return 0.95 * U[j] + c * (UF[pos] - UF[j]);
+    };
     let p = 0;
     for (const [ws, sv] of sn) {
       const k = lockinScale(sv) * base;
       if (k * maxW * maxV <= 0.95) { p += ws * Math.max(0, k * Ew * Ev); continue; }
-      for (const [w, fw] of wm) for (const [u, fv] of vm) p += ws * w * u * clamp(k * fw * fv, 0, 0.95);
+      for (const [w, fw] of wm) p += ws * w * inner(k * fw);
     }
     return p;
   }
@@ -1149,7 +1195,7 @@
     START_YEAR, END_YEAR, LEVER_INFO, LEVER_GROUPS, LEVER_ORDER, leverGroup, STAT_INFO, OUTCOMES, ASSUMPTION_INFO, DRAW_ORDER, rollRows, secretRows,
     AC, TOP_EXPERT, TEDAI, DELEG0, oversightBite, delegHazard, uplift, rdShare, locGate, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
-    clamp, sig, defaultLevers, defaultAssumptions, assumptionToURL, assumptionFromURL, legacyProbAssumption, betaOf, betaAtZ, probNodes, probMean, probSpread, BETA_SD_CAP, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
+    clamp, sig, defaultLevers, defaultAssumptions, assumptionToURL, assumptionFromURL, legacyProbAssumption, betaOf, betaAtZ, probNodes, LOCK_DX, probMean, probSpread, BETA_SD_CAP, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
     risks, transitionOdds, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, summarize, alignmentScore, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
