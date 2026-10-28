@@ -69,7 +69,7 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
   (one decimal), `⟦name:f⟧` (an exact fraction listed in `K_FRACTIONS`, such as 6/13; it falls
   back to decimals once the constant is overridden) or `⟦1-name⟧` (one `+ - * /` between two
   constants or numbers); `fillModelNumbers()` fills them through `M.fillConstants` before Temml
-  renders and before Copy for LLMs reads the page. A test fails if any `.math`, `.mi` or `.kv`
+  renders and before Copy for AI reads the page. A test fails if any `.math`, `.mi` or `.kv`
   element, or a cell of the state table's 2027 column, types a number by hand, unless the number
   is a unit (1 or 0 that is not a coefficient, a /100 scale, log base 10), an unknown's
   distribution `\mathcal{N}(…)` or `\mathcal{B}(mean,\ sd)` (a Beta by its mean and sd), or part of one of the expressions in the test's `LITERAL_OK`,
@@ -95,7 +95,7 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
    `c` has the page's `pct`, the state `s`, levers `L` and `over`). This one
    entry drives the draw (`sampleWorld`), the mean world (`meanWorld`), the roll screen
    (`UNKNOWNS = M.rollRows()`), the secret facts (`secretList` via `M.secretRows`), the Futures Lab sliders,
-   unknown-preset matching, share links (`shareURL`/`loadShared` in index.html) and Copy for LLMs
+   unknown-preset matching, share links (`shareURL`/`loadShared` in index.html) and Copy for AI
    (`scenarioText`). Append it after the existing keys. If its link units differ from `mean:sd`,
    add a `urlCodec` entry (as `speed`).
 2. `model.js` `DRAW_ORDER`: append the key at the end.
@@ -130,7 +130,7 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
 2. `model.js` `initialState`: `x: K.x0`.
 3. `model.js` `STAT_INFO`: `{ label, color, short, name, up }`. `short` names it on card chips,
    `name` in the year-change summary, `up: 'good' | 'bad'` (or absent) colours both. Drives the
-   campaign's World state panel (`#stats`), the chips, the year-change summary, Copy for LLMs'
+   campaign's World state panel (`#stats`), the chips, the year-change summary, Copy for AI'
    starting state, and the card test's valid `st` keys.
 4. `model.js` its yearly update in `step()`. Every update reads the start-of-year state from
    `s0` (a frozen copy made at the top of `step()`) and writes `s`, so line order does not
@@ -153,7 +153,7 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
    (old positional `l=` share links map by index), plus its place in `LEVER_GROUPS`, which sets
    the order and headings it is shown under. This alone drives the Lab sliders, the
    campaign's lever panel, card chips (`short`, `up` as in `STAT_INFO`), share links,
-   `defaultLevers()`, every preset's default (`P()` in presets.js), Copy for LLMs and the link
+   `defaultLevers()`, every preset's default (`P()` in presets.js), Copy for AI and the link
    round-trip test.
 2. `model.js` the formulas it moves (and `hiddenShare`'s no-lever defaults if it enters there).
 3. `index.html` model page §2 "Policy levers" list and its symbol in every equation.
@@ -199,7 +199,7 @@ in `docs/simplification-2.md`.
 ### An outcome or ending
 
 1. `model.js` `OUTCOMES`: `{ title, color, text }` (drives the Lab's outcome list, path colours,
-   the campaign ending, Copy for LLMs, `monteCarlo`/`summarize` counts).
+   the campaign ending, Copy for AI, `monteCarlo`/`summarize` counts).
 2. `model.js` `CATASTROPHES` if it is one.
 3. `model.js` `step()`: the dice branch that returns `finish(s, key, r, stage)` **and** the
    expected-value bookkeeping (`s.alive`, `s.safeEnded`, `s.survival`) that mirrors it.

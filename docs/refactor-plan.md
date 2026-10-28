@@ -124,7 +124,7 @@ into `LEVER_INFO` (8 → 7).
 constant), each number that is a model constant becomes a placeholder `⟦name⟧`, or `⟦name:d⟧` to
 print `d` decimals (`4.0` is `⟦lockK:1⟧`), or a small expression `⟦1-lockConcFloor⟧` where the page
 shows a derived number. `fillModelNumbers()` (which already fills `{{GREF}}`) replaces every
-placeholder from `M.K` before Temml renders and before Copy for LLMs reads the page. The
+placeholder from `M.K` before Temml renders and before Copy for AI reads the page. The
 expression filler accepts only constant names, numbers and `+ - * / ( )`, and fails loudly on an
 unknown name. Numbers that are not constants (100, 2027, 2040, milestones 70/90/100, clamp
 bounds and quadrature) stay literal.
@@ -137,7 +137,7 @@ filled page.
 
 **Proof.** A script fills the new page with `K_DEFAULTS` and compares every `.math` and `.mi`
 text with the parent's: identical strings. Browser check of `#model` at both sizes with Temml
-loaded, and Copy for LLMs output identical to the parent's.
+loaded, and Copy for AI output identical to the parent's.
 
 **Risks.** Picking the wrong constant where two share a value (several are 0.5); each placeholder
 is reviewed against the formula in model.js, and (d) is spot-checked by changing distinctive

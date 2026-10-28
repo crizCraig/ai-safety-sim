@@ -559,7 +559,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   // C16-3: Plan D's 2.5% safety shows as 2.5%, on the slider and in the export.
   const leverText = new Function('M', html.match(/const leverText = [^\n]*/)[0] + ' return leverText;')(M);
   check('Plan D safety displays as 2.5% (labels, slider, export)', leverText('safety', PR.PRESETS['Plan D: Race to ASI'].safety) === '2.5%' && leverText('safety', 0.35) === '35%'
-    && /\$\('sl-' \+ k\)\.value = M\.leverPct\(labL\[k\]\)/.test(html) && /step="0\.5" id="sl-/.test(html) && /\$\{leverText\(k, labL\[k\]\)\}/.test(html));
+    && /\$\('sl-' \+ k\)\.value = M\.leverPct\(labL\[k\]\)/.test(html) && /step="0\.5" id="sl-/.test(html) && /\$\{leverText\(k, L\[k\]\)\}/.test(html) && /leverTable\(labL\)/.test(html));
   // AI Futures (Aug 2026): Automated Coder labelled 2028 (reached 2027) and superintelligence 2029.
   const A = M.defaultAssumptions();
   for (const k in PR.UNKNOWN_PRESETS['AI Futures (Aug 2026)'].set) A[k] = { ...A[k], ...PR.UNKNOWN_PRESETS['AI Futures (Aug 2026)'].set[k] };

@@ -297,6 +297,7 @@
   #fanTip .tip-world { margin-top: 3px; font-size: 11px; color: var(--muted); max-width: 240px; }
   .copybtn { width: 100%; margin: 6px 0 6px; font-size: 13px; padding: 8px 12px; }
   #toast { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); z-index: 20; background: var(--panel-solid); border: 1px solid var(--accent); border-radius: 10px; padding: 10px 16px; font-size: 13px; max-width: calc(100vw - 32px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  #copyFallback { z-index: 11; } /* above the ending, which can open it */
   #copyText { width: 100%; height: 40vh; background: rgba(255,255,255,0.04); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font-family: var(--mono); font-size: 11px; padding: 10px; }
   .treelist { padding-left: 18px; }
   .modal .box.doc { width: min(880px, 100%); }
@@ -475,11 +476,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261027214011"></script>
-<script src="events.js?v=20261027214011"></script>
-<script src="landmask.js?v=20261027214011"></script>
-<script src="presets.js?v=20261027214011"></script>
-<script src="trees.js?v=20261027214011"></script>
+<script src="model.js?v=20261027215815"></script>
+<script src="events.js?v=20261027215815"></script>
+<script src="landmask.js?v=20261027215815"></script>
+<script src="presets.js?v=20261027215815"></script>
+<script src="trees.js?v=20261027215815"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -535,6 +536,8 @@
     </div>
     <button class="iconbtn secbtn" id="secretsBtn" aria-pressed="false">Show secret facts</button>
     <div class="world-reveal secrets" id="secrets" hidden></div>
+    <button class="btn copybtn" id="copyCampaign" aria-label="Copy for AI: copy this playthrough as a prompt for an AI assistant">Copy for AI</button>
+    <div class="note">Copies your playthrough so far, year by year, with the model's formulas and code, as one prompt to paste into Claude or another AI. Secret facts are included only if you show them.</div>
     <div class="divider"></div>
     <h3>Your policy levers</h3>
     <div id="levers"></div>
@@ -543,7 +546,7 @@
     <h3>2,000 simulated futures</h3>
     <div class="sub" id="labSub"></div>
     <div id="outcomes"></div>
-    <button class="btn copybtn" id="copyPage">Copy for LLMs</button>
+    <button class="btn copybtn" id="copyPage">Copy for AI</button>
     <div class="note">Copies these settings, the formulas, the model's code and the results as one prompt. Paste it into Claude or another AI and ask it to poke holes in the assumptions.</div>
     <div class="divider"></div>
     <p class="note">Each line in the 3D view is one simulated future, 2027 → its outcome. Height is frontier capability and depth is alignment. Each line ends in a dot of its outcome's colour, at the state its future reached and the year it ended. Hover or tap a line to read its values.</p>
@@ -577,7 +580,7 @@
 <div id="toast" role="status" hidden></div>
 <div class="modal hidden" id="copyFallback">
   <div class="box">
-    <div class="kicker">Copy for LLMs</div>
+    <div class="kicker">Copy for AI</div>
     <h2>Copy this text</h2>
     <p>Your browser blocked automatic copying. The text is selected below. Press Ctrl+C or ⌘C, then paste it into an AI assistant.</p>
     <textarea id="copyText" readonly></textarea>
@@ -627,6 +630,7 @@
     <ol class="declist" id="endDecisions"></ol>
     <div class="btnrow">
       <button class="btn" id="againBtn">Play again</button>
+      <button class="btn ghost" id="endCopy" aria-label="Copy for AI: copy this playthrough and its ending as a prompt for an AI assistant">Copy for AI</button>
       <button class="btn ghost" id="toLabBtn">Explore your policy in the Futures Lab</button>
       <button class="btn ghost" id="viewBtn">View the world</button>
     </div>
@@ -814,7 +818,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261027214011';
+const ASSET_VERSION = '20261027215815';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1614,6 +1618,9 @@ function rollYear() {
   // The same 16 dice step() will draw this year (same seeded stream), so each needle sits
   // exactly where its die landed. Bars show the real risk from this game's hidden world.
   const rngPeek = yearRng(2), dice = Array.from({ length: 16 }, () => rngPeek());
+  // The export (campaignText) reads each year's record from its decision.
+  const rec = game.decisions[game.decisions.length - 1];
+  Object.assign(rec, { L: { ...L }, st: structuredClone({ ...s, log: [] }), risk: r });
   const res = M.step(s, L, yearRng(2), true);
   const lanes = [
     ['Pandemic', r.bioTrue, r.bio, 'bio', dice[0]],
@@ -1664,6 +1671,9 @@ function rollYear() {
     renderAll();
     const qReal = M.transitionOdds(s, true, L), qEst = M.transitionOdds(s, false, L);
     const failed = ['misalign', 'benevolent'].includes(res.event);
+    if (res.stage === 'handoff') rec.handoff = { real: qReal, est: qEst };
+    rec.result = { event: res.event, stage: res.stage, st: structuredClone({ ...s, log: [] }), cat: catSoFar(s),
+      note: !res.event && s.dealCollapsed === year ? 'The US–China deal collapsed this year.' : !res.event && s.dealImpaired === year ? M.dealImpairedText(s, L) : '' };
     const how = res.stage === 'handoff'
       ? `<div class="youchose">${failed
         ? 'You got through this year\'s risks, but then AI became superintelligent, smarter than people at everything. Its alignment wasn\'t good enough to keep it on humanity\'s side, so control was lost for good.'
@@ -1734,9 +1744,7 @@ function showEnding() {
   $('endTitle').style.color = o.color;
   $('endText').textContent = o.text;
   $('endDecisions').innerHTML = decisionItems();
-  const mc = M.monteCarlo(game.L, 1500, 0, Date.now() % 100000);
-  const w = s.world;
-  const d = worldDifficulty(w, game.seed), mine = worldCatastrophe(w, game.L, 400, game.seed + 1);
+  const { mc, d, mine } = endingInfo();
   $('endDiff').innerHTML = `<b>How hard your world was: <span class="diff-tier" style="color:${d.tier[1]}">${d.tier[0]}</span></b>
     <p style="margin:6px 0 0">${d.here > d.typical ? 'Even a strong plan' : 'A strong plan'} (AI 2040's Plan A) would end in catastrophe <b>${pct(d.here, 0)}</b> of the time in this world, against ${pct(d.typical, 0)} in a typical one. ${diffSentence(d)} Your final policy, run from 2027 in this same world, would end in catastrophe <b>${pct(mine, 0)}</b> of the time.</p>`;
   $('endWorld').innerHTML = `<b>What you couldn't know until now</b>${secretList(s, game.L)}${SECRETS_NOTE}`;
@@ -1745,6 +1753,17 @@ function showEnding() {
   // Always open at the top (the outcome and its picture), whatever was scrolled before.
   const toTop = () => { [$('ending'), ...$('ending').querySelectorAll('*')].forEach((el) => { if (el.scrollTop) el.scrollTop = 0; }); window.scrollTo(0, 0); };
   toTop(); requestAnimationFrame(toTop);
+}
+
+// The ending's numbers, computed once per ending (the screen and the export share them).
+function endingInfo() {
+  const s = game.s, key = s.year + ':' + s.outcome + ':' + game.decisions.length;
+  if (game.endInfo?.key !== key) {
+    const w = s.world;
+    game.endInfo = { key, mc: M.monteCarlo(game.L, 1500, 0, Date.now() % 100000),
+      d: worldDifficulty(w, game.seed), mine: worldCatastrophe(w, game.L, 400, game.seed + 1) };
+  }
+  return game.endInfo;
 }
 
 function mcBar(mc) {
@@ -2078,7 +2097,7 @@ function renderOutcomeRows(mc) {
 }
 
 /* =====================================================================
- * Memtree links and "Copy for LLMs"
+ * Memtree links and "Copy for AI"
  * ===================================================================== */
 const TREES = (window.MEMTREES || []).filter((t) => t.url);
 if (TREES.length) {
@@ -2094,7 +2113,7 @@ const fetchModelSource = () => fetch('model.js?v=' + ASSET_VERSION).then((r) => 
 if (document.readyState === 'complete') fetchModelSource(); else addEventListener('load', fetchModelSource, { once: true });
 
 const SITE = 'https://thegameofagi.com', REPO = 'https://github.com/crizCraig/ai-safety-sim';
-// The model reference as Markdown with LaTeX math, for Copy for LLMs.
+// The model reference as Markdown with LaTeX math, for Copy for AI.
 function docMarkdown(box) {
   const inline = (el) => {
     const c = el.cloneNode(true);
@@ -2116,19 +2135,32 @@ function docMarkdown(box) {
   return out.join('\n\n');
 }
 
+// Shared by both exports: tables of levers and unknowns, the model reference and the code.
+const leverTable = (L) => '| Lever | Setting | Scale |\n|---|---|---|\n' + M.LEVER_ORDER.map((k) => [k, M.LEVER_INFO[k]]).map(([k, i]) =>
+  `| ${i.label} | ${leverText(k, L[k])}${i.pct ? '' : ' / 100'} | ${i.low} → ${i.high} |`).join('\n');
+const unknownTable = (A) => '| Unknown | Mean | Spread (sd) | Meaning |\n|---|---|---|---|\n' + Object.entries(M.ASSUMPTION_INFO).map(([k, i]) =>
+  `| ${i.label} | ${fmtA(k, A[k].mean)} | ${fmtA(k, i.fmt === 'pct' ? M.probSpread(k, A[k]) : A[k].sd, true)} | ${i.help} |`).join('\n');
+const UNKNOWN_DIST_NOTE = 'probabilities and shares are Beta distributions on their range, alignment difficulty, progress speed and bio risk are lognormal (set in log10 units), current capability is normal';
+function modelAppendix() {
+  fillModelNumbers();
+  const explain = docMarkdown($('modelInfo').querySelector('.box'));
+  return `## How the model works
+
+${explain}
+
+## Full model source (model.js)
+
+${modelSource ? '```js\n' + modelSource.trim() + '\n```' : `The source is at ${REPO}/blob/main/model.js`}
+`;
+}
+
 function scenarioText() {
   const r = M.summarize(labL, labA, 2000, 42);
   const p1 = (x) => (x * 100).toFixed(1) + '%';
-  const levers = M.LEVER_ORDER.map((k) => [k, M.LEVER_INFO[k]]).map(([k, i]) =>
-    `| ${i.label} | ${leverText(k, labL[k])}${i.pct ? '' : ' / 100'} | ${i.low} → ${i.high} |`).join('\n');
-  const unknowns = Object.entries(M.ASSUMPTION_INFO).map(([k, i]) =>
-    `| ${i.label} | ${fmtA(k, labA[k].mean)} | ${fmtA(k, i.fmt === 'pct' ? M.probSpread(k, labA[k]) : labA[k].sd, true)} | ${i.help} |`).join('\n');
   const s0 = M.initialState(Object.assign(M.meanWorld(), { capNow: labA.capNow.mean }));
   const start = Object.entries(M.STAT_INFO).map(([k, i]) => `${i.label} ${s0[k]}`).join(', ') + (labA.capNow.sd > 0 ? ` (frontier capabilities shown at the Current capability center; each future draws its own, ± ${labA.capNow.sd})` : '');
   const outcomes = Object.entries(M.OUTCOMES).sort((a, b) => r.counts[b[0]] - r.counts[a[0]])
     .map(([k, o]) => `| ${o.title} | ${p1(r.counts[k] / r.n)} | ${o.text} |`).join('\n');
-  fillModelNumbers();
-  const explain = docMarkdown($('modelInfo').querySelector('.box'));
   return `# Game of AGI: Futures Lab scenario
 
 Below is a scenario from Game of AGI, a toy Monte Carlo simulator of AI-safety policy from 2027 to 2040 (${SITE}, code: ${REPO}). It is meant to make trade-offs tangible, not to forecast. These exact settings: ${shareURL()} Please help me understand and critique it:
@@ -2141,15 +2173,11 @@ Quote the model code when it matters. Treat every number as an assumption of thi
 
 ## Policy levers (held fixed 2027–2040 in every future)
 
-| Lever | Setting | Scale |
-|---|---|---|
-${levers}
+${leverTable(labL)}
 
-## Hidden unknowns (each future draws these from a normal distribution; alignment difficulty and bio risk are lognormal, set in log10 units)
+## Hidden unknowns (each future draws these: ${UNKNOWN_DIST_NOTE})
 
-| Unknown | Mean | Spread (sd) | Meaning |
-|---|---|---|---|
-${unknowns}
+${unknownTable(labA)}
 
 ## Starting state (2027, scales 0–100)
 
@@ -2166,13 +2194,91 @@ ${outcomes}
 - Superintelligence (capability 100) reached in ${p1(r.asiShare)} of futures${r.asiMedian ? `, median year ${r.asiMedian}` : ''}
 - p(alignment), excluding pandemic and war futures: ${r.pAlignment == null ? 'n/a' : p1(r.pAlignment)}
 
-## How the model works
+${modelAppendix()}`;
+}
 
-${explain}
+// The campaign so far as one prompt: each year's card, choice, levers, state, risks and roll,
+// the hidden facts only when the player can see them (Show secret facts, or the game is over),
+// the ending, and the model reference and code.
+const plainText = (html) => { const d = document.createElement('div'); d.innerHTML = html; return d.textContent.replace(/\s+/g, ' ').trim(); };
+const KEY_STATS = ['capUS', 'capCN', 'align', 'coord', 'deleg', 'conc', 'trust'];
+const statLine = (s) => KEY_STATS.map((k) => `${M.STAT_INFO[k].name} ${Math.round(s[k])}`).join(', ');
+function campaignText() {
+  const s = game.s, over = !!s.outcome, showSecrets = over || secretsOn;
+  const leverLine = (L) => M.LEVER_ORDER.map((k) => `${M.LEVER_INFO[k].label} ${leverText(k, L[k])}`).join('; ');
+  const years = game.decisions.map((d) => {
+    const lines = [`### ${d.year}: ${d.title}`, '', `- **Choice:** ${d.label}`];
+    if (d.L) lines.push(`- **Levers after the choice:** ${leverLine(d.L)}`);
+    if (d.st) lines.push(`- **State after the choice (0–100):** ${statLine(d.st)}`);
+    if (d.risk) {
+      const r = d.risk, real = (k) => (showSecrets ? ` (real, in this world: ${pct(r[k + 'True'])})` : '');
+      lines.push(`- **Risks shown this year (expected, without the secret facts):** engineered pandemic ${pct(r.bio)}${real('bio')}, AI escapes control ${pct(r.misalign)}${real('misalign')}, great-power war ${pct(r.war)}`);
+    }
+    if (d.handoff) lines.push(`- **Superintelligence handoff:** expected chance it goes well ${chance(d.handoff.est)}${showSecrets ? `; real chance ${chance(d.handoff.real)}` : ''}`);
+    if (d.result) {
+      lines.push(`- **What happened:** ${d.result.event ? `${M.OUTCOMES[d.result.event].title}. ${M.OUTCOMES[d.result.event].text}` : d.result.stage === 'end' ? '2040 arrived.' : `${d.year} passed without catastrophe.`}${d.result.note ? ' ' + d.result.note : ''}`);
+      lines.push(`- **State at the end of the year:** ${statLine(d.result.st)}`);
+      lines.push(`- **Chance of catastrophe so far:** ${pct(d.result.cat, 1)}`);
+    } else lines.push('- **What happened:** the dice are still rolling.');
+    return lines.join('\n');
+  });
+  if (game.phase === 'choose' && game.card && !over) {
+    const r = M.risks(s, game.L);
+    years.push([`### ${s.year}: ${game.card.title} (deciding now)`, '', game.card.text, '',
+      ...game.card.choices.map((ch, i) => `${i + 1}. ${ch.label}${ch.note ? ': ' + ch.note : ''}`), '',
+      `- **Levers now:** ${leverLine(game.L)}`, `- **State now (0–100):** ${statLine(s)}`,
+      `- **Risks shown this year before choosing:** engineered pandemic ${pct(r.bio)}, AI escapes control ${pct(r.misalign)}, great-power war ${pct(r.war)}`,
+      `- **Chance of catastrophe so far:** ${pct(catSoFar(s), 1)}`].join('\n'));
+  }
+  const secretsTxt = (L) => M.secretRows(s, L, { pct, over }).map(([k, v]) => `- **${k}:** ${plainText(v)}`).join('\n');
+  const hidden = showSecrets
+    ? `## The hidden unknowns (secret facts)
 
-## Full model source (model.js)
+${over ? 'The game is over, so these are revealed as the ending screen shows them.' : 'The player turned on "Show secret facts", so these are visible.'} They were drawn at random before 2027 from the Futures Lab's default distributions, and the player's choices can't change them.
 
-${modelSource ? '```js\n' + modelSource.trim() + '\n```' : `The source is at ${REPO}/blob/main/model.js`}
+${secretsTxt(game.L)}${over ? '' : `\n- **If AI became superintelligent now:** the real chance the handoff goes well is ${chance(M.transitionOdds(s, true, game.L))}; the best guess without the secret facts is ${chance(M.transitionOdds(s, false, game.L))}.`}`
+    : `## The hidden unknowns
+
+Each campaign draws these at random before 2027 and keeps them secret until the ending, so they are hidden here too. The player sees only the expected risks, averaged over every world they might be in. The distributions they are drawn from (${UNKNOWN_DIST_NOTE}):
+
+${unknownTable(M.defaultAssumptions())}`;
+  let ending = '';
+  if (over) {
+    const o = M.OUTCOMES[s.outcome], e = endingInfo(), d = e.d;
+    const mcLine = Object.keys(M.OUTCOMES).sort((a, b) => e.mc.counts[b] - e.mc.counts[a]).filter((k) => e.mc.counts[k])
+      .map((k) => `${M.OUTCOMES[k].title} ${pct(e.mc.counts[k] / e.mc.n, 0)}`).join(', ');
+    ending = `## The ending (${s.year})
+
+**${o.title}.** ${o.text}
+
+**How hard this world was: ${d.tier[0]}.** ${d.here > d.typical ? 'Even a strong plan' : 'A strong plan'} (AI 2040's Plan A) would end in catastrophe ${pct(d.here, 0)} of the time in this world, against ${pct(d.typical, 0)} in a typical one. ${diffSentence(d)} The player's final policy, run from 2027 in this same world, would end in catastrophe ${pct(e.mine, 0)} of the time.
+
+If the whole period had run under the final policy settings, ${e.mc.n.toLocaleString()} simulated futures (fresh hidden facts each) would end: ${mcLine}.
+
+`;
+  }
+  return `# Game of AGI: campaign playthrough
+
+Below is a playthrough of the campaign in Game of AGI, a toy simulator of AI-safety policy from 2027 to 2040 (${SITE}, code: ${REPO}). It is meant to make trade-offs tangible, not to forecast. Each year the player gets one card and picks one choice; the choice moves the policy levers and the world, then the model steps a year and rolls dice for each catastrophe using this world's hidden facts. ${over ? `This game ended in ${s.year}.` : `This game is in progress: it is ${s.year}.`}
+
+Treat every number as an assumption of this model, not as evidence about the real world. Quote the model code when it matters. My question is at the end, after the model reference and code.
+
+## Starting levers (2027)
+
+${leverTable(game.history[0]?.L || M.defaultLevers())}
+
+## Year by year
+
+Capability: 70 is an Automated Coder, 90 dominates top experts, 100 is superintelligence. Alignment is as tests measure it, which may flatter the real level.
+
+${years.join('\n\n')}
+
+${hidden}
+
+${ending}${modelAppendix()}
+## What I'd like from you
+
+Explain why this playthrough went the way it did, which choices mattered most, and what you'd have done differently. Point out weak assumptions.
 `;
 }
 
@@ -2261,12 +2367,13 @@ $('shareLink').onclick = () => {
   if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).then(ok, () => copyFallback(url));
   else copyFallback(url);
 };
-$('copyPage').onclick = () => {
-  const text = scenarioText();
-  const ok = () => toast('Copied. Paste it into Claude or another AI and ask it to poke holes in the model.');
+function copyForAI(text, msg) {
+  const ok = () => toast(msg);
   if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(ok, () => copyFallback(text));
   else copyFallback(text);
-};
+}
+$('copyPage').onclick = () => copyForAI(scenarioText(), 'Copied. Paste it into Claude or another AI and ask it to poke holes in the model.');
+$('copyCampaign').onclick = $('endCopy').onclick = () => { if (game) copyForAI(campaignText(), 'Copied. Paste it into Claude or another AI and ask why your game went the way it did.'); };
 
 /* =====================================================================
  * Mode switching & wiring
@@ -2536,7 +2643,7 @@ const TOURS = {
     ['#card', 'One decision a year', 'Each year brings a new situation. Read it, then pick one of the options.'],
     ['#choices', 'What each option does', 'The tags under each option show what it changes: green makes things safer, red riskier. Hover or tap an option to preview next year\'s risk. You can also press 1, 2 or 3.'],
     ['#left', 'Watch AI climb', 'The top chart tracks your chance of catastrophe so far, year by year. Below it, each side\'s AI capability: past the Automated Coder line (70), AI does most of its own research and control can start to slip; alignment (green) has to keep up. Further down: the rest of the world\'s state and your past decisions.'],
-    ['#right', 'This year\'s risk', 'Your estimate of each catastrophe this year. After you choose, a die is rolled for each one. When AI becomes superintelligent, there is one more test: whether its alignment is good enough to keep it on our side. The big number is your chance of having made it this far without catastrophe.'],
+    ['#right', 'This year\'s risk', 'Your estimate of each catastrophe this year. After you choose, a die is rolled for each one. When AI becomes superintelligent, there is one more test: whether its alignment is good enough to keep it on our side. The big number is your chance of having made it this far without catastrophe. Copy for AI copies your game so far as a prompt, so you can ask an AI why it went the way it did.'],
     ['#timeline', 'Go back in time', 'Click any earlier year to rewind and choose differently. Each year keeps its luck, so only your choice changes.'],
     ['#statsToggle', 'World state and risk', 'Tap Stats to watch AI capability climb year by year toward the line where control can be lost, with this year\'s risk and your past decisions. Tap it again to return to the decision.'],
     ['#modelBtn', 'Curious how it works?', 'Every number comes from formulas you can read here, with their sources.'],
