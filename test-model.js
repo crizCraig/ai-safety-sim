@@ -843,5 +843,8 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check(`README gives the number of named constants (${n})`, readme.includes(`its ${n} named constants`), (readme.match(/its \d+ named constants/) || ['no count'])[0]);
 }
 
+// --- News clips (news.js): see test-news.js ---
+require('./test-news.js').run(check);
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll checks passed');
 process.exit(failed ? 1 : 0);

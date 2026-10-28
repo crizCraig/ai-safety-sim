@@ -1,7 +1,8 @@
 # Game of AGI
 
 A static site (no build step): `index.html` (Three.js scene, UI), `model.js` (world model),
-`events.js` (campaign cards), `landmask.js` (globe coastlines), `trees.js` (memtree links).
+`events.js` (campaign cards), `news.js` (campaign news clips), `landmask.js` (globe coastlines),
+`trees.js` (memtree links).
 Live at https://thegameofagi.com (agi.memtree.dev redirects there) via GitHub Pages from `main`.
 
 This repo is a public showcase of memtree: the conversations that build it are published as
@@ -234,6 +235,33 @@ in `docs/simplification-2.md`.
    `CARD_ART_SPLIT=newsom|aoc`), `SPLIT_IDS` in `process_card_art.py` (only the split versions
    are processed), its `FOCUS` there, and `PRESIDENT_ART` in index.html.
 3. `test-model.js`: valid keys, three choices, and that it comes up in ordinary play.
+
+### A headline template
+
+The campaign shows two or three news clips after each year (`news.js`, tested by `test-news.js`,
+which `test-model.js` runs).
+
+1. `news.js` `TEMPLATES`: `{ id, cat, desk, tone, prio, when(c), text, same? }`, placed with its
+   category. `when` and `text` read only the context `c` that `context()` builds from visible
+   input: `c.a` / `c.b` (state before the choice / at the end of the year, `VIS_KEYS` only),
+   `c.d` (their difference), `c.cl` / `c.cs` (the choice's lever and state moves), `c.r0` / `c.r1`
+   (the risks shown this year and next, `RISK_KEYS` only), `c.cap0` / `c.cap1`, `c.lead0` /
+   `c.lead1`, `c.gap0` / `c.gap1`, `c.dealOn0` / `c.dealOn1`, `c.event`. Never read `s.world`, the
+   real risks (`bioTrue`, `misalignTrue`) or the handoff's real odds, and do not word a headline so
+   it hints at a hidden fact. If a template needs a new visible field, add it to `VIS_KEYS`.
+2. `text`: two phrasings (a list, or a function of `c` returning one), each 6–14 words, newsy
+   and factual. Roles, not people ("the White House", "Beijing", "a frontier lab"); no quotes put
+   in real people's mouths. `desk` is a key of `DESKS` (or a list of them); mastheads are
+   fictional, never real outlets.
+3. `prio` orders a year's candidates (the most important leads): about 90+ for milestones,
+   deal shocks and ending-level news, 60–85 for warning signs and big shifts, 30–60 for ordinary
+   change and the player's choice, under 10 for quiet filler. A year shows at most one per
+   category, and a calm year (nothing at 60 or above) shows two items plus a quiet one, with at
+   most one `tone: 'alarm'`. `same` lists templates that would say the same thing.
+4. Run `node test-news.js --report`: every template must fire in the 500 random campaigns
+   (loosen `when` if it never does), and every phrasing must pass the length and no-`undefined`
+   checks. Headlines appear in the result card's ticker, the ending's year list (the lead one) and
+   Copy for AI.
 
 ### A preset
 

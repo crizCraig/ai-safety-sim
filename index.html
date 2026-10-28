@@ -165,9 +165,21 @@
   /* The explanation of the bars sits behind a small info bubble; it opens as a popover above the bars. */
   /* After the roll, the outcome replaces the bars; "How the dice fell" reveals the explanation, then the bars. */
   .roll.rolling .rollhelp { display: none; }
+  /* "How the dice fell" shares its row with the news ticker when the ticker sits there (newsHTML). */
+  .rollfoot { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 18px; }
+  .rollfoot .rollhelp[open] { flex-basis: 100%; }
+  .rollfoot .newsslot { flex: 1 1 280px; min-width: 0; }
+  .rollfoot .newsslot:empty { display: none; }
+  .rollfoot .news { margin: 10px 0 0; padding: 0; border-top: 0; }
+  /* Small phones with a full card: one line, the dice label as its icon only (still read aloud). */
+  .rollfoot.compact { column-gap: 10px; }
+  .rollfoot.compact .rhl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .rollfoot.compact .newsslot { flex-basis: 200px; }
+  .rollfoot.compact .news ul { cursor: pointer; }
+  .rollfoot.compact .news:not(.open) li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #card.resolved .roll .lane { display: none; }
   #card.resolved .roll.bars .lane { display: flex; }
-  .roll.on .rollhelp { order: 1; }
+  .roll.on .rollfoot { order: 1; }
   .roll.on .lane { order: 2; }
   .rollhelp { margin-top: 10px; }
   .rollhelp summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); user-select: none; }
@@ -190,6 +202,20 @@
   @media (max-width: 640px) { .roll .lane span:first-child { width: 140px; white-space: normal; line-height: 1.2; } .roll .lane .est { width: 64px; } .roll .estl { display: none; } .roll .ests { display: inline !important; } }
   .roll .youchose { font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 4px; }
   .roll .changes { margin-top: 8px; }
+  /* The year's news clips: a one-line ticker under the outcome (see newsHTML). */
+  .roll .news { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0 0; padding: 6px 0 0; border-top: 1px solid var(--line); text-align: left; }
+  .roll .news ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); flex: 1 1 auto; min-width: 0; }
+  .roll .news li { grid-area: 1 / 1; font-size: 12.5px; font-weight: 400; line-height: 1.35; color: var(--text); opacity: 0; visibility: hidden; transition: opacity .45s ease, visibility .45s; }
+  .roll .news li.on { opacity: .92; visibility: visible; }
+  .roll .news .nwdesk { font: 500 9.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); opacity: .85; margin-right: 7px; white-space: nowrap; }
+  .roll .news li.alarm .nwdesk { color: var(--warn); }
+  .roll .news li.good .nwdesk { color: var(--good); }
+  .roll .news .nwnext { flex: none; font: 500 10px/1 var(--mono); color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; margin-top: 1px; cursor: pointer; }
+  .roll .news .nwnext:hover, .roll .news .nwnext:focus-visible { color: var(--text); border-color: var(--accent); outline: none; }
+  @media (max-width: 640px) { .roll .news li { font-size: 12px; } .roll .news { margin-top: 6px; } }
+  @media (prefers-reduced-motion: reduce) { .roll .news li { transition: none; } }
+  .declist .dnews { display: block; font-size: 11.5px; line-height: 1.4; color: var(--muted); margin: 1px 0 4px; }
+  .declist .dnews i { font-style: normal; font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
   /* Continue: a full-width, filled call to action between what changed and the dice. */
   .roll .next { display: block; width: 100%; margin: 14px 0 4px; padding: 12px 18px; text-align: center; font-weight: 600;
     background: rgba(127,227,255,.07); border-color: rgba(127,227,255,.75); box-shadow: none; }
@@ -476,11 +502,12 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261027215815"></script>
-<script src="events.js?v=20261027215815"></script>
-<script src="landmask.js?v=20261027215815"></script>
-<script src="presets.js?v=20261027215815"></script>
-<script src="trees.js?v=20261027215815"></script>
+<script src="model.js?v=20261028130408"></script>
+<script src="events.js?v=20261028130408"></script>
+<script src="news.js?v=20261028130408"></script>
+<script src="landmask.js?v=20261028130408"></script>
+<script src="presets.js?v=20261028130408"></script>
+<script src="trees.js?v=20261028130408"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -816,9 +843,9 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
-const M = window.SimModel, E = window.SimEvents;
+const M = window.SimModel, E = window.SimEvents, NEWS = window.SimNews;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261027215815';
+const ASSET_VERSION = '20261028130408';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1603,7 +1630,8 @@ function choose(ch) {
   game.phase = 'rolling';
   document.body.classList.remove('deciding');
   game.before = { ...game.s };
-  game.lastChoice = ch.label;
+  game.L0 = { ...game.L };
+  game.lastChoice = ch.label; game.lastChoiceObj = ch;
   E.applyChoice(game.s, game.L, ch);
   game.decisions.push({ year: game.s.year, title: game.card.title, label: ch.label });
   syncTarget(game.s, game.L);
@@ -1638,7 +1666,7 @@ function rollYear() {
     const differs = Math.abs(p - est) > 0.0005 && pct(p) !== pct(est);
     return `<div class="lane"><span>${n} · ${pct(p)}</span><div class="track"><div class="zone" style="width:${p * 100}%"></div><div class="needle" id="nd${i}"></div></div>${differs ? `<span class="est"><span class="estl">expected </span><span class="ests">exp. </span>${pct(est)}</span>` : '<span class="est"></span>'}</div>`;
   }).join('') +
-    `<details class="rollhelp"><summary><span class="ibub" aria-hidden="true">i</span>How the dice fell</summary><div class="note pop">Each red bar is the real chance of that catastrophe this year, drawn to scale. The white needle is where the die landed: inside the red means it happened. "Expected" is your best guess without the secret facts: the average over every world you might be in. The real chance can differ because those facts, like how hard alignment really is, stay hidden${secretsOn ? '' : ' (Show secret facts reveals them)'}.</div></details><div class="verdict" id="verdict">Rolling ${year}…</div>`;
+    `<div class="rollfoot"><details class="rollhelp"><summary><span class="ibub" aria-hidden="true">i</span><span class="rhl">How the dice fell</span></summary><div class="note pop">Each red bar is the real chance of that catastrophe this year, drawn to scale. The white needle is where the die landed: inside the red means it happened. "Expected" is your best guess without the secret facts: the average over every world you might be in. The real chance can differ because those facts, like how hard alignment really is, stay hidden${secretsOn ? '' : ' (Show secret facts reveals them)'}.</div></details><div class="newsslot" id="newsSlot"></div></div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
   const reduce = prefersReducedMotion();
   let t0 = 0;
   const wiggle = () => {
@@ -1672,7 +1700,10 @@ function rollYear() {
     const qReal = M.transitionOdds(s, true, L), qEst = M.transitionOdds(s, false, L);
     const failed = ['misalign', 'benevolent'].includes(res.event);
     if (res.stage === 'handoff') rec.handoff = { real: qReal, est: qEst };
-    rec.result = { event: res.event, stage: res.stage, st: structuredClone({ ...s, log: [] }), cat: catSoFar(s),
+    // The year's news clips, from what the player can see (news.js never reads the hidden world).
+    rec.news = NEWS.headlines({ prev: game.decisions.slice(0, -1).flatMap((d) => d.news || []), year, before: game.before, after: s, L0: game.L0, L, choice: game.lastChoiceObj,
+      risk: r, riskNext: res.event ? null : M.risks(s, L), event: res.event });
+    rec.result = { news: rec.news, event: res.event, stage: res.stage, st: structuredClone({ ...s, log: [] }), cat: catSoFar(s),
       note: !res.event && s.dealCollapsed === year ? 'The US–China deal collapsed this year.' : !res.event && s.dealImpaired === year ? M.dealImpairedText(s, L) : '' };
     const how = res.stage === 'handoff'
       ? `<div class="youchose">${failed
@@ -1701,9 +1732,10 @@ function rollYear() {
       // The picture keeps its choosing size and tone in the result (tap still opens it whole).
       // The outcome sits on the left and Continue on the right on desktop; on phones Continue
       // grows to fill the space, so the card keeps the size it had while choosing.
-      $('verdict').innerHTML = `<div class="vtext">${verdict}<div class="youchose">You chose: ${game.lastChoice}</div>${cueHTML}${yearChanges(game.before, s)}</div>
+      $('verdict').innerHTML = `<div class="vtext">${verdict}<div class="youchose">You chose: ${game.lastChoice}</div>${cueHTML}${newsHTML(rec.news)}${yearChanges(game.before, s)}</div>
         <div class="nxcol"><button class="btn next" id="nextBtn"><span class="nxl"><small>${res.event ? 'The story ends' : 'Next year'}</small>${res.event ? 'See the ending' : `Continue to ${s.year}`}</span><span class="nxa" aria-hidden="true">→</span></button>
         <button class="linkbtn rechoose" data-rewind="${game.decisions.length - 1}">↺ Change my choice</button></div>`;
+      fitNews(card, h0); startNews(card);
       const short = h0 - card.getBoundingClientRect().height;
       if (short > 1) roll.style.minHeight = (roll.getBoundingClientRect().height + short) + 'px';
       $('nextBtn').onclick = advance;
@@ -1717,6 +1749,52 @@ function rollYear() {
 function advance() {
   if (game.phase === 'result') nextCard();
   else if (game.phase === 'ended') { game.phase = 'over'; $('card').classList.add('hidden'); showEnding(); }
+}
+
+// The year's headlines as a small ticker under the outcome: one headline at a time in a fixed
+// slot (the items share one grid cell, so the slot is as tall as the longest and never jumps),
+// most important first, each with its (fictional) masthead. It advances on its own unless the
+// player prefers reduced motion; the counter button steps through them.
+function newsHTML(list) {
+  if (!list || !list.length) return '';
+  return `<div class="news" role="group" aria-label="This year's headlines"><ul>${list.map((n, i) =>
+    `<li class="${n.tone}${i ? '' : ' on'}" data-cat="${n.cat}"${i ? ' aria-hidden="true"' : ''}><span class="nwdesk">${n.desk}</span>${n.text}</li>`).join('')}</ul>`
+    + `<button class="nwnext" type="button" aria-label="Next headline"><span class="nwpos">1/${list.length}</span><span aria-hidden="true"> ›</span></button></div>`;
+}
+// The result keeps the card's choosing size and Continue in view. The ticker goes under the
+// outcome where that fits (phones, mostly); otherwise into the row beside "How the dice fell"
+// (desktop, where the outcome column has no room to spare); on a small phone with a full card,
+// into that row as a single line (the dice label shrinks to its icon; tapping the headline
+// unfolds it). If even that would push Continue out of view, the ticker goes. Every headline
+// stays in the ending's list and Copy for AI.
+function fitNews(card, h0) {
+  const box = card.querySelector('#verdict .news');
+  if (!box) return;
+  const fits = () => card.getBoundingClientRect().height <= h0 + 1 && card.scrollHeight <= card.clientHeight + 1;
+  if (phoneLayout() && fits()) return;
+  $('newsSlot').append(box);
+  if (fits()) return;
+  box.closest('.rollfoot').classList.add('compact');
+  box.querySelector('ul').onclick = () => box.classList.toggle('open');
+  if (!fits()) { box.closest('.rollfoot').classList.remove('compact'); box.remove(); }
+}
+function startNews(card) {
+  const box = card.querySelector('.roll .news');
+  if (!box) return;
+  const items = [...box.querySelectorAll('li')], btn = box.querySelector('.nwnext');
+  if (items.length < 2) { btn.remove(); return; }
+  let i = 0, held = false;
+  const show = (j) => {
+    items[i].classList.remove('on'); items[i].setAttribute('aria-hidden', 'true');
+    i = j % items.length;
+    items[i].classList.add('on'); items[i].removeAttribute('aria-hidden');
+    btn.firstChild.textContent = `${i + 1}/${items.length}`;
+  };
+  show(0);
+  btn.onclick = () => { held = true; show(i + 1); };
+  box.onmouseenter = () => { held = true; };
+  if (prefersReducedMotion()) return;
+  const t = setInterval(() => { if (!box.isConnected) clearInterval(t); else if (!held) show(i + 1); }, 4200);
 }
 
 // The biggest stat changes over the year just played (choice + one year of dynamics).
@@ -1743,7 +1821,7 @@ function showEnding() {
   $('endTitle').textContent = o.title;
   $('endTitle').style.color = o.color;
   $('endText').textContent = o.text;
-  $('endDecisions').innerHTML = decisionItems();
+  $('endDecisions').innerHTML = decisionItems(true);
   const { mc, d, mine } = endingInfo();
   $('endDiff').innerHTML = `<b>How hard your world was: <span class="diff-tier" style="color:${d.tier[1]}">${d.tier[0]}</span></b>
     <p style="margin:6px 0 0">${d.here > d.typical ? 'Even a strong plan' : 'A strong plan'} (AI 2040's Plan A) would end in catastrophe <b>${pct(d.here, 0)}</b> of the time in this world, against ${pct(d.typical, 0)} in a typical one. ${diffSentence(d)} Your final policy, run from 2027 in this same world, would end in catastrophe <b>${pct(mine, 0)}</b> of the time.</p>`;
@@ -1776,9 +1854,10 @@ function mcBar(mc) {
 /* ---------- campaign HUD ---------- */
 function renderAll() { renderTimeline(); renderChart(); renderStats(); renderRisks(); renderLevers(); renderHistory(); }
 
-function decisionItems() {
+function decisionItems(withNews = false) {
   return game.decisions.map((d, i) => `<li><b>${d.year}</b>${d.title}: ${d.label}
-    <button class="rewind" data-rewind="${i}" title="Go back to ${d.year} and choose again">change</button></li>`).join('');
+    <button class="rewind" data-rewind="${i}" title="Go back to ${d.year} and choose again">change</button>${withNews && d.news?.length
+      ? `<span class="dnews"><i>${d.news[0].desk}:</i> ${d.news[0].text}</span>` : ''}</li>`).join('');
 }
 function renderHistory() {
   $('history').innerHTML = game.decisions.length ? decisionItems() : '<li class="empty">Your choices will appear here.</li>';
@@ -2219,6 +2298,7 @@ function campaignText() {
       lines.push(`- **What happened:** ${d.result.event ? `${M.OUTCOMES[d.result.event].title}. ${M.OUTCOMES[d.result.event].text}` : d.result.stage === 'end' ? '2040 arrived.' : `${d.year} passed without catastrophe.`}${d.result.note ? ' ' + d.result.note : ''}`);
       lines.push(`- **State at the end of the year:** ${statLine(d.result.st)}`);
       lines.push(`- **Chance of catastrophe so far:** ${pct(d.result.cat, 1)}`);
+      if (d.result.news?.length) lines.push(`- **Headlines (fictional, written from what the player could see):** ${NEWS.plain(d.result.news).join('; ')}`);
     } else lines.push('- **What happened:** the dice are still rolling.');
     return lines.join('\n');
   });
