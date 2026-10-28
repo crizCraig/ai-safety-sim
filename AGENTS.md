@@ -182,9 +182,12 @@ To **remove or merge** a constant, first screen it with `node scripts/sweep_cons
 --marginals` (add it to `CUTS` as the overrides that reproduce the cut, or check an edited copy of
 the model with `--save`/`--against`). The headline sweep's presets barely use the fund, oversight
 and transparency, so "moves nothing there" is not enough: a cut must move no preset's catastrophe by
-more than 0.3 points and no lever's effect or Plan A–D p(alignment) by more than about 1 (20,000
-futures, 200,000 near the line). Then do steps 1–6 in reverse and record it in
-`docs/simplification-2.md`.
+more than 0.3 points and no lever's effect or Plan A–D p(alignment) by more than about 1, and must
+pass the screen's interior safety settings under the AI Futures unknowns (20,000 futures, 200,000
+near the line). Passing is necessary, not sufficient: also read the mechanism and ask where it acts.
+Lever endpoints under the default unknowns hid `laborPause` (AI labor on safety past the knee), which
+works when capability starts above the AI-research onset. Then do steps 1–6 in reverse and record it
+in `docs/simplification-2.md`.
 
 ### An outcome or ending
 

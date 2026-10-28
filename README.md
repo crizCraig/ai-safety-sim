@@ -46,7 +46,7 @@ people without economic leverage or a say even when humans keep control of AI.
 
 | File | What it is |
 | --- | --- |
-| `model.js` | The world model: state, levers, yearly dynamics (every update reads the start-of-year state, so their order does not matter), hazard equations, Monte Carlo, and its 158 named constants |
+| `model.js` | The world model: state, levers, yearly dynamics (every update reads the start-of-year state, so their order does not matter), hazard equations, Monte Carlo, and its 159 named constants |
 | `events.js` | The decision cards and how each choice moves levers and state |
 | `landmask.js` | Land/sea bitmap for the globe, rasterized from Natural Earth 1:50m coastlines (public domain) |
 | `trees.js` | Memtree links for the sessions that built the game |

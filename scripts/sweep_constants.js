@@ -7,7 +7,8 @@
 //   node scripts/sweep_constants.js --baseline rewrite test-k-baseline.json (after a deliberate model change)
 //   node scripts/sweep_constants.js --marginals [--n 20000] [--only id,id] [--out file.json]
 //                                              the simplification screen (docs/simplification-2.md): each candidate
-//                                              cut in CUTS against all 14 presets and every lever's marginal effect
+//                                              cut in CUTS against all 14 presets, every lever's marginal effect and
+//                                              interior safety settings under the AI Futures unknowns
 //
 // Each constant is set low and high while every other constant stays at its default:
 // scale constants run at ×0.5 and ×1.5; midpoints, thresholds and starting levels on the
@@ -67,8 +68,8 @@ function runJob(M, P, over, n) {
 // --marginals: one policy's futures under one set of constant overrides, future by future, so the
 // main thread can pair them across variants. cat[i] = 1 if future i ends in catastrophe; al[i] is its
 // p(alignment) score, NaN for pandemic and war futures (left out, as in summarize).
-function futuresCRN(M, L, n) {
-  const A = M.defaultAssumptions(), cat = new Uint8Array(n), al = new Float32Array(n);
+function futuresCRN(M, L, n, A = M.defaultAssumptions()) {
+  const cat = new Uint8Array(n), al = new Float32Array(n);
   for (let i = 0; i < n; i++) {
     const rng = M.mulberry32((SEED * 1000003 + i * 7919) | 0);
     const s = M.initialState(M.sampleWorld(A, rng)); s.fast = true;
@@ -79,15 +80,25 @@ function futuresCRN(M, L, n) {
   }
   return { cat, al };
 }
-// The --marginals policies: all presets, then each lever at 0 and at 1 from each background.
+// The --marginals policies: all presets, then each lever at 0 and at 1 from each background, then
+// interior safety settings from Status quo under the AI Futures unknowns. Lever endpoints alone can
+// miss a term: under the default unknowns every safety share past the knee holds US capability below
+// the AI-research onset, so AI labor on safety past the knee (laborPause) never acts there, while
+// AI Futures starts above that onset and it does (Codex review 055, C28-2).
 const BACKGROUNDS = [['SQ', 'Status quo'], ['A', 'Plan A: Verified slowdown']];
+const INTERIOR_UNKNOWNS = 'AI Futures (Aug 2026)', INTERIOR_SAFETY = [0.35, 0.45, 0.6, 0.8];
 function margPolicies(M, P) {
   const out = Object.keys(P.PRESETS).map((k) => ({ id: 'preset:' + k, L: P.PRESETS[k] }));
   for (const [tag, bg] of BACKGROUNDS) for (const lv of Object.keys(M.LEVER_INFO)) for (const x of [0, 1]) {
     out.push({ id: `lever:${tag}:${lv}:${x}`, L: Object.assign({}, P.PRESETS[bg], { [lv]: x }) });
   }
+  const set = P.UNKNOWN_PRESETS[INTERIOR_UNKNOWNS].set;
+  for (const x of INTERIOR_SAFETY) {
+    out.push({ id: `interior:safety:${x}`, L: Object.assign({}, P.PRESETS['Status quo'], { safety: x }), set });
+  }
   return out;
 }
+const assumptionsFor = (M, pol) => Object.assign(M.defaultAssumptions(), pol.set || {});
 
 if (!isMainThread) {
   const { M, P } = load();
@@ -98,7 +109,7 @@ if (!isMainThread) {
       pol = pol || margPolicies(M, P);
       const key = JSON.stringify(job.over);
       if (key !== last) { M.setConstants(job.over); last = key; }
-      parentPort.postMessage({ i: job.i, r: futuresCRN(M, pol[job.p].L, job.n) });
+      parentPort.postMessage({ i: job.i, r: futuresCRN(M, pol[job.p].L, job.n, assumptionsFor(M, pol[job.p])) });
       return;
     }
     last = null;
@@ -175,7 +186,8 @@ const META = {
   safetyKnee: ['J', 'align', 'Where safety spending stops paying fully', 'Safety share of compute up to which each extra point buys full progress; past it, returns shrink'],
   safetyTail: ['J', 'align', 'Safety effect past the knee', 'Extra effect from the knee up to 100% safety'],
   laborBase: ['J', 'align', 'AI labor on safety, baseline', 'Share of AI research help that goes to safety with no safety spending'],
-  laborSafety: ['J', 'align', 'AI labor on safety from spending', 'Extra share of AI help on safety, up to the knee (no more past it)'],
+  laborSafety: ['J', 'align', 'AI labor on safety from spending', 'Extra share of AI help on safety, up to the knee'],
+  laborPause: ['J', 'align', 'AI labor on safety past the knee', 'Extra share of AI help on safety beyond the knee'],
   diffSafe: ['J', 'align', 'Easy-by-default difficulty', 'Below this difficulty (above 3.3× ease) alignment works out without a general solution'],
   barBase: ['F', 'align', 'Handoff bar at zero difficulty', 'Alignment the handoff needs before difficulty is added; fitted to Plans A–C'],
   barDiff: ['F', 'align', 'Handoff bar per unit difficulty', 'How much more alignment a harder world needs at the handoff; fitted to Plans A–C'],
@@ -478,7 +490,7 @@ function renderReadable(rows, base, n, nK) {
 // must give the same numbers. Same seeded futures for every variant (common random numbers); the
 // paired standard errors say how far a difference is from sampling noise.
 // [id, overrides, constants it would remove]
-const ZERO = ['laborBase', 'laborSafety', 'usPushSafety', 'cnRaceResp', 'cnRaceCoord', 'shareCoord',
+const ZERO = ['laborBase', 'laborSafety', 'laborPause', 'usPushSafety', 'cnRaceResp', 'cnRaceCoord', 'shareCoord',
   'shareTransp', 'hidOversight', 'hidTransp', 'hidSafety', 'hidInternal', 'intSlope', 'ovsTax', 'leak', 'sabotSlow',
   'jumpUSRand', 'jumpCNRand', 'alShCoord', 'alShTransp', 'alJumpRand', 'coNoise', 'intDecay', 'intTransp',
   'intOversight', 'intBci', 'delBase', 'delCap', 'delRd', 'delOversight', 'delTransp', 'delSafety', 'coOversight',
@@ -500,25 +512,47 @@ const CUTS = [
 // no lever marginal or Plan A–D p(alignment) more than MARG_TOL.
 const PRESET_TOL = 0.3, MARG_TOL = 1;
 
-// Mean and paired standard error of per-future differences (NaN entries skipped).
+// Mean and paired standard error (sample variance) of per-future differences.
 function pairStats(f, n) {
-  let s = 0, ss = 0, m = 0;
-  for (let i = 0; i < n; i++) { const d = f(i); if (Number.isNaN(d)) continue; s += d; ss += d * d; m++; }
-  const mean = s / m;
-  return { mean, se: Math.sqrt(Math.max(0, ss / m - mean * mean) / m) };
+  let s = 0, ss = 0;
+  for (let i = 0; i < n; i++) { const d = f(i); s += d; ss += d * d; }
+  const mean = s / n;
+  return { mean, se: Math.sqrt(Math.max(0, (ss - n * mean * mean) / (n - 1)) / n) };
 }
 const rate = (a) => { let s = 0, m = 0; for (const x of a) if (!Number.isNaN(x)) { s += x; m++; } return m ? s / m : NaN; };
 
+// p(alignment) is a ratio: the mean score over futures that are not pandemic or war, and which futures
+// count can differ between runs. A signed sum of such rates, sum_k sign_k r_k, is estimated by the same
+// sum of the separately normalized rates; its paired SE comes from each future's influence on it,
+// sum_k sign_k I_k(i) (x_k(i) - r_k) / mean(I_k), with I_k(i) = 1 if future i counts in run k (else
+// the term is 0). Taking differences only over futures that count in every run would miss changes in
+// which futures count (Codex review 055, C28-1).
+function ratioCombo(terms, n) {
+  const parts = terms.map(([sign, al]) => {
+    let s = 0, m = 0;
+    for (let i = 0; i < n; i++) if (!Number.isNaN(al[i])) { s += al[i]; m++; }
+    return { sign, al, r: s / m, frac: m / n };
+  });
+  const infl = (i) => parts.reduce((a, p) => (Number.isNaN(p.al[i]) ? a : a + p.sign * (p.al[i] - p.r) / p.frac), 0);
+  const st = pairStats((i) => 100 * infl(i), n);
+  return { mean: 100 * parts.reduce((a, p) => a + p.sign * p.r, 0), se: st.se };
+}
+// Self-check: futures that only change whether they count must still give a nonzero SE.
+{
+  const b = Float32Array.from([1, 1, 0, NaN]), v = Float32Array.from([1, NaN, 0, 0]);
+  const c = ratioCombo([[1, v], [-1, b]], 4);
+  if (!(Math.abs(c.mean - 100 * (1 / 3 - 2 / 3)) < 1e-9 && c.se > 0)) throw new Error('ratioCombo self-check failed');
+}
+
 // Compare one variant's futures with the baseline's: every metric's change in points, with paired SEs.
-// p(alignment) is a ratio (pandemic and war futures are left out), so its change is the change in the
-// ratio and its SE is taken over futures that count in both.
 function compareVariant(pols, base, vr, n) {
-  const out = { presetCat: {}, presetAl: {}, leverCat: {}, leverAl: {} };
+  const out = { presetCat: {}, presetAl: {}, leverCat: {}, leverAl: {}, interiorCat: {}, interiorAl: {} };
   pols.forEach((p, j) => {
-    if (!p.id.startsWith('preset:')) return;
-    const k = p.id.slice(7), b = base[j], v = vr[j];
-    out.presetCat[k] = pairStats((i) => 100 * (v.cat[i] - b.cat[i]), n);
-    out.presetAl[k] = { mean: 100 * (rate(v.al) - rate(b.al)), se: pairStats((i) => 100 * (v.al[i] - b.al[i]), n).se };
+    const pre = p.id.startsWith('preset:') ? 'preset' : p.id.startsWith('interior:') ? 'interior' : null;
+    if (!pre) return;
+    const k = p.id.slice(p.id.indexOf(':') + 1), b = base[j], v = vr[j];
+    out[pre + 'Cat'][k] = pairStats((i) => 100 * (v.cat[i] - b.cat[i]), n);
+    out[pre + 'Al'][k] = ratioCombo([[1, v.al], [-1, b.al]], n);
   });
   const idx = Object.fromEntries(pols.map((p, j) => [p.id, j]));
   for (const p of pols) {
@@ -528,9 +562,8 @@ function compareVariant(pols, base, vr, n) {
     const [b0, b1, v0, v1] = [base[j0], base[j1], vr[j0], vr[j1]];
     out.leverCat[key] = pairStats((i) => 100 * ((v1.cat[i] - v0.cat[i]) - (b1.cat[i] - b0.cat[i])), n);
     out.leverCat[key].base = 100 * (rate(b1.cat) - rate(b0.cat));
-    out.leverAl[key] = { mean: 100 * ((rate(v1.al) - rate(v0.al)) - (rate(b1.al) - rate(b0.al))),
-      se: pairStats((i) => 100 * ((v1.al[i] - v0.al[i]) - (b1.al[i] - b0.al[i])), n).se,
-      base: 100 * (rate(b1.al) - rate(b0.al)) };
+    out.leverAl[key] = ratioCombo([[1, v1.al], [-1, v0.al], [-1, b1.al], [1, b0.al]], n);
+    out.leverAl[key].base = 100 * (rate(b1.al) - rate(b0.al));
   }
   const worst = (o, keys) => keys.reduce((a, k) => (Math.abs(o[k].mean) > Math.abs(a[1]) ? [k, o[k].mean, o[k].se] : a), ['', 0, 0]);
   const plans = Object.keys(out.presetAl).filter((k) => /^Plan [ABCD]:/.test(k));
@@ -538,10 +571,14 @@ function compareVariant(pols, base, vr, n) {
     presetCat: worst(out.presetCat, Object.keys(out.presetCat)), presetAl: worst(out.presetAl, Object.keys(out.presetAl)),
     planAl: worst(out.presetAl, plans), leverCat: worst(out.leverCat, Object.keys(out.leverCat)),
     leverAl: worst(out.leverAl, Object.keys(out.leverAl)),
+    interiorCat: worst(out.interiorCat, Object.keys(out.interiorCat)),
+    interiorAl: worst(out.interiorAl, Object.keys(out.interiorAl)),
   };
   const W = out.worst;
+  // Interior settings are levels, like presets: catastrophe within PRESET_TOL, p(alignment) within MARG_TOL.
   out.pass = Math.abs(W.presetCat[1]) <= PRESET_TOL && Math.abs(W.planAl[1]) <= MARG_TOL
-    && Math.abs(W.leverCat[1]) <= MARG_TOL && Math.abs(W.leverAl[1]) <= MARG_TOL;
+    && Math.abs(W.leverCat[1]) <= MARG_TOL && Math.abs(W.leverAl[1]) <= MARG_TOL
+    && Math.abs(W.interiorCat[1]) <= PRESET_TOL && Math.abs(W.interiorAl[1]) <= MARG_TOL;
   return out;
 }
 
@@ -576,7 +613,7 @@ async function runMarginals(M, P, args) {
     const c = compareVariant(pols, got[0], got[vIdx], n);
     report.push({ id, over, removes, ...c });
     const W = c.worst, f = (w) => `${w[1] >= 0 ? '+' : ''}${w[1].toFixed(2)}±${w[2].toFixed(2)} ${w[0]}`;
-    console.log(`${c.pass ? 'PASS' : 'fail'} ${id.padEnd(22)} preset ${f(W.presetCat)} | planAl ${f(W.planAl)} | leverCat ${f(W.leverCat)} | leverAl ${f(W.leverAl)}`);
+    console.log(`${c.pass ? 'PASS' : 'fail'} ${id.padEnd(22)} preset ${f(W.presetCat)} | planAl ${f(W.planAl)} | leverCat ${f(W.leverCat)} | leverAl ${f(W.leverAl)} | interior ${f(W.interiorCat)} / ${f(W.interiorAl)}`);
     got[vIdx] = null;
   };
   const nw = Math.max(1, Math.min(jobs.length, os.cpus().length - 1));

@@ -4,13 +4,13 @@
 
 ## Summary
 
-Most of the model's 158 constants are judgment calls, so we tested how much each one matters. We moved each constant on its own, with every other constant left alone: rates and weights to half and to one and a half times their value, and midpoints, thresholds and 2027 starting levels down and up by 10 points. For each setting we ran 4,000 simulated futures (the same futures every time, which makes comparisons between settings much less noisy, though small differences are still sample estimates) and watched seven headline numbers: the chance of catastrophe on today's path, under Plan A and under the Safest mix, and the odds of getting alignment right under AI 2040's Plans A–D.
+Most of the model's 159 constants are judgment calls, so we tested how much each one matters. We moved each constant on its own, with every other constant left alone: rates and weights to half and to one and a half times their value, and midpoints, thresholds and 2027 starting levels down and up by 10 points. For each setting we ran 4,000 simulated futures (the same futures every time, which makes comparisons between settings much less noisy, though small differences are still sample estimates) and watched seven headline numbers: the chance of catastrophe on today's path, under Plan A and under the Safest mix, and the odds of getting alignment right under AI 2040's Plans A–D.
 
 **Today's path is robust.** No constant moves today's-path catastrophe (79%) by more than 6 points; the biggest is lock-in scale. Only 5 constants move it by more than 3 points, all of them about how power locks in.
 
-**The plan comparisons are more sensitive.** 7 constants move a plan's risk or alignment odds by more than 10 points, up to 17.9 points (where safety spending stops paying fully). Most are about how fast AI improves, how alignment research pays off, and whether a US–China deal forms. Several of them are fitted to AI 2040's timeline or plan odds, so their swings say how much hitting that target matters rather than adding uncertainty of their own.
+**The plan comparisons are more sensitive.** 7 constants move a plan's risk or alignment odds by more than 10 points, up to 18.0 points (where safety spending stops paying fully). Most are about how fast AI improves, how alignment research pays off, and whether a US–China deal forms. Several of them are fitted to AI 2040's timeline or plan odds, so their swings say how much hitting that target matters rather than adding uncertainty of their own.
 
-**Most constants barely matter.** 53 of 158 move some headline number by 1 point or more and 24 by more than 3; the other 105 move none by even 1 point.
+**Most constants barely matter.** 53 of 159 move some headline number by 1 point or more and 24 by more than 3; the other 106 move none by even 1 point.
 
 Baseline, with every constant at its default: today's-path catastrophe 79%, Plan A catastrophe 18%, Safest mix catastrophe 1%, Plan A alignment odds 76%, Plan B alignment odds 46%, Plan C alignment odds 41%, Plan D alignment odds 17%.
 
@@ -20,7 +20,7 @@ Three limits: each constant moves alone, so interactions are not explored; only 
 
 | Constant | Value | Biggest effect | Topic | Type |
 |---|---|---|---|---|
-| Where safety spending stops paying fully | 0.3 | at 0.15: Plan C alignment odds +17.9 points | Alignment research and the handoff | Judgment call |
+| Where safety spending stops paying fully | 0.3 | at 0.15: Plan C alignment odds +18.0 points | Alignment research and the handoff | Judgment call |
 | Overall alignment progress rate | 1.04 | at 0.522: Plan C alignment odds −15.7 points | Alignment research and the handoff | Fitted to a target |
 | Coordination from diplomacy | 13 | at 6.5: Plan A catastrophe +14.0 points | Deals and diplomacy | Judgment call |
 | Easy-by-default difficulty | 0.3 | at 0.45: Plan D alignment odds +13.2 points | Alignment research and the handoff | Judgment call |
@@ -57,21 +57,21 @@ Alignment grows each year with safety spending, oversight, shared research and h
 
 | Constant | What it does | Value | Biggest effect | Moves | Type |
 |---|---|---|---|---|---|
-| Where safety spending stops paying fully | Safety share of compute up to which each extra point buys full progress; past it, returns shrink | 0.3 | at 0.15: Plan C alignment odds +17.9 points | today's-path risk; Plan A risk; Plans A–C alignment odds | Judgment call |
+| Where safety spending stops paying fully | Safety share of compute up to which each extra point buys full progress; past it, returns shrink | 0.3 | at 0.15: Plan C alignment odds +18.0 points | today's-path risk; Plan A risk; Plans A–C alignment odds | Judgment call |
 | Overall alignment progress rate | Yearly alignment progress with no safety spending or oversight, before AI help, sharing and difficulty; scales all of it; fitted to Plans A–C | 1.04 | at 0.522: Plan C alignment odds −15.7 points | today's-path risk; Plan A risk; Plans A–D alignment odds | Fitted to a target |
 | Easy-by-default difficulty | Below this difficulty (above 3.3× ease) alignment works out without a general solution | 0.3 | at 0.45: Plan D alignment odds +13.2 points | today's-path risk; Plans B–D alignment odds | Judgment call |
 | Alignment progress from safety spending | Extra yearly progress at the safety knee, relative to progress with none (10/1.9) | 5.26 | at 2.63: Plan B alignment odds −11.1 points | Plan A risk; Plans A–C alignment odds | Judgment call |
 | Handoff bar per unit difficulty | How much more alignment a harder world needs at the handoff; fitted to Plans A–C | 32 | at 48: Plan A alignment odds −10.4 points | today's-path risk; Plan A risk; Plans A–C alignment odds | Fitted to a target |
 | Handoff bar at zero difficulty | Alignment the handoff needs before difficulty is added; fitted to Plans A–C | 45 | at 55: Plan B alignment odds −7.3 points | today's-path risk; Plan A risk; Plans A–C alignment odds | Fitted to a target |
 | Alignment in 2027 | Where alignment maturity starts | 16 | at 26: Plan C alignment odds +5.1 points | today's-path risk; Plan A risk; Plans A–C alignment odds | 2027 baseline |
-| AI labor on safety from spending | Extra share of AI help on safety, up to the knee (no more past it) | 0.35 | at 0.175: Plan C alignment odds −4.2 points | Plan A risk; Plans A–C alignment odds | Judgment call |
+| AI labor on safety from spending | Extra share of AI help on safety, up to the knee | 0.35 | at 0.175: Plan C alignment odds −4.2 points | Plan A risk; Plans A–C alignment odds | Judgment call |
 | Alignment boost from published research | Multiplier on progress from research transparency | 0.4 | at 0.2: Plan A alignment odds −2.2 points | Plan A risk; Plan A alignment odds | Judgment call |
 | AI labor on safety, baseline | Share of AI research help that goes to safety with no safety spending | 0.08 | at 0.04: Plan C alignment odds −1.8 points | Plans A–C alignment odds | Judgment call |
 | Alignment progress from oversight | Extra yearly progress with full independent oversight, relative to progress with none (1.5/1.9) | 0.789 | at 0.395: Plan A alignment odds −1.7 points | Plan A risk; Plan A alignment odds | Judgment call |
 | Alignment boost from coordination | Multiplier on progress from shared international research | 0.35 | at 0.175: Plan A alignment odds −1.2 points | Plan A alignment odds | Judgment call |
 | Handoff sharpness | Width of the handoff's success curve | 6 | at 9: Plan A alignment odds −1.2 points | Plans A, B alignment odds | Judgment call |
 
-11 others, each under 1 point: chance of an alignment breakthrough; handoff bar lowered by neural interfaces; alignment breakthrough spread; alignment boost from neural interfaces; neural-interface adoption in 2027; neural-interface push; alignment breakthrough size; neural-interface market pace; AI help for neurotech; neural-interface speed limit; safety effect past the knee.
+12 others, each under 1 point: chance of an alignment breakthrough; handoff bar lowered by neural interfaces; alignment breakthrough spread; alignment boost from neural interfaces; neural-interface adoption in 2027; neural-interface push; alignment breakthrough size; neural-interface market pace; AI help for neurotech; neural-interface speed limit; AI labor on safety past the knee; safety effect past the knee.
 
 ### Loss of control and hidden AI
 

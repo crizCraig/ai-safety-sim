@@ -461,11 +461,11 @@
     .modal h1 { font-size: 26px; }
   }
 </style>
-<script src="model.js?v=20261026165310"></script>
-<script src="events.js?v=20261026165310"></script>
-<script src="landmask.js?v=20261026165310"></script>
-<script src="presets.js?v=20261026165310"></script>
-<script src="trees.js?v=20261026165310"></script>
+<script src="model.js?v=20261027171821"></script>
+<script src="events.js?v=20261027171821"></script>
+<script src="landmask.js?v=20261027171821"></script>
+<script src="presets.js?v=20261027171821"></script>
+<script src="trees.js?v=20261027171821"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -730,8 +730,8 @@
     <p><b>The deal.</b> A verified US–China deal is in force when <span class="mi">K \ge ⟦dealCoord⟧</span> and <span class="mi">d \ge ⟦dealDip⟧</span> and no deal has collapsed. It holds both blocs at 78, top-human-expert level, like Plan A's 2035 pause (a bloc already above 78 is frozen where it is). Campaign choices made while it holds cannot push capability past that cap. Deals decline in two ways, following AI 2040's Deal Decline supplement, each with the same yearly hazard by deal age (counted from the first year the deal is in force): 6% in its first two years, 3.5% in years 2–5 and 2% after that. <b>Dissolution</b> cuts <span class="mi">K</span> by 40 and the deal never returns: about 28% of deals dissolve within ten years. <b>Impairment</b> happens at most once: it cuts <span class="mi">K</span> by 20 and raises the ceiling from 78 to 84, and the deal stays in force as long as <span class="mi">K \ge ⟦dealCoord⟧</span>. Together about 48% of deals dissolve or weaken within ten years <span class="src a2040">AI 2040</span>. The deal still holds through the year it dissolves or weakens, so the change bites the following year. The size of the impairment's effects is an <span class="src own">Assumption</span>; the model has no separate verification variable to weaken.</p>
     <p><b>Alignment</b>:</p>
     <div class="math">\Delta A = \frac{⟦alRate⟧\,\big(1 + ⟦alSafety:f⟧\,e(s) + ⟦alOversight:f⟧\,v\big)\,\big(1 + (U(C_{\text{US}})-1)\,\ell(s) + (U(C_{\text{CN}})-1)\,\ell(0.3)\,a_{\text{CN}}\big)\,\big(1 + ⟦alShCoord⟧\,\tfrac{K}{100} + ⟦alShTransp⟧\,\tau\big)\,\big(1 + ⟦alBci⟧\,\tfrac{N}{100}\big)}{\delta}</div>
-    <div class="math">e(s) = \begin{cases} \max\big(0,\ \frac{s-0.01}{⟦safetyKnee-0.01⟧}\big) & s \le ⟦safetyKnee⟧ \\ 1 + ⟦safetyTail⟧\,\frac{s-⟦safetyKnee⟧}{⟦1-safetyKnee⟧} & s > ⟦safetyKnee⟧ \end{cases} \qquad \ell(s) = ⟦laborBase⟧ + ⟦laborSafety⟧\,\min\big(1,\ e(s)\big)</div>
-    <p>The factors are: research effort (safety share, with diminishing returns past 30%, plus oversight); AI labor pointed at safety (a share that stops growing past 30%), so alignment also speeds up during takeoff: the US bloc's AI by its safety share, and China's AI by its own alignment effort (at <span class="mi">a_{\text{CN}} = 1</span>, like a US bloc spending 30% of compute on safety), so a cautious China that leads the race speeds alignment up too; shared international and public research; augmented researchers through BCIs; and the hidden difficulty <span class="mi">\delta</span>. With probability 0.12 a year an alignment insight adds 3 to 12 points (more with a higher safety share). The 1.045 scale is the yearly progress with no safety spending or oversight, before the other factors (written before as <span class="mi">0.55\,(1.9 + 10\,e(s) + 1.5\,v)</span>, the same function); it and the spread of <span class="mi">\delta</span> are set so fixed-lever versions of AI 2040's plans reproduce its p(alignment) estimates <span class="src a2040">AI 2040</span>; the other coefficients are <span class="src own">Assumption</span>.</p>
+    <div class="math">e(s) = \begin{cases} \max\big(0,\ \frac{s-0.01}{⟦safetyKnee-0.01⟧}\big) & s \le ⟦safetyKnee⟧ \\ 1 + ⟦safetyTail⟧\,\frac{s-⟦safetyKnee⟧}{⟦1-safetyKnee⟧} & s > ⟦safetyKnee⟧ \end{cases} \qquad \ell(s) = ⟦laborBase⟧ + ⟦laborSafety⟧\,\min\big(1,\ e(s)\big) + ⟦laborPause⟧\,\frac{\max(0,\ s-⟦safetyKnee⟧)}{⟦1-safetyKnee⟧}</div>
+    <p>The factors are: research effort (safety share, with diminishing returns past 30%, plus oversight); AI labor pointed at safety, so alignment also speeds up during takeoff: the US bloc's AI by its safety share, and China's AI by its own alignment effort (at <span class="mi">a_{\text{CN}} = 1</span>, like a US bloc spending 30% of compute on safety), so a cautious China that leads the race speeds alignment up too; shared international and public research; augmented researchers through BCIs; and the hidden difficulty <span class="mi">\delta</span>. With probability 0.12 a year an alignment insight adds 3 to 12 points (more with a higher safety share). The 1.045 scale is the yearly progress with no safety spending or oversight, before the other factors (written before as <span class="mi">0.55\,(1.9 + 10\,e(s) + 1.5\,v)</span>, the same function); it and the spread of <span class="mi">\delta</span> are set so fixed-lever versions of AI 2040's plans reproduce its p(alignment) estimates <span class="src a2040">AI 2040</span>; the other coefficients are <span class="src own">Assumption</span>.</p>
     <p><b>Everything else</b>:</p>
     <div class="math">\Delta H = ⟦intRace⟧\,r\,\sqrt{U(C)} - (⟦intTransp⟧\,\tau + ⟦intOversight⟧\,v)\,\lambda - ⟦intBci⟧\,\tfrac{N}{100} - ⟦intDecay⟧, \qquad \lambda = 1 - ⟦delegBite⟧\,\tfrac{\Lambda-⟦deleg0⟧}{100}</div>
     <div class="math">\Delta\Lambda = \Big(⟦delBase⟧ + ⟦delCap⟧\max(0,\ C-40) + ⟦delRd⟧\,\big(1-\tfrac{1}{U(C)}\big)\Big)(⟦delRaceBase⟧+r)\Big(1-\tfrac{\Lambda}{100}\Big) - \big(⟦delOversight⟧\,v + ⟦delTransp⟧\,\tau + ⟦delSafety⟧\min(1,\ e(s))\big)\,\Lambda</div>
@@ -763,7 +763,7 @@
     <p>Figures from 30,000–40,000 simulated futures. The realized bio median sits a little below the target because futures last different lengths of time, so each world's exposure varies around the average used for calibration. p(alignment) counts aligned handoffs as 1 and loss of control as 0, benevolent or not; futures still short of superintelligence in 2040 count their handoff odds given the hidden world; pandemic and war futures are left out.</p>
 
     <h3>7. Which numbers matter</h3>
-    <p>Most constants above are judgment calls, so we moved each of the model's 158 named constants on its own, to half and one and a half times its value (midpoints and thresholds ±10 points), and watched seven headline numbers: catastrophe under the status quo, Plan A and the Safest mix, and p(alignment) under Plans A–D (4,000 futures per run, the same futures every run). The ten that matter most:</p>
+    <p>Most constants above are judgment calls, so we moved each of the model's 159 named constants on its own, to half and one and a half times its value (midpoints and thresholds ±10 points), and watched seven headline numbers: catastrophe under the status quo, Plan A and the Safest mix, and p(alignment) under Plans A–D (4,000 futures per run, the same futures every run). The ten that matter most:</p>
     <div class="tablewrap"><table>
       <thead><tr><th>Value</th><th>Constant</th><th>Largest effect</th><th>Kind</th></tr></thead>
       <tbody>
@@ -779,7 +779,7 @@
         <tr><td>2.496</td><td>Lock-in scale</td><td>halved, status-quo catastrophe −6</td><td>Fitted (lock-in share)</td></tr>
       </tbody>
     </table></div>
-    <p>None of the other 148 moves any headline number by more than 5.1 points, and 134 of the 158 move none by more than 3. No constant moves the status quo's catastrophe rate by more than 6 points. Fitted constants trade off against the target they were fitted to, so their swings show how much that target matters. <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/constant-sensitivity.md" target="_blank" rel="noopener">Which numbers matter</a> goes through every constant by topic (how fast AI improves, alignment research, loss of control, war, pandemic, deals, China, lock-in and delegation), saying what each does, where it comes from (a source, fitted to a target, a 2027 baseline or a judgment call) and what it moves; the <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/constant-sensitivity-full.md" target="_blank" rel="noopener">full table</a> has every number. <code>scripts/sweep_constants.js</code> reproduces both. Moving no headline number does not make a constant removable: these presets barely use the wealth fund, oversight or transparency, so <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/simplification-2.md" target="_blank" rel="noopener">Simplifying the model</a> also checks every lever's effect before cutting one.</p>
+    <p>None of the other 149 moves any headline number by more than 5.1 points, and 135 of the 159 move none by more than 3. No constant moves the status quo's catastrophe rate by more than 6 points. Fitted constants trade off against the target they were fitted to, so their swings show how much that target matters. <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/constant-sensitivity.md" target="_blank" rel="noopener">Which numbers matter</a> goes through every constant by topic (how fast AI improves, alignment research, loss of control, war, pandemic, deals, China, lock-in and delegation), saying what each does, where it comes from (a source, fitted to a target, a 2027 baseline or a judgment call) and what it moves; the <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/constant-sensitivity-full.md" target="_blank" rel="noopener">full table</a> has every number. <code>scripts/sweep_constants.js</code> reproduces both. Moving no headline number does not make a constant removable: these presets barely use the wealth fund, oversight or transparency, so <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/simplification-2.md" target="_blank" rel="noopener">Simplifying the model</a> also checks every lever's effect before cutting one.</p>
 
     <h3>8. What it leaves out</h3>
     <p>Covert projects and cheating on the deal (beyond the age-based dissolution and impairment rates), cyberattacks, countries other than the two blocs, misuse beyond bio, conflict between AGIs, anything after 2040, plans that change over time in the Futures Lab, and whether capability can really be put on one axis at all. Treat it as an argument you can poke at, not an oracle.</p>
@@ -799,7 +799,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261026165310';
+const ASSET_VERSION = '20261027171821';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
