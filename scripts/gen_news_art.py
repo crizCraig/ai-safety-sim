@@ -11,11 +11,15 @@ NEWS_ART_MODEL. The key is loaded from .env inside this process by gen_card_art 
 
 Usage:
   python3 scripts/gen_news_art.py gen [key ...]   # raw PNGs into NEWS_ART_OUT (default /tmp/claude-501/newsphoto)
-  python3 scripts/gen_news_art.py process         # PNGs -> assets/news/<key>.webp (1200x800, greyscale)
+  python3 scripts/gen_news_art.py process [key ...] # PNGs -> assets/news/<key>.webp (1200x800, greyscale)
 Each call logs its model (the one the response names, or the one requested: images responses
 have not named one) and its cost from the response's token usage, at GPT Image 2.5 rates ($5/M
 text in, $8/M image in, $30/M image out), appending to cost.log in NEWS_ART_OUT. The 41 photos
-(Oct 2026) cost $1.73 at about 1,370 output tokens each.
+(Oct 2026) cost $1.73 at about 1,370 output tokens each; the 32 variants (<kind>_<n>, 40 calls with
+retakes) $1.69, every call reporting 1,372 image output tokens. That is about $0.042 an image, a
+quarter of OpenAI's published per-image price for GPT Image 2 at high 1536x1024 ($0.165, about 5,500
+tokens at the same $30/M); GPT Image 2.5 has no published per-image figure, so check the billing page
+before trusting the logged total.
 """
 import base64
 import concurrent.futures as cf
@@ -133,6 +137,86 @@ NEWS = {
         " server racks, smiling, an orderly and cooperative moment.",
     "end_muddle": "An ordinary evening on a city street: commuters walking home under streetlights, a couple talking"
         " outside a corner shop, lights in apartment windows, life going on.",
+    # Variants (news.js PHOTOS: <kind>_<n>), so a playthrough never prints the same lead photo twice: a
+    # different scene, place, angle and time of day from the kind's first photo, fitting all its captions.
+    "research_2": "Night shift on a long, dim software research floor: two engineers in hoodies sit side by side reviewing"
+        " code an AI wrote on a pair of large monitors showing soft blurred shapes, one rubbing his chin, desk lamps,"
+        " the city dark outside the windows.",
+    "research_3": "A robotic laboratory where AI agents run experiments: in the foreground a robotic arm moves sample plates"
+        " along a bench, and behind it a young researcher in a lab coat stands with folded arms watching it work,"
+        " fascinated; rows of instruments, cool overhead light.",
+    "safetylab_2": "Close view of two safety researchers at a whiteboard covered in hand-drawn boxes and arrows with no"
+        " writing, one drawing a diagram of a neural network with a marker while the other listens, arms folded, nodding.",
+    "safetylab_3": "A woman researcher presenting to five colleagues in a glass-walled meeting room, gesturing at a wall"
+        " screen of soft abstract graphs; the colleagues around a long table take notes, laptops open, afternoon light.",
+    "safetylab_4": "Late evening in a small safety team's office: a researcher in headphones at a desk with three"
+        " monitors of blurred abstract charts, and a colleague setting down a cup of coffee beside her, both smiling;"
+        " a desk lamp and a dark window.",
+    "safetylab_5": "Three safety researchers standing at a tall table reviewing a stack of printed reports with pens,"
+        " pages spread out, one holding a page up and pointing to a passage; blank sticky notes on a glass wall behind.",
+    "safetylab_6": "Seen from a low angle over a laptop, an older researcher and two young colleagues sit on a sofa in a"
+        " lab's lounge corner, the older one explaining something with his hands while the others listen intently,"
+        " plants and soft daylight.",
+    "talks_2": "Close view at a small polished signing table: two delegates seated side by side sign leather-bound copies"
+        " of an agreement with fountain pens while officials standing behind them applaud; chandeliers, soft window"
+        " light.",
+    "talks_3": "A small round table in a wood-panelled conference room seen from slightly above: six delegates lean in"
+        " over papers and water glasses, an interpreter's booth with a lit window behind them, a quiet working session.",
+    "talks_4": "Seen from the far end of a very long negotiating table in a modern glass conference centre: two"
+        " delegations seated face to face with laptops and interpreter headsets, one delegate leaning across to"
+        " pass a folder to the other side; a calm working afternoon.",
+    "chinalab_2": "Two young Chinese engineers in a bright server room at night, one crouched checking cables at an open"
+        " rack, the other holding a laptop and smiling at him; rows of blinking server lights, orderly and calm.",
+    "chinalab_3": "A team of Chinese AI engineers laughing together at a blank whiteboard covered in hand-drawn diagrams"
+        " with no writing, in a modern office with plants, one holding a marker; daytime, relaxed and upbeat.",
+    "chinalab_4": "Young Chinese AI engineers on the rooftop terrace of their lab building at lunchtime, laughing together"
+        " over a laptop on a picnic table, one raising a paper cup in a toast, bicycles and city high-rises behind,"
+        " bright sun.",
+    "expert_2": "A panel of senior professors around a seminar-room table reading printed pages of a research paper an AI"
+        " wrote, one holding a page up to the window light, another with reading glasses pushed up, thoughtful and impressed.",
+    "expert_3": "An older woman scientist and a young postdoc at a lab bench comparing their own notebook with results on"
+        " a laptop, the older one laughing in surprise with a hand on her forehead, glassware and a microscope beside them.",
+    "datacentre_2": "Seen from high on a hillside, a vast construction site: rows of concrete foundations and steel frames"
+        " for new data-centre halls stretching away, cranes, trucks and tiny workers, morning haze over farmland.",
+    "datacentre_3": "Inside a newly built, not yet finished data-centre hall: electricians on a scissor lift installing"
+        " overhead cable trays above rows of empty server racks, a foreman with a tablet below, work lights.",
+    "inspectors_2": "Close view in a server aisle: an international inspector kneels with a small flashlight to check a"
+        " tamper-evident seal on a server rack door, while a lab engineer crouches beside her holding a tablet; the"
+        " rest of the aisle in soft focus.",
+    "inspectors_3": "Seen from a high catwalk looking down a long, bright server hall: a small group of inspectors in plain"
+        " jackets and lab staff walking an aisle between rows of racks, one inspector pointing to a rack;"
+        " symmetrical and orderly.",
+    "warroom_2": "Night: two intelligence analysts bent over a lit light table with large printed aerial photographs of an"
+        " industrial complex, one using a magnifying loupe, the other with a pencil, a desk lamp, quiet concentration.",
+    "testscare_2": "In a small isolated test room, a researcher calmly unplugging a network cable from a lone server rack"
+        " while a colleague in the doorway watches a laptop and gives a thumbs-up; careful and in control.",
+    "delegation_2": "A government office where a clerk sips coffee while tapping approve through a long queue of items on"
+        " a tablet, the AI's prepared summaries glowing as blurred shapes, co-workers at nearby desks doing the same;"
+        " an ordinary morning, a little too easy.",
+    "hearing_2": "Close side view of an expert witness, a woman in her fifties, testifying into a microphone at a hearing,"
+        " one hand raised as she explains, a glass of water and papers before her; out of focus behind her, staff"
+        " and members of the public in rows, and a lawmaker's shoulder in the foreground; window light.",
+    "biolab_2": "Seen through a large observation window, two technicians in full positive-pressure biosafety suits"
+        " working at a cabinet in a high-containment lab, while a supervisor outside the glass watches and talks on a"
+        " handset; calm, careful, bright clean light.",
+    "uslab_2": "Inside a frontier AI lab's open atrium: engineers on a mezzanine staircase and at standing desks, a few"
+        " chatting by a coffee bar, high glass ceiling and hanging plants; daytime, busy and casual.",
+    "collapse_2": "The morning after failed talks: a lone staff member collects untouched water glasses and closed folders"
+        " from a long, empty negotiating table in a wood-panelled room, chairs left askew, grey daylight; seen from"
+        " the end of the table.",
+    "markets_2": "A quiet investment office: two analysts at a window desk studying charts of soft blurred shapes on their"
+        " screens, one on the phone and the other writing notes, the financial district's towers outside.",
+    "idle_2": "A vast data-centre hall at low power seen from floor level: most racks dark with only a few status lights"
+        " glowing, and at the far end two technicians sitting on a step sharing a thermos of coffee; quiet, dim"
+        " emergency lighting.",
+    "openmodel_2": "A young developer at a kitchen table late at night with a laptop and a cup of tea, grinning as a"
+        " download completes, a cat on the chair beside her, a small desk lamp.",
+    "jobs_2": "A small accounting office where an older bookkeeper and a young colleague sit together at one screen,"
+        " the young one pointing out what the AI assistant has drafted, the older one amused; files and plants.",
+    "fund_2": "A young family at their kitchen table in the morning, the mother smiling at good news on her phone, the"
+        " father pouring cereal, a toddler in a high chair, sunlight through the window.",
+    "jobcentre_2": "Adults retraining as electricians at a community college: a middle-aged woman wiring a training panel"
+        " while an instructor watches and nods, classmates at panels behind; focused and hopeful.",
 }
 
 
@@ -149,7 +233,9 @@ def usage_cost(r):
     det = u.get("input_tokens_details") or {}
     text_in, img_in = det.get("text_tokens", u.get("input_tokens", 0)) or 0, det.get("image_tokens", 0) or 0
     out = u.get("output_tokens", 0) or 0
-    return text_in * 5e-6 + img_in * 8e-6 + out * 30e-6, f"in {text_in}+{img_in}, out {out} tokens"
+    odet = u.get("output_tokens_details") or {}
+    extra = f", output details {odet}" if odet else ""
+    return text_in * 5e-6 + img_in * 8e-6 + out * 30e-6, f"in {text_in}+{img_in}, out {out} tokens{extra}, total {u.get('total_tokens')}"
 
 
 def generate(key, client):
@@ -170,11 +256,11 @@ def generate(key, client):
                      f" param={err.get('param')} code={err.get('code')}"), 0.0
 
 
-def process():
+def process(keys=None):
     from PIL import Image, ImageOps
     out = ROOT / "assets" / "news"
     out.mkdir(parents=True, exist_ok=True)
-    for key in NEWS:
+    for key in keys or NEWS:
         png = OUT / f"{key}.png"
         if not png.is_file():
             print(key, "missing")
@@ -188,7 +274,7 @@ def process():
 if __name__ == "__main__":
     cmd, keys = (sys.argv[1] if len(sys.argv) > 1 else "gen"), sys.argv[2:]
     if cmd == "process":
-        process()
+        process(keys)
         sys.exit()
     from openai import OpenAI
     keys = keys or list(NEWS)

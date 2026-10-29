@@ -595,12 +595,12 @@
   .survival .est b { font-family: var(--mono); color: var(--bad); font-weight: 600; font-size: 13px; }
   .survival .est .lbl { margin-top: 2px; font-size: 10.5px; line-height: 1.3; }
 </style>
-<script src="model.js?v=20261028172147"></script>
-<script src="events.js?v=20261028172147"></script>
-<script src="news.js?v=20261028172147"></script>
-<script src="landmask.js?v=20261028172147"></script>
-<script src="presets.js?v=20261028172147"></script>
-<script src="trees.js?v=20261028172147"></script>
+<script src="model.js?v=20261028182414"></script>
+<script src="events.js?v=20261028182414"></script>
+<script src="news.js?v=20261028182414"></script>
+<script src="landmask.js?v=20261028182414"></script>
+<script src="presets.js?v=20261028182414"></script>
+<script src="trees.js?v=20261028182414"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -946,7 +946,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents, NEWS = window.SimNews;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261028172147';
+const ASSET_VERSION = '20261028182414';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1814,7 +1814,7 @@ function rollYear() {
     const newsIn = { prev: game.decisions.slice(0, -1).flatMap((d) => d.news || []), year, before: game.before, after: s, L0: game.L0, L, choice: game.lastChoiceObj,
       risk: r, riskNext: res.event ? null : M.risks(s, L), event: res.event, econ0 };
     rec.news = NEWS.headlines(newsIn);
-    if (rec.news[0]) preloadImg(newsImgUrl(rec.news[0].img)); // only the lead story shows its photo
+    if (rec.news[0]) preloadImg(newsImgUrl(rec.news[0].photo || rec.news[0].img)); // only the lead story shows its photo (never one an earlier page printed)
     rec.result = { news: rec.news, event: res.event, stage: res.stage, st: structuredClone({ ...s, log: [] }), cat: catSoFar(s), changes: changeRows(game.before, s), est: null, econ: NEWS.economy(newsIn),
       note: !res.event && s.dealCollapsed === year ? 'The US–China deal collapsed this year.' : !res.event && s.dealImpaired === year ? M.dealImpairedText(s, L) : '' };
     const how = res.stage === 'handoff'
@@ -1922,7 +1922,7 @@ function paperHTML(d, i) {
     <div class="front">
       <div class="left">${side}${index}</div>
       <section class="lead"><div class="kicker">${escHTML(deskKicker(lead.desk))}</div><h3>${escHTML(lead.text)}</h3>
-        <figure class="photo"><span class="ph"><img class="pending" src="${newsImgUrl(lead.img)}" alt="${escHTML(lead.caption)}"></span>
+        <figure class="photo"><span class="ph"><img class="pending" src="${newsImgUrl(lead.photo || lead.img)}" alt="${escHTML(lead.caption)}"></span>
           <span class="credit">${escHTML(lead.credit || 'The Ledger')}</span><figcaption>${escHTML(lead.caption)}</figcaption></figure>
         <p class="deck">${escHTML(lead.deck)}</p>${paperCopy(lead)}</section>
     </div>

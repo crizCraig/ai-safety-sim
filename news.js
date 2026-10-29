@@ -10,7 +10,8 @@
  *
  * A template: { id, cat, desk, tone, prio, when(c), text: [variants], deck, caption, img, same? }. The year-end
  * front page prints each story's headline with its `deck` (a one-line summary), its body (BODY[id]: two to
- * four sentences built from the visible numbers) and, for the lead only, a photo (`img`, a key of IMAGES)
+ * four sentences built from the visible numbers) and, for the lead only, a photo (`img`, a story kind; the lead's
+ * `photo` is one of that kind's PHOTOS not printed earlier in the playthrough)
  * with its `caption` and a fictional credit; each is a string or a function of (c, headline). The economy
  * figures (economyOf) are illustrative flavour derived from the visible state, not model outputs. `text` entries are strings
  * or functions of the context `c`; `desk` is a masthead key (or a list, one picked by hash);
@@ -50,6 +51,39 @@
     'collapse', 'warroom', 'chinalab', 'uslab', 'markets', 'jobs', 'delegation', 'hearing', 'protest', 'townhall', 'fund',
     'openmodel', 'biolab', 'discovery', 'classroom', 'everyday', 'jobcentre', 'powerplant', 'orbit', 'lagging', 'materials',
     'climate', 'clinic', 'trial', 'end_flourish', 'end_lockin', 'end_misalign', 'end_benevolent', 'end_bio', 'end_war', 'end_pause', 'end_muddle'];
+  // Each story kind's photos: the kind's own key first, then visibly different scenes of the same kind
+  // (assets/news/<kind>_<n>.webp), more for the kinds that lead most often. A playthrough never prints
+  // the same lead photo twice: leadPhoto picks an unused one by hash, then one of a related kind.
+  const VARIANTS = { research: 3, safetylab: 6, talks: 4, chinalab: 4, expert: 3, datacentre: 3, inspectors: 3,
+    warroom: 2, testscare: 2, delegation: 2, hearing: 2, biolab: 2, uslab: 2, collapse: 2, markets: 2, idle: 2,
+    openmodel: 2, jobs: 2, fund: 2, jobcentre: 2 };
+  const PHOTOS = {};
+  for (const k of IMAGES) PHOTOS[k] = [k, ...Array.from({ length: (VARIANTS[k] || 1) - 1 }, (_, i) => `${k}_${i + 2}`)];
+  for (const k of IMAGES.slice()) IMAGES.push(...PHOTOS[k].slice(1));
+  // When every photo of a kind has run, the closest kinds in order (their photos fit the story best).
+  const RELATED = {
+    research: ['expert', 'safetylab', 'uslab', 'openmodel'], expert: ['research', 'safetylab', 'discovery'],
+    safetylab: ['testscare', 'research', 'expert', 'inspectors'], testscare: ['safetylab', 'research', 'idle'],
+    talks: ['inspectors', 'collapse', 'hearing', 'townhall'], collapse: ['talks', 'hearing'], inspectors: ['talks', 'idle', 'safetylab'],
+    chinalab: ['uslab', 'research', 'openmodel'], uslab: ['chinalab', 'research', 'datacentre'],
+    datacentre: ['powerplant', 'idle', 'uslab'], idle: ['datacentre', 'inspectors'], powerplant: ['datacentre', 'climate'],
+    warroom: ['hearing', 'datacentre', 'talks'], hearing: ['townhall', 'talks', 'protest'], townhall: ['hearing', 'protest'],
+    protest: ['townhall', 'hearing'], delegation: ['jobs', 'hearing'], jobs: ['delegation', 'jobcentre', 'everyday'],
+    jobcentre: ['jobs', 'classroom'], markets: ['jobs', 'fund'], fund: ['townhall', 'everyday'], biolab: ['discovery', 'safetylab', 'clinic'],
+    openmodel: ['research', 'uslab'], superintelligence: ['datacentre', 'idle'], discovery: ['biolab', 'materials'],
+  };
+  // The lead's photo: an unused photo of its kind (by hash of the year's visible seed), else of a related kind,
+  // else any unused non-ending photo. `used` holds the photos of earlier front pages (their stored leads).
+  function leadPhoto(kind, used, seed) {
+    if (!PHOTOS[kind] || kind.startsWith('end_')) return kind;
+    const h = hash(seed + '|photo');
+    for (const k of [kind, ...(RELATED[kind] || [])]) {
+      const free = (PHOTOS[k] || []).filter((p) => !used.has(p));
+      if (free.length) return free[h % free.length];
+    }
+    const rest = IMAGES.filter((p) => !p.startsWith('end_') && !used.has(p));
+    return rest.length ? rest[h % rest.length] : PHOTOS[kind][h % PHOTOS[kind].length];
+  }
 
   // ---- The economy: illustrative figures, not model outputs ----
   // The model has no GDP, jobs or spending. These figures are flavour for the paper, derived only
@@ -738,7 +772,9 @@
       for (let i = 0; (chosen.length < 2 || (calm && chosen.length < 3)) && i < quiet.length; i++) chosen.push(quiet[(h + i) % quiet.length]);
     }
     const said = new Set();
-    return chosen.map((t) => {
+    // Photos already printed on this playthrough's earlier front pages (each lead keeps its photo).
+    const usedPhotos = new Set(recent.map((n) => n.photo).filter(Boolean));
+    return chosen.map((t, i) => {
       // A phrasing not used in the last three years where possible.
       const every = variants(t, c), fresh = every.filter((v) => !usedTexts.has(v)), vs = fresh.length ? fresh : every;
       const h = hash(seed + '|' + t.id);
@@ -749,7 +785,7 @@
       for (const f of SPARE) { if (body.length >= 4 || (body.length >= 2 && words(body.join(' ')) >= 20)) break; const x = f(c); if (x && !said.has(x) && !body.includes(x)) body.push(x); }
       body.forEach((x) => said.add(x));
       return { id: t.id, cat: t.cat, desk: DESKS[desks[h % desks.length]], text, tone: t.tone, deck: val(t.deck), body,
-        caption: val(t.caption), credit: credit(c.year, t.id), img: val(t.img) };
+        caption: val(t.caption), credit: credit(c.year, t.id), img: val(t.img), ...(i === 0 ? { photo: leadPhoto(val(t.img), usedPhotos, seed) } : {}) };
     });
   }
 
@@ -762,5 +798,5 @@
   // "Masthead: headline" lines for text exports.
   const plain = (list) => (list || []).map((n) => `${n.desk}: ${n.text}`);
 
-  root.SimNews = { DESKS, TEMPLATES, IMAGES, VIS_KEYS, RISK_KEYS, BRIGHT, ECON_BASE, econTargets, economy, context, headlines, allVariants, allStories, plain, words, hash };
+  root.SimNews = { DESKS, TEMPLATES, IMAGES, PHOTOS, RELATED, leadPhoto, VIS_KEYS, RISK_KEYS, BRIGHT, ECON_BASE, econTargets, economy, context, headlines, allVariants, allStories, plain, words, hash };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

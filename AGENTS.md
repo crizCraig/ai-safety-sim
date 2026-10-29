@@ -256,7 +256,9 @@ which `test-model.js` runs).
    fictional, never real outlets. `deck`: the front page's one-line summary, 8–20 words, factual,
    only player-visible facts; `caption`: 3–12 words; `img`: a key of `IMAGES` (a black-and-white
    news photo in `assets/news/`, made by `scripts/gen_news_art.py` with gpt-image-2.5-sunburst; the
-   endings use `end_<outcome>`). Only the lead story's photo is printed. Each is a string or
+   endings use `end_<outcome>`). Only the lead story's photo is printed: `headlines` gives the lead a `photo`, one of
+   `PHOTOS[img]` (the kind's own photo and its variants `<kind>_<n>`, counts in `VARIANTS`) that no earlier front
+   page of the playthrough printed, picked by hash, else one of a `RELATED` kind; it is stored with the headlines. Each is a string or
    a function of `(c, headline)` when the phrasings need different ones. Add the body to `BODY`:
    2–4 sentences, a bespoke one or two plus fact sentences from `F` (each prints a visible number);
    quotes only from roles ("a lab spokesperson said"), never from real people. A fact already printed
