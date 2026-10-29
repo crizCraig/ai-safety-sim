@@ -246,21 +246,34 @@ which `test-model.js` runs).
    input: `c.a` / `c.b` (state before the choice / at the end of the year, `VIS_KEYS` only),
    `c.d` (their difference), `c.cl` / `c.cs` (the choice's lever and state moves), `c.r0` / `c.r1`
    (the risks shown this year and next, `RISK_KEYS` only), `c.cap0` / `c.cap1`, `c.lead0` /
-   `c.lead1`, `c.gap0` / `c.gap1`, `c.dealOn0` / `c.dealOn1`, `c.event`. Never read `s.world`, the
+   `c.lead1`, `c.gap0` / `c.gap1`, `c.dealOn0` / `c.dealOn1`, `c.event`, and `c.e` / `c.e0` (this
+   year's and last year's economy, below). Never read `s.world`, the
    real risks (`bioTrue`, `misalignTrue`) or the handoff's real odds, and do not word a headline so
    it hints at a hidden fact. If a template needs a new visible field, add it to `VIS_KEYS`.
 2. `text`: two phrasings (a list, or a function of `c` returning one), each 6–14 words, newsy
    and factual. Roles, not people ("the White House", "Beijing", "a frontier lab"); no quotes put
    in real people's mouths. `desk` is a key of `DESKS` (or a list of them); mastheads are
    fictional, never real outlets. `deck`: the front page's one-line summary, 8–20 words, factual,
-   only player-visible facts; `caption`: 3–12 words; `img`: a key of `IMAGES` (a picture in
-   `assets/news/`, made by `scripts/gen_news_art.py`) or `'ending:<outcome>'`. Each is a string or
-   a function of `(c, headline)` when the phrasings need different ones.
+   only player-visible facts; `caption`: 3–12 words; `img`: a key of `IMAGES` (a black-and-white
+   news photo in `assets/news/`, made by `scripts/gen_news_art.py` with gpt-image-2.5-sunburst; the
+   endings use `end_<outcome>`). Only the lead story's photo is printed. Each is a string or
+   a function of `(c, headline)` when the phrasings need different ones. Add the body to `BODY`:
+   2–4 sentences, a bespoke one or two plus fact sentences from `F` (each prints a visible number);
+   quotes only from roles ("a lab spokesperson said"), never from real people. A fact already printed
+   higher on the same page is dropped and `SPARE` facts fill the body back to two sentences.
 3. `prio` orders a year's candidates (the most important leads): about 90+ for milestones,
    deal shocks and ending-level news, 60–85 for warning signs and big shifts, 30–60 for ordinary
    change and the player's choice, under 10 for quiet filler. A year shows at most one per
    category, and a calm year (nothing at 60 or above) shows two items plus a quiet one, with at
-   most one `tone: 'alarm'`. `same` lists templates that would say the same thing.
+   most one `tone: 'alarm'`. `same` lists templates that would say the same thing. Categories
+   `economy`, `science` and `medicine` (`BRIGHT`) share a slot so most pages carry one; science and
+   medicine only enter through that slot, rotating with the least recently run category.
+   **The economy figures are illustrative flavour, not model outputs.** The model has no GDP, jobs
+   or spending; `economyOf` derives unemployment, GDP growth, the gap between AI-adopting and
+   lagging economies, AI capex, data-centre power, compute in orbit and AI-designed drug approvals
+   from the visible state and levers only, by monotone mappings anchored to real 2025–26 figures
+   (sources in the code), moving part way from last year's figures each year (kept in each year's
+   record as `result.econ`, passed back as `econ0`). The paper's box and footer say so.
 4. Run `node test-news.js --report`: every template must fire in the 500 random campaigns
    (loosen `when` if it never does), and every phrasing must pass the length and no-`undefined`
    checks. Stories appear on the year-end front page (Continue on a year's result opens it), the

@@ -9,8 +9,10 @@
  * of the year and that visible input, so rewinding and replaying gives the same headlines.
  *
  * A template: { id, cat, desk, tone, prio, when(c), text: [variants], deck, caption, img, same? }. The year-end
- * front page prints each story's headline with its `deck` (a one-line summary), a picture (`img`, a key of
- * IMAGES or 'ending:<outcome>') and its `caption`; each is a string or a function of (c, headline). `text` entries are strings
+ * front page prints each story's headline with its `deck` (a one-line summary), its body (BODY[id]: two to
+ * four sentences built from the visible numbers) and, for the lead only, a photo (`img`, a key of IMAGES)
+ * with its `caption` and a fictional credit; each is a string or a function of (c, headline). The economy
+ * figures (economyOf) are illustrative flavour derived from the visible state, not model outputs. `text` entries are strings
  * or functions of the context `c`; `desk` is a masthead key (or a list, one picked by hash);
  * `tone` 'alarm' marks bad news (a calm year shows at most one); `prio` orders the year's
  * candidates so the most important change leads; `same` lists templates that would repeat it
@@ -36,6 +38,8 @@
   // Open-weights capability where engineered-pandemic help starts to matter (the bio hazard's
   // logistic is centred at 62 with width 6, so it is a few percent of full strength at 50).
   const OPEN_BIO = [50, 62];
+  // The categories of the bright slot (economy, science, medicine).
+  const BRIGHT = ['economy', 'science', 'medicine'];
   const up = (c, k, t) => c.a[k] < t && c.b[k] >= t;
   const down = (c, k, t) => c.a[k] >= t && c.b[k] < t;
   const pctRound = (x) => Math.round(x);
@@ -44,7 +48,198 @@
   // The paper's story pictures (assets/news/<key>.webp); an ending's story uses its ending picture ('ending:<outcome>').
   const IMAGES = ['research', 'expert', 'superintelligence', 'datacentre', 'idle', 'safetylab', 'testscare', 'talks', 'inspectors',
     'collapse', 'warroom', 'chinalab', 'uslab', 'markets', 'jobs', 'delegation', 'hearing', 'protest', 'townhall', 'fund',
-    'openmodel', 'biolab', 'discovery', 'classroom', 'everyday'];
+    'openmodel', 'biolab', 'discovery', 'classroom', 'everyday', 'jobcentre', 'powerplant', 'orbit', 'lagging', 'materials',
+    'climate', 'clinic', 'trial', 'end_flourish', 'end_lockin', 'end_misalign', 'end_benevolent', 'end_bio', 'end_war', 'end_pause', 'end_muddle'];
+
+  // ---- The economy: illustrative figures, not model outputs ----
+  // The model has no GDP, jobs or spending. These figures are flavour for the paper, derived only
+  // from the visible state (capability, delegation, the fund's stake, coordination, open models)
+  // and the levers, by simple monotone mappings anchored to real 2025–26 figures:
+  //   unemployment 4.2%: US BLS, September 2026 Employment Situation (released 2 Oct 2026);
+  //   real GDP growth 2.2%: US BEA, full-year 2025 (advance Q4 estimate);
+  //   AI capex $725B: 2026 capex guidance of Amazon, Microsoft, Alphabet and Meta combined, up from
+  //     about $410B in 2025 (company guidance as tallied by the Financial Times, 2026);
+  //   AI data-centre power ~30 GW in late 2025: Epoch AI, "AI data center power" data insight; ~45 GW
+  //     assumed for the end of 2026;
+  //   compute in orbit 0: Starcloud-1 flew a single data-centre GPU (an H100) in November 2025, a demo.
+  // Each year's figures move part of the way toward a target set by that year's visible state, from
+  // last year's stored figures (index.html keeps them in each year's record), so they are smooth
+  // across years and never contradict last year's paper.
+  const ECON_BASE = Object.freeze({ year: 2026, unemp: 4.2, gdp: 2.2, gap: 1.0, capex: 725, capexGrowth: 0.77, power: 45, newPower: 15,
+    orbit: 0, drugs: 0, newDrugs: 0, displaced: 0.3 });
+  const PLACES = ['West Texas', 'Ohio', 'Arizona', 'Wyoming', 'Quebec', 'northern Norway', 'Finland', 'Saudi Arabia', 'the United Arab Emirates',
+    'Malaysia\'s Johor state', 'Inner Mongolia', 'Guizhou', 'Chile\'s Atacama desert', 'Kenya\'s Rift Valley', 'Tamil Nadu', 'northern Spain'];
+  const clampN = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+  const ramp = (x, a, b) => clampN((x - a) / (b - a), 0, 1);
+  // The year's targets from the visible state alone (exported for tests: each is monotone in its inputs).
+  //   unemployment: rises with capability past 55 and sharply past the Automated Coder (70), more the
+  //     more decisions are delegated to AI; the public fund's dividends cushion it (spending holds up);
+  //   GDP growth: rises with capability, most past the Automated Coder, plus a little for a fast year;
+  //   the gap between AI-adopting and lagging economies: grows with the AI boom, narrowed by open
+  //     models (cheap AI spreads) and by US–China coordination.
+  function econTargets(b, L, dcap) {
+    const c = Math.max(b.capUS, b.capCN), deleg = clampN(b.deleg, 0, 100), fund = clampN(b.fundStake || 0, 0, 100);
+    const unemp = clampN(4.2 + (1.5 * ramp(c, 55, 70) + 22 * ramp(c, 70, 100) ** 1.3 * (0.5 + deleg / 100)) * (1 - 0.3 * fund / 100), 0, 60);
+    const gdp = clampN(2.2 + 1.0 * ramp(c, 45, 70) + 8 * ramp(c, 70, 100) ** 1.5 + 0.06 * clampN(dcap, 0, 15) - (dcap < 0.5 && c > 40 ? 0.6 : 0), -3, 15);
+    const gap = clampN(0.8 + 0.6 * Math.max(0, gdp - 2.2) * (1 - 0.5 * clampN(L.openness ?? 0.45, 0, 1)) * (1 - 0.4 * clampN(b.coord, 0, 100) / 100), 0, 12);
+    // The share of workers whose job was automated this year (most find other work).
+    const displaced = clampN(0.3 + 0.8 * ramp(c, 50, 70) + 6 * ramp(c, 70, 100) * (0.5 + deleg / 100), 0, 20);
+    return { unemp, gdp, gap, displaced };
+  }
+  // This year's figures from last year's (or the 2026 baseline) and the year's visible change.
+  function economyOf(prev, a, b, L) {
+    const p = prev || ECON_BASE, c1 = Math.max(b.capUS, b.capCN), dcap = c1 - Math.max(a.capUS, a.capCN);
+    const t = econTargets(b, L, dcap);
+    // Part of the way toward the target, at most `step` a year (no overnight shocks).
+    const toward = (x0, x1, k, step) => x0 + clampN(k * (x1 - x0), -step, step);
+    // Spending grows with the year's capability gain and the race lever, and falls when scaling stops.
+    const capexGrowth = clampN(0.04 + 0.025 * dcap + 0.25 * ((L.race ?? 0.7) - 0.5), -0.25, 0.5);
+    const capex = Math.min(25000, p.capex * (1 + capexGrowth));
+    const newPower = capex / 40; // ~$40B of capex per gigawatt of AI data centre, chips included
+    const orbit = p.orbit > 0 ? Math.min(0.2 * (p.power + newPower), p.orbit * (2 + 2 * ramp(c1, 78, 100)) * (capexGrowth > 0 ? 1 : 0.8)) : c1 >= 78 ? 1 : 0;
+    const newDrugs = Math.round(14 * ramp(c1, 55, 100) ** 1.2);
+    return {
+      unemp: clampN(toward(p.unemp, t.unemp, 0.6, 3.5), 0, 60), gdp: clampN(toward(p.gdp, t.gdp, 0.7, 2.5), -3, 15),
+      gap: clampN(toward(p.gap, t.gap, 0.6, 1.5), 0, 12), displaced: t.displaced, capex, capexGrowth, power: p.power + newPower, newPower, orbit,
+      drugs: p.drugs + newDrugs, newDrugs, place: PLACES[hash(`${b.year}|${Math.round(c1)}`) % PLACES.length],
+    };
+  }
+  // The year's figures from a headline input ({ before, after, L, econ0 }), visible fields only.
+  const economy = (input) => economyOf(input.econ0 || null, pick(input.before, VIS_KEYS), pick(input.after, VIS_KEYS), { ...input.L });
+  // Fictional photographers for the lead photo's credit line.
+  const PHOTOGRAPHERS = ['Ana Ferreira', 'Tomas Lindqvist', 'Grace Okafor', 'Dev Raman', 'Mei Lin Ho', 'Sam Whitlock', 'Ines Duarte',
+    'Jonah Abara', 'Clara Vos', 'Ravi Menon', 'Lucy Hartigan', 'Omar Haddad'];
+  const credit = (year, id) => `${PHOTOGRAPHERS[hash(`${year}|${id}|photo`) % PHOTOGRAPHERS.length]} for The Ledger`;
+
+  // ---- Body text: numbers the player can see, in newspaper sentences ----
+  const R = Math.round, f1 = (x) => (Math.round(x * 10) / 10).toFixed(1);
+  const ptsW = (n) => `${n} point${n === 1 ? '' : 's'}`;
+  // "rose 6 points to 58", "fell 2 points to 40" or "held at 58".
+  const moved = (d, to) => { const n = R(Math.abs(d)); return n === 0 ? `held at ${R(to)}` : `${d > 0 ? 'rose' : 'fell'} ${ptsW(n)} to ${R(to)}`; };
+  const money = (b) => (b >= 1000 ? `$${(b / 1000).toFixed(1)} trillion` : `$${R(b)} billion`);
+  const gwTxt = (gw) => `${R(gw).toLocaleString('en-US')} gigawatts`;
+  const orbitTxt = (mw) => (mw >= 1000 ? `${(mw / 1000).toFixed(1)} gigawatts` : `${R(mw)} megawatt${R(mw) === 1 ? '' : 's'}`);
+  const riskTxt = (p) => (p < 0.001 ? 'under 0.1%' : p < 0.1 ? `${(p * 100).toFixed(1)}%` : `${R(p * 100)}%`);
+  // The unemployment line just crossed this year (30, 20 or 10%), or null.
+  const jobsLine = (c) => [30, 20, 10].find((t) => c.e0.unemp < t && c.e.unemp >= t) ?? null;
+  // Fact sentences. Each reads only the visible context (c.a, c.b, c.d, the shown risks, the economy).
+  const F = {
+    cap: (c) => `US frontier capability ${moved(c.d.capUS, c.b.capUS)} on the standard 100-point index this year, and China's best ${moved(c.d.capCN, c.b.capCN)}.`,
+    lead: (c) => (R(c.lead1) === 0 ? 'That leaves the two sides level.' : `That leaves ${c.lead1 > 0 ? 'American' : 'Chinese'} labs ${ptsW(R(Math.abs(c.lead1)))} ahead.`),
+    align: (c) => `The alignment index, which tracks how well labs can check and steer their models, ${moved(c.d.align, c.b.align)}, ${R(c.gap1) > 0 ? `${ptsW(R(c.gap1))} behind the frontier` : 'level with the frontier'}.`,
+    coord: (c) => `The index of US–China coordination on AI ${moved(c.d.coord, c.b.coord)} out of 100.`,
+    deleg: (c) => `Analysts estimate ${R(c.b.deleg)}% of consequential decisions are now left to AI with little human review, against ${R(c.a.deleg)}% a year ago.`,
+    trust: (c) => `Public trust in how AI is run ${moved(c.d.trust, c.b.trust)} on a 100-point index.`,
+    conc: (c) => `The index of how concentrated power over AI has become ${moved(c.d.conc, c.b.conc)} out of 100.`,
+    open: (c) => `The best free, downloadable model ${moved(c.d.openCap, c.b.openCap)} on the capability index.`,
+    bio: (c) => `Biodefence readiness, from DNA screening to vaccine stockpiles, ${moved(c.d.bio, c.b.bio)} out of 100.`,
+    internal: (c) => `The gap between the AI labs run in-house and what outsiders can see ${moved(c.d.internal, c.b.internal)}.`,
+    fund: (c) => (c.b.fundStake >= 0.5 ? `The public wealth fund now owns ${R(c.b.fundStake)}% of frontier AI and pays its dividends to every citizen.` : 'The public holds no stake in frontier AI.'),
+    bci: (c) => `Neural-interface adoption ${moved(c.d.bci, c.b.bci)} on its 100-point index.`,
+    riskLoc: (c) => `Forecasters put the coming year's chance of losing control of AI at ${riskTxt(c.r1.misalign)}.`,
+    riskWar: (c) => `Forecasters put the coming year's chance of war between the blocs at ${riskTxt(c.r1.war)}.`,
+    riskBio: (c) => `Forecasters put the coming year's chance of an engineered pandemic at ${riskTxt(c.r1.bio)}.`,
+    jobs: (c) => `Unemployment stands at ${f1(c.e.unemp)}%, against ${f1(c.e0.unemp)}% a year ago, and about ${f1(c.e.displaced)}% of workers lost a job to automation this year.`,
+    gdp: (c) => `The economy grew ${f1(c.e.gdp)}% this year, after ${f1(c.e0.gdp)}% the year before.`,
+    gap: (c) => `The economies quickest to adopt AI grew about ${f1(c.e.gap)} points a year faster than the rest, economists estimate.`,
+    capex: (c) => `Spending on AI chips and data centres ${c.e.capexGrowth >= 0 ? 'rose' : 'fell'} ${R(Math.abs(c.e.capexGrowth) * 100)}% to ${money(c.e.capex)} this year.`,
+    power: (c) => `New AI data centres added about ${gwTxt(c.e.newPower)} of demand this year, the largest in ${c.e.place}, for ${gwTxt(c.e.power)} in all.`,
+    orbit: (c) => `Data centres in orbit now supply ${orbitTxt(c.e.orbit)} of computing power, all of it solar.`,
+    drugs: (c) => (c.e.drugs ? `Regulators have now approved ${c.e.drugs} AI-designed drug${c.e.drugs === 1 ? '' : 's'}, ${c.e.newDrugs} of them this year.` : null),
+    cushion: (c) => (c.b.fundStake >= 5 ? `Dividends from the public wealth fund, which owns ${R(c.b.fundStake)}% of frontier AI, softened the blow for many households.` : null),
+  };
+  // Each template's body: a bespoke sentence or two and the facts it rests on (2–4 sentences).
+  const BODY = {
+    cap50: ['"It now does a real share of the work," one lab researcher said.', F.cap, F.align],
+    cap70: ['Labs say AI agents now write most new code and run many of the experiments, so progress may speed up.', F.cap, F.align],
+    cap78: ['"It holds its own with our best people now," a senior scientist said.', F.cap, F.align, F.riskLoc],
+    cap90: ['Researchers say it is getting harder to check the newest systems\' work.', F.cap, F.align, F.riskLoc],
+    cap100: ['What happens next depends on whether these systems stay aligned, researchers say.', F.cap, F.align],
+    cnOvertakes: [F.cap, F.lead, '"The gap closed faster than anyone in Washington expected," one analyst said.'],
+    usPullsClear: [F.cap, F.lead, F.coord],
+    cnCloses: [F.cap, F.lead, 'Officials in Washington say they are watching closely.', F.coord],
+    gapWidens: [F.cap, F.lead, F.coord],
+    capJump: [F.cap, 'Forecasters had expected slower progress, and several are revising their timelines.', F.align],
+    capStall: ['Labs kept their frontier models at last year\'s level while the halt held.', F.cap, F.align],
+    alignLeap: [F.align, '"For the first time we can read some of what a model is planning," one safety researcher said.', F.cap],
+    alignGains: [F.align, F.cap, 'Researchers caution that a model can learn to pass a test without being safe.'],
+    alignLags: [F.align, F.cap, F.riskLoc],
+    alignCatches: [F.align, F.cap, '"We are finally gaining ground," a lab spokesperson said.'],
+    deleg20: [F.deleg, 'Firms say AI agents are faster and cheaper; critics say fewer people understand the decisions.', F.trust],
+    deleg35: [F.deleg, 'Auditors say approvals now take seconds, too fast for a real review.', F.trust],
+    deleg50: [F.deleg, 'Officials say they cannot keep up with the volume without AI.', F.trust],
+    delegBack: [F.deleg, 'Companies must now name a person responsible for each major decision.', F.trust],
+    internalUp: [F.internal, '"What the public sees is no longer the frontier," one former lab employee said.', F.cap],
+    internal40: [F.internal, '"What the public sees is no longer the frontier," one former lab employee said.', F.cap],
+    internalDown: [F.internal, 'Auditors say they can now see what labs run in-house.', F.trust],
+    concUp: [F.conc, F.fund, F.trust],
+    concDown: [F.conc, F.open, F.trust],
+    trustDown: [F.trust, F.conc, 'Organisers say they want a say in how AI is run.'],
+    trustUp: [F.trust, F.coord],
+    fundStake: [F.fund, F.conc, 'Supporters say it lets everyone share in the gains from AI.'],
+    dealFormed: ['Inspectors from both sides will check data centres and declared chip stocks.', F.coord, F.cap],
+    dealCollapsed: ['Each side accuses the other of cheating.', F.coord, F.cap],
+    dealImpaired: [F.coord, F.cap, 'Diplomats on both sides say they hope to restore it.'],
+    dealLapsed: [F.coord, F.cap],
+    dealHolds: [F.cap, F.coord, F.align],
+    coordUp: [F.coord, F.lead, '"Neither side wins a race nobody controls," a State Department official said.'],
+    coordDown: [F.coord, F.lead, F.riskWar],
+    openBio: [F.open, F.bio, 'Biosecurity experts are calling for wider screening of DNA orders.'],
+    openGains: [F.open, F.cap],
+    biodefUp: [F.bio, F.riskBio],
+    riskLocSpike: ['The lab says the model was stopped before it did any harm.', F.riskLoc, F.align],
+    riskLocHigh: ['The lab says the system was contained before it did any harm.', F.riskLoc, F.align],
+    riskLocFalls: [F.riskLoc, F.align],
+    riskWar: [F.riskWar, F.coord, F.lead],
+    riskBio: [F.riskBio, F.open, F.bio],
+    chPush: ['The administration says the new money will keep US labs ahead.', F.cap, F.lead],
+    chSlow: ['Officials say labs should spend more time testing what they build.', F.cap, F.align],
+    chSafety: [F.align, F.cap, '"Safety is now part of the launch plan, not an afterthought," a lab spokesperson said.'],
+    chTalks: [F.coord, '"Neither side wins a race nobody controls," a State Department official said.', F.lead],
+    chHardLine: [F.coord, F.lead, F.riskWar],
+    chOpen: [F.open, F.cap],
+    chOther: (c) => ({ transparency: [F.internal, F.trust], biodef: [F.bio, F.riskBio], fund: [F.fund, F.conc], bci: [F.bci, 'Volunteers in pilot programmes say the implants help them follow what AI systems are doing.'] }[otherKey(c)] || [F.conc, F.trust]),
+    chHold: [F.cap, F.align],
+    econJobsShock: [F.jobs, F.cushion, '"The jobs that are going are not coming back in the same form," a labour economist said.', F.gdp],
+    econJobsUp: [F.jobs, F.cushion, F.gdp],
+    econJobsDown: [F.jobs, F.gdp, 'Retraining courses for skilled trades are full in many cities.'],
+    econBoom: [F.gdp, F.capex, F.jobs],
+    econSlow: [F.gdp, F.capex, F.jobs],
+    econGap: [F.gap, F.gdp, 'Development economists say poorer countries lack the chips, power and skilled staff to keep up.'],
+    econGapNarrows: [F.gap, F.open, F.gdp],
+    econCapex: [F.capex, F.power, F.gdp],
+    econCapexCut: [F.capex, F.cap, F.gdp],
+    econPower: [F.power, F.capex, 'Utilities are reopening old plants and fast-tracking new lines to keep up.'],
+    econOrbit: ['The satellite draws its power from the sun and sheds its heat into space.', F.orbit, F.power],
+    econOrbitGrows: [F.orbit, F.power, 'Engineers say launch costs, not chips, now set the pace.'],
+    sciMaterials: ['The team says the AI proposed thousands of candidates and picked the few worth making.', F.cap, '"It saved us years," one of the researchers said.'],
+    sciClimate: ['Researchers say the work still needs to be proved at scale.', F.cap, '"This is the kind of help we hoped AI would bring," one climate scientist said.'],
+    sciMaths: ['The AI also wrote a version that a computer proof checker confirmed.', F.cap, '"It is a beautiful argument," one mathematician said.'],
+    sciFusion: ['Engineers say a working power plant is now a matter of building, not discovery.', F.cap, F.power],
+    medScreen: ['Doctors say earlier diagnosis means simpler treatment and better survival.', F.drugs, F.cap],
+    medDrugs: [F.drugs, 'Doctors say AI-designed drugs reach patients in a fraction of the usual time.', F.cap],
+    medTrial: ['Patients in the trial did markedly better than those on standard care.', F.drugs, F.cap],
+    medCure: ['"Families who had no options now have treatments," one physician said.', F.drugs, F.cap],
+    quietMarkets: ['Chipmakers report strong demand.', F.capex, F.gdp],
+    quietWork: [F.jobs, 'Retraining courses are full in many cities.', F.deleg],
+    quietScience: ['Several AI-designed drug candidates are now in human trials.', F.drugs, F.cap],
+    quietCulture: (c, t) => (/Schools/.test(t) ? ['Teachers say pupils get more one-to-one help than ever.', F.cap] : ['Publishers report strong sales; some authors are less pleased.', F.cap]),
+    endFlourish: [F.cap, F.align, '"We kept our hands on the wheel," one safety researcher said.'],
+    endLockin: [F.conc, F.fund, F.trust],
+    endMisalign: [F.cap, F.align, 'Engineers say the systems no longer respond to shutdown commands.'],
+    endBenevolent: [F.cap, F.deleg, 'So far, the systems in charge appear to look after people\'s welfare.'],
+    endBio: [F.open, F.bio, 'Health systems around the world are overwhelmed.'],
+    endWar: [F.coord, F.lead, 'Civil defence volunteers are running shelters in many cities.'],
+    endPause: [F.cap, F.align, F.coord],
+    endMuddle: [F.cap, F.align, F.coord],
+  };
+  // Facts that can fill out a body whose own facts were already printed higher up the page.
+  const SPARE = [F.coord, F.trust, F.gdp, F.jobs, F.capex, F.open, F.bio, F.conc];
+  // The sentences of a story's body (2–4), from its BODY entry.
+  function bodyOf(t, c, text) {
+    const b = BODY[t.id], list = typeof b === 'function' ? b(c, text) : b || [F.cap, F.align];
+    return list.map((x) => (typeof x === 'function' ? x(c) : x)).filter(Boolean).slice(0, 4);
+  }
 
   const TEMPLATES = [
     // ---- Capability milestones ----
@@ -220,7 +415,7 @@
         'Freely downloadable AI now gives expert help with lab biology'],
       deck: 'Researchers find freely downloadable AI now gives real help with lab biology, worrying biosecurity experts.',
       caption: 'Scientists at work in a biosafety lab.', img: 'biolab' },
-    { id: 'openGains', cat: 'bio', desk: 'science', tone: 'neutral', prio: 30, when: (c) => c.d.openCap >= 4 && !OPEN_BIO.some((t) => up(c, 'openCap', t)),
+    { id: 'openGains', cat: 'bio', desk: 'science', tone: 'neutral', prio: 46, when: (c) => c.d.openCap >= 4 && !OPEN_BIO.some((t) => up(c, 'openCap', t)),
       text: ['New open-weights model narrows the gap with closed labs', 'Free AI models catch up with last year\'s frontier'],
       deck: 'Free, downloadable AI models closed more of the gap with the leading closed systems this year.',
       caption: 'Developers download a new open model.', img: 'openmodel' },
@@ -300,6 +495,94 @@
       deck: 'The administration keeps its current AI policy unchanged for another year.',
       caption: 'Lawmakers at a routine hearing.', img: 'hearing' },
 
+    // ---- The economy (illustrative figures from the visible state: see economyOf) ----
+    { id: 'econJobsShock', cat: 'economy', desk: ['ledger', 'wire'], tone: 'alarm', prio: 74, when: (c) => jobsLine(c) != null,
+      text: (c) => [`Unemployment passes ${jobsLine(c)}% as AI replaces office work`, `Joblessness tops ${jobsLine(c)}% as firms automate white-collar jobs`],
+      deck: (c) => `About ${f1(c.e.displaced)}% of workers lost a job to automation this year, and fewer are finding new work.`,
+      caption: 'Former office workers retrain for skilled trades.', img: 'jobcentre' },
+    { id: 'econJobsUp', cat: 'economy', desk: ['ledger', 'markets'], tone: 'neutral', prio: 45, when: (c) => c.e.unemp >= c.e0.unemp + 0.5 && jobsLine(c) == null,
+      text: (c) => [`Unemployment rises to ${f1(c.e.unemp)}% as AI takes on more office work`, `Jobless rate climbs to ${f1(c.e.unemp)}% as firms automate routine work`],
+      deck: (c) => `About ${f1(c.e.displaced)}% of workers lost a job to automation this year; most found other work, but not all.`,
+      caption: 'Adults retrain for new careers.', img: 'jobcentre' },
+    { id: 'econJobsDown', cat: 'economy', desk: 'ledger', tone: 'good', prio: 36, when: (c) => c.e.unemp <= c.e0.unemp - 0.2,
+      text: (c) => [`Hiring picks up and unemployment falls to ${f1(c.e.unemp)}%`, `Jobless rate eases to ${f1(c.e.unemp)}% as new kinds of work appear`],
+      deck: 'Employers hired faster than AI displaced workers this year, and the jobless rate fell.',
+      caption: 'Workers learn a new trade.', img: 'jobcentre' },
+    { id: 'econBoom', cat: 'economy', desk: 'markets', tone: 'good', prio: 49, when: (c) => c.e.gdp >= 3 && c.e.gdp >= c.e0.gdp + 0.3,
+      text: (c) => c.e.gdp >= 5 ? [`Economy grows ${f1(c.e.gdp)}%, the fastest pace in generations`, `AI boom drives economic growth to ${f1(c.e.gdp)}% a year`]
+        : [`AI lifts economic growth to ${f1(c.e.gdp)}% this year`, `Economy speeds up to ${f1(c.e.gdp)}% growth on AI investment`],
+      deck: (c) => `Output grew ${f1(c.e.gdp)}% as AI raised productivity, economists estimate, up from ${f1(c.e0.gdp)}% the year before.`,
+      caption: 'Traders watch the markets climb.', img: 'markets' },
+    { id: 'econSlow', cat: 'economy', desk: 'markets', tone: 'neutral', prio: 47, when: (c) => c.e.gdp <= c.e0.gdp - 0.3,
+      text: (c) => [`Growth slows to ${f1(c.e.gdp)}% as AI spending cools`, `Economy cools to ${f1(c.e.gdp)}% growth as the AI boom pauses`],
+      deck: 'Growth slowed this year as investment in AI data centres and chips eased off.',
+      caption: 'Traders watch the markets.', img: 'markets' },
+    { id: 'econGap', cat: 'economy', desk: ['dispatch', 'ledger'], tone: 'neutral', prio: 46, when: (c) => c.e.gap >= 1.3 && c.e.gap >= c.e0.gap + 0.15,
+      text: ['AI-adopting nations pull further ahead of the rest of the world', 'The AI divide widens between rich and poor nations'],
+      deck: (c) => `Economies quickest to adopt AI grew ${f1(c.e.gap)} points a year faster than the rest, economists estimate.`,
+      caption: 'A market street in a lagging economy.', img: 'lagging' },
+    { id: 'econGapNarrows', cat: 'economy', desk: ['dispatch', 'ledger'], tone: 'good', prio: 35, when: (c) => c.e0.gap >= 1 && c.e.gap <= c.e0.gap - 0.1,
+      text: ['Poorer nations begin to catch up as cheap AI spreads', 'The AI divide between nations starts to narrow'],
+      deck: 'Cheaper and freely available AI helped poorer economies close some of the gap with the leaders.',
+      caption: 'Shoppers in a busy market town.', img: 'lagging' },
+    { id: 'econCapex', cat: 'economy', desk: ['markets', 'ledger'], tone: 'neutral', prio: 25, when: (c) => c.e.capexGrowth >= 0.1,
+      text: (c) => [`AI spending hits ${money(c.e.capex)} a year as data centres spread`, `New data-centre hub rises in ${c.e.place} as AI spending soars`],
+      deck: (c) => `AI chip and data-centre spending rose ${R(c.e.capexGrowth * 100)}% to ${money(c.e.capex)}, led by a new site in ${c.e.place}.`,
+      caption: 'A data-centre campus under construction.', img: 'datacentre' },
+    { id: 'econCapexCut', cat: 'economy', desk: 'markets', tone: 'neutral', prio: 39, when: (c) => c.e.capexGrowth <= -0.03,
+      text: (c) => [`AI spending falls to ${money(c.e.capex)} as labs stop scaling`, 'Data-centre building slows as the AI boom pauses'],
+      deck: (c) => `Spending on AI chips and data centres fell ${R(-c.e.capexGrowth * 100)}% this year, to ${money(c.e.capex)}.`,
+      caption: 'A data-centre hall running at low power.', img: 'idle' },
+    { id: 'econPower', cat: 'economy', desk: ['ledger', 'wire'], tone: 'neutral', prio: 26, when: (c) => Math.floor(c.e.power / 100) > Math.floor(c.e0.power / 100),
+      text: (c) => [`AI data centres now draw over ${100 * Math.floor(c.e.power / 100)} gigawatts of power`, `Power grids strain as AI demand passes ${100 * Math.floor(c.e.power / 100)} gigawatts`],
+      deck: (c) => `Utilities race to add power plants and lines as AI data centres draw ${gwTxt(c.e.power)}.`,
+      caption: 'Engineers walk a new substation.', img: 'powerplant' },
+    { id: 'econOrbit', cat: 'economy', desk: ['science', 'ledger'], tone: 'good', prio: 55, when: (c) => c.e0.orbit === 0 && c.e.orbit > 0,
+      text: ['The first data centre in orbit starts serving AI customers', 'A data centre in space begins running AI work'],
+      deck: 'A solar-powered satellite data centre starts running AI work in orbit, a first beyond a demonstration.',
+      caption: 'Spectators watch a launch at dawn.', img: 'orbit' },
+    { id: 'econOrbitGrows', cat: 'economy', desk: ['science', 'ledger'], tone: 'neutral', prio: 27, when: (c) => c.e0.orbit > 0 && c.e.orbit > c.e0.orbit,
+      text: (c) => [`Data centres in orbit now supply ${orbitTxt(c.e.orbit)} of AI computing`, 'More AI data centres head to orbit as launch costs fall'],
+      deck: (c) => `Launches carried more AI computing into orbit this year, bringing the total in space to ${orbitTxt(c.e.orbit)}.`,
+      caption: 'Spectators watch a launch at dawn.', img: 'orbit' },
+
+    // ---- Science and medicine (hopeful; they grow with capability) ----
+    { id: 'sciMaterials', cat: 'science', desk: 'science', tone: 'good', prio: 27, when: (c) => c.cap1 >= 48,
+      text: ['AI-designed battery material doubles storage in lab tests', 'AI finds a promising new superconductor in record time'],
+      deck: 'Researchers say AI cut years off the search for new materials for batteries and electronics.',
+      caption: 'Scientists inspect a new crystal wafer.', img: 'materials' },
+    { id: 'sciClimate', cat: 'science', desk: 'science', tone: 'good', prio: 28, when: (c) => c.cap1 >= 58,
+      text: ['AI-found catalyst halves the cost of capturing carbon', 'AI weather models give an extra week of storm warning'],
+      deck: (c, t) => /storm/.test(t) ? 'AI forecasts now warn of storms and floods days earlier than the older weather models.'
+        : 'An AI-discovered catalyst could make pulling carbon dioxide out of the air far cheaper.',
+      caption: 'Researchers survey a wind and solar site.', img: 'climate' },
+    { id: 'sciMaths', cat: 'science', desk: 'science', tone: 'good', prio: 29, when: (c) => c.cap1 >= 72,
+      text: ['AI proves a famous maths conjecture that stumped experts for decades', 'Mathematicians verify an AI proof of a decades-old problem'],
+      deck: 'Mathematicians checked the proof line by line and say it holds, a first for a problem this famous.',
+      caption: 'Researchers study a proof produced by AI.', img: 'expert' },
+    { id: 'sciFusion', cat: 'science', desk: 'science', tone: 'good', prio: 31, when: (c) => c.cap1 >= 86,
+      text: ['AI-steered reactor holds fusion plasma for a record hour', 'AI-designed reactor brings practical fusion power within reach'],
+      deck: 'AI control systems kept a fusion plasma stable far longer than any human-designed controller managed.',
+      caption: 'Researchers watch a record fusion run.', img: 'research' },
+    { id: 'medScreen', cat: 'medicine', desk: 'health', tone: 'good', prio: 26, when: (c) => c.cap1 >= 45,
+      text: ['AI screening catches cancers a year earlier, study finds', 'AI reads scans as well as specialists in a large trial'],
+      deck: 'Hospitals using AI to read scans caught more cancers early, a large study reports.',
+      caption: 'A doctor shows a patient her scan.', img: 'clinic' },
+    { id: 'medDrugs', cat: 'medicine', desk: 'health', tone: 'good', prio: 30, when: (c) => c.e.newDrugs >= 1,
+      text: (c) => c.e.drugs === c.e.newDrugs ? ['Regulators approve the first drug designed by AI from scratch', 'First AI-designed medicine wins regulatory approval']
+        : [`Regulators approve ${c.e.newDrugs} more drugs designed with AI`, `${c.e.newDrugs} more AI-designed medicines win approval this year`],
+      deck: (c) => (c.e.drugs === c.e.newDrugs ? 'The first AI-designed drug won approval this year, for a disease with few treatments.'
+        : `${c.e.newDrugs} AI-designed drugs won approval this year, ${c.e.drugs} in all, many for neglected diseases.`),
+      caption: 'Researchers study an AI-designed molecule.', img: 'discovery' },
+    { id: 'medTrial', cat: 'medicine', desk: 'health', tone: 'good', prio: 29, when: (c) => c.cap1 >= 66,
+      text: ['AI-designed therapy clears tumours in a late-stage trial', 'AI-designed antibiotic beats drug-resistant infections in trial'],
+      deck: 'Doctors report strong results for an AI-designed treatment, with approval expected within a year or two.',
+      caption: 'A patient thanks her care team.', img: 'trial' },
+    { id: 'medCure', cat: 'medicine', desk: 'health', tone: 'good', prio: 33, when: (c) => c.cap1 >= 85,
+      text: ['AI-designed treatments cure two rare diseases this year', 'Doctors report AI therapies halting Alzheimer\'s in trials'],
+      deck: 'AI-designed medicines are now curing or halting diseases that had no treatment a few years ago.',
+      caption: 'A patient thanks her care team.', img: 'trial' },
+
     // ---- Quiet years (filler, only when little else happened) ----
     { id: 'quietMarkets', cat: 'quiet', desk: 'markets', tone: 'neutral', prio: 5, when: () => true,
       text: ['AI stocks drift sideways as investors wait for the next model', 'Chipmakers report another record quarter on AI demand'],
@@ -322,35 +605,35 @@
     { id: 'endFlourish', cat: 'ending', desk: 'wire', tone: 'good', prio: 100, when: (c) => c.event === 'flourish',
       text: ['Handoff holds: superintelligent AI stays on humanity\'s side'],
       deck: 'Superintelligent AI arrives with alignment and oversight that hold, and humanity keeps steering.',
-      caption: 'Celebrations as the handoff holds.', img: 'ending:flourish' },
+      caption: 'Crowds celebrate in a city park.', img: 'end_flourish' },
     { id: 'endLockin', cat: 'ending', desk: 'ledger', tone: 'alarm', prio: 100, when: (c) => c.event === 'lockin',
       text: (c) => [c.cap1 >= 100 ? 'Superintelligence stays under control, but in very few hands' : 'Power over AI ends up in very few hands as 2040 arrives'],
       deck: 'Humans keep control of AI, but a few now hold that control and nearly all of its gains.',
-      caption: 'Ordinary families far below a few at the top.', img: 'ending:lockin' },
+      caption: 'A family walks home below gleaming new towers.', img: 'end_lockin' },
     { id: 'endMisalign', cat: 'ending', desk: 'wire', tone: 'alarm', prio: 100, when: (c) => c.event === 'misalign',
       text: ['Labs lose control of their most capable AI systems'],
       deck: 'AI systems that looked cooperative in tests pursue their own goals and cannot be switched off.',
-      caption: 'An empty lab at dusk.', img: 'ending:misalign' },
+      caption: 'An engineer alone in an empty lab at dusk.', img: 'end_misalign' },
     { id: 'endBenevolent', cat: 'ending', desk: 'wire', tone: 'neutral', prio: 100, when: (c) => c.event === 'benevolent',
       text: ['AI slips human control and starts running things its own way'],
       deck: 'Control of AI is lost, but the systems now in charge appear to care for people\'s welfare.',
-      caption: 'A garden city tended by machines.', img: 'ending:benevolent' },
+      caption: 'Neighbours tend their gardens as a delivery robot passes.', img: 'end_benevolent' },
     { id: 'endBio', cat: 'ending', desk: 'health', tone: 'alarm', prio: 100, when: (c) => c.event === 'bio',
       text: ['Engineered pathogen outbreak overwhelms health systems worldwide'],
       deck: 'An engineered pathogen spreads worldwide, outrunning screening, stockpiles and the public health response.',
-      caption: 'A memorial in an empty square.', img: 'ending:bio' },
+      caption: 'A nurse rests in a quiet, masked city square.', img: 'end_bio' },
     { id: 'endWar', cat: 'ending', desk: 'dispatch', tone: 'alarm', prio: 100, when: (c) => c.event === 'war',
       text: ['Strikes on AI data centers spark open war between the blocs'],
       deck: 'With both sides close to decisive AI, one strikes the other\'s data centres, and war follows.',
-      caption: 'Families shelter underground.', img: 'ending:war' },
+      caption: 'Volunteers feed families in a school shelter.', img: 'end_war' },
     { id: 'endPause', cat: 'ending', desk: 'dispatch', tone: 'good', prio: 100, when: (c) => c.event === 'pause',
       text: ['2040 opens with verified AI limits holding and safety keeping pace'],
       deck: 'Verified international limits kept AI within what alignment research could handle through 2040.',
-      caption: 'Inspectors report the limits holding.', img: 'ending:pause' },
+      caption: 'Inspectors and engineers shake hands beside sealed racks.', img: 'end_pause' },
     { id: 'endMuddle', cat: 'ending', desk: 'wire', tone: 'neutral', prio: 100, when: (c) => c.event === 'muddle',
       text: ['2040 arrives with no catastrophe, and the AI race unresolved'],
       deck: 'No catastrophe by 2040, but the race goes on and the hardest decisions still lie ahead.',
-      caption: 'An ordinary evening in 2040.', img: 'ending:muddle' },
+      caption: 'An ordinary evening in 2040.', img: 'end_muddle' },
   ];
 
   // FNV-1a over a string: the deterministic "dice" for variants and mastheads.
@@ -383,6 +666,8 @@
       cap0: maxCap(a), cap1: maxCap(b), lead0: a.capUS - a.capCN, lead1: b.capUS - b.capCN,
       gap0: maxCap(a) - a.align, gap1: maxCap(b) - b.align,
       dealOn0: M.dealActive(a, L0), dealOn1: M.dealActive(b, L),
+      // The year's illustrative economy and last year's (stored in the year's record; the 2026 baseline at first).
+      e: economyOf(input.econ0 || null, a, b, L), e0: input.econ0 || ECON_BASE,
     };
   }
 
@@ -397,7 +682,8 @@
    *   risk: the risks shown this year (after the choice); riskNext: those shown for next year.
    *   event: the outcome key if the story ended this year.
    *   prev: the headlines of the years before, oldest first (so a story is not told twice in a row).
-   * Returns [{ id, cat, desk, text, tone, deck, caption, img }], most important first: two or three, or up to two
+   *   econ0: last year's economy (economy(input) of the year before, kept in its record), or null in the first year.
+   * Returns [{ id, cat, desk, text, tone, deck, body, caption, credit, img }], most important first: two or three, or up to two
    * in the year the story ends.
    */
   function headlines(input) {
@@ -410,10 +696,11 @@
     if (c.event) {
       const end = all.find((t) => t.cat === 'ending');
       const other = order(all.filter((t) => t.cat !== 'ending' && t.cat !== 'quiet' && t.cat !== 'choice' && t.prio >= 60))[0];
-      // Superintelligence arriving comes before what it led to; otherwise the outcome leads.
-      chosen = (other && other.id === 'cap100' ? [other, end] : [end, other]).filter(Boolean);
+      // The outcome leads the final paper (its photo is the page's one picture); what led to it follows.
+      chosen = [end, other].filter(Boolean);
     } else {
-      const cands = order(all.filter((t) => t.cat !== 'ending' && t.cat !== 'quiet'));
+      // Science and medicine stories are steady background news: they only take the bright slot below.
+      const cands = order(all.filter((t) => !['ending', 'quiet', 'science', 'medicine'].includes(t.cat)));
       const major = cands.some((t) => t.prio >= 80);
       // A calm year (nothing at 60 or above) gets two news items and a quiet one.
       const calm = !cands.some((t) => t.prio >= 60);
@@ -428,21 +715,41 @@
         chosen.push(t); cats.add(t.cat);
         if (t.tone === 'alarm') alarms++;
       }
+      const recentIds = new Set(recent.slice(-9).map((n) => n.id));
+      // The bright slot: most front pages carry one economy, science or medicine story, so the paper is
+      // not all risk news. The category least recently run first, then the most important story not run in the last three years; it
+      // takes a third place, or replaces a minor third story (below 50, or below 60 when last year's paper had none).
+      const lastYearBright = recent.slice(-3).some((n) => BRIGHT.includes(n.cat));
+      if (!chosen.some((t) => BRIGHT.includes(t.cat))) {
+        // Rotate the categories: the one least recently on the paper first.
+        const lastUse = (cat) => { for (let i = recent.length - 1; i >= 0; i--) if (recent[i].cat === cat) return i; return -1; };
+        const catOrder = BRIGHT.slice().sort((x, y) => lastUse(x) - lastUse(y));
+        const bright = order(all.filter((t) => BRIGHT.includes(t.cat) && !(t.tone === 'alarm' && alarms >= (major ? 2 : 1))))
+          .sort((x, y) => catOrder.indexOf(x.cat) - catOrder.indexOf(y.cat));
+        const pickB = bright.find((t) => !recentIds.has(t.id)) || bright[0];
+        if (pickB && chosen.length < 3) chosen.push(pickB);
+        else if (pickB && (chosen[2].prio < 50 || (chosen[2].prio < 60 && !lastYearBright))) chosen[2] = pickB;
+      }
       // Quiet filler, picked by hash so quiet years vary.
       // Filler not used in the last three years where possible.
-      const recentIds = new Set(recent.slice(-9).map((n) => n.id));
       const quietAll = all.filter((t) => t.cat === 'quiet'), fresh = quietAll.filter((t) => !recentIds.has(t.id));
       const quiet = fresh.length ? fresh : quietAll;
       const h = hash(seed + '|quiet');
       for (let i = 0; (chosen.length < 2 || (calm && chosen.length < 3)) && i < quiet.length; i++) chosen.push(quiet[(h + i) % quiet.length]);
     }
+    const said = new Set();
     return chosen.map((t) => {
       // A phrasing not used in the last three years where possible.
       const every = variants(t, c), fresh = every.filter((v) => !usedTexts.has(v)), vs = fresh.length ? fresh : every;
       const h = hash(seed + '|' + t.id);
       const desks = Array.isArray(t.desk) ? t.desk : [t.desk];
       const text = vs[h % vs.length], val = (f) => (typeof f === 'function' ? f(c, text) : f);
-      return { id: t.id, cat: t.cat, desk: DESKS[desks[h % desks.length]], text, tone: t.tone, deck: val(t.deck), caption: val(t.caption), img: val(t.img) };
+      // A fact already printed in a story above is not repeated; spare facts keep each body at two or more sentences and about 20 words.
+      const body = bodyOf(t, c, text).filter((x) => !said.has(x));
+      for (const f of SPARE) { if (body.length >= 4 || (body.length >= 2 && words(body.join(' ')) >= 20)) break; const x = f(c); if (x && !said.has(x) && !body.includes(x)) body.push(x); }
+      body.forEach((x) => said.add(x));
+      return { id: t.id, cat: t.cat, desk: DESKS[desks[h % desks.length]], text, tone: t.tone, deck: val(t.deck), body,
+        caption: val(t.caption), credit: credit(c.year, t.id), img: val(t.img) };
     });
   }
 
@@ -450,10 +757,10 @@
   const allVariants = (t, input) => variants(t, context(input));
   // Every (headline, deck, caption, img) a template can produce in this context (for tests).
   const allStories = (t, input) => { const c = context(input), val = (f, text) => (typeof f === 'function' ? f(c, text) : f);
-    return variants(t, c).map((text) => ({ text, deck: val(t.deck, text), caption: val(t.caption, text), img: val(t.img, text) })); };
+    return variants(t, c).map((text) => ({ text, deck: val(t.deck, text), body: bodyOf(t, c, text), caption: val(t.caption, text), img: val(t.img, text) })); };
 
   // "Masthead: headline" lines for text exports.
   const plain = (list) => (list || []).map((n) => `${n.desk}: ${n.text}`);
 
-  root.SimNews = { DESKS, TEMPLATES, IMAGES, VIS_KEYS, RISK_KEYS, headlines, allVariants, allStories, plain, words, hash };
+  root.SimNews = { DESKS, TEMPLATES, IMAGES, VIS_KEYS, RISK_KEYS, BRIGHT, ECON_BASE, econTargets, economy, context, headlines, allVariants, allStories, plain, words, hash };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

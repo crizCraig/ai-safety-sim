@@ -483,60 +483,80 @@
      After a year's result, Continue opens a newsprint front page over the sky: the year's
      stories (news.js), the Catastrophe Index and Continue in a bar that stays at the bottom.
      The paper keeps one fixed look in any theme. */
-  #paperView { --paper: #efe8d8; --paper-edge: #d9cfb8; --ink: #1d1a16; --ink-soft: #4a443b; --rule: #2a251e; --press-red: #9b2d22;
+  #paperView { --paper: #e9e7e1; --paper-edge: #cfccc4; --ink: #151412; --ink-soft: #46443f; --rule: #24221f; --press-red: #9b2d22;
     --mast: 'UnifrakturMaguntia', 'Old English Text MT', serif; --head: 'Old Standard TT', Georgia, serif; --body: 'Source Serif 4', Georgia, serif;
-    position: fixed; top: 60px; bottom: 0; left: 50%; transform: translateX(-50%); width: min(880px, calc(100vw - 640px)); min-width: 460px; z-index: 6; }
+    position: fixed; top: 60px; bottom: 0; left: 50%; transform: translateX(-50%); width: min(900px, calc(100vw - 620px)); min-width: 460px; z-index: 6; }
   #paperView.hidden { display: none; }
   body.compact-open #paperView { display: none !important; }
   body.reading canvas#gl { filter: blur(8px) brightness(.5) saturate(.8); }
   body.reading .glabel { opacity: 0 !important; }
   #paperView .pscroll { height: 100%; overflow-y: auto; overflow-x: hidden; padding: 6px 2px 0; scrollbar-width: thin; overscroll-behavior: contain; }
   .paper { background: var(--paper); color: var(--ink); border-radius: 3px; padding: 22px 26px 18px; display: grid; gap: 12px; transform-origin: 50% 30%;
-    background-image: radial-gradient(ellipse at 20% 10%, rgba(255,255,255,.35), transparent 55%), radial-gradient(ellipse at 85% 90%, rgba(120,95,50,.10), transparent 60%);
+    background-image: radial-gradient(ellipse at 20% 10%, rgba(255,255,255,.35), transparent 55%), radial-gradient(ellipse at 85% 90%, rgba(90,85,70,.10), transparent 60%);
     box-shadow: 0 30px 70px rgba(0,0,0,.55), 0 0 0 1px var(--paper-edge) inset; }
   .paper.spin { animation: paper-spin 1.1s cubic-bezier(.16,.84,.3,1) both; }
   @keyframes paper-spin { 0% { transform: rotate(-540deg) scale(.08); opacity: 0; } 55% { opacity: 1; } 100% { transform: rotate(0) scale(1); opacity: 1; } }
   @keyframes paper-fade { from { opacity: 0; } to { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { .paper.spin { animation: paper-fade .3s both; } }
-  .paper .mast { text-align: center; display: grid; gap: 2px; }
-  .paper .ears { display: flex; justify-content: space-between; gap: 12px; font: italic 12px/1.3 var(--body); color: var(--ink-soft); }
-  .paper .mast h1 { margin: 0; font: 400 clamp(40px, 8vw, 68px)/1 var(--mast); letter-spacing: .01em; color: var(--ink); }
-  .paper .folio { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 14px; border-top: 3px double var(--rule); border-bottom: 1px solid var(--rule); padding: 5px 0; font: 600 10.5px/1.2 var(--head); letter-spacing: .14em; text-transform: uppercase; }
-  .paper .kicker { font: 700 10.5px/1 var(--head); letter-spacing: .18em; text-transform: uppercase; color: var(--press-red); }
-  .paper h3 { margin: 0; font-family: var(--head); font-weight: 700; color: var(--ink); text-wrap: balance; letter-spacing: -.005em; }
-  .paper .deck { margin: 0; font: italic 400 15.5px/1.4 var(--body); color: var(--ink-soft); }
-  .paper .photo { margin: 0; display: grid; gap: 4px; }
-  .paper .photo .ph { display: block; width: 100%; border: 1px solid var(--rule); background: #e4dccb; overflow: hidden; }
-  .paper .photo img { width: 100%; height: 100%; display: block; object-fit: cover; filter: grayscale(.35) contrast(1.05) sepia(.25); mix-blend-mode: multiply; transition: opacity .35s ease; }
+  /* A broadsheet front page: blackletter masthead with ears, a dateline rule, a narrow left column
+     with a stacked headline, one large lead photo with its story under it, and a lower row of
+     columns. Justified, hyphenated serif type in fine-ruled columns on grey newsprint. */
+  .paper .mast { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 14px; }
+  .paper .ear { border: 1px solid var(--rule); padding: 5px 7px; font: 11px/1.3 var(--body); color: var(--ink); max-width: 150px; }
+  .paper .ear.r { justify-self: end; text-align: right; }
+  .paper .ear b { display: block; font: 700 9.5px/1.2 var(--head); letter-spacing: .14em; text-transform: uppercase; margin-bottom: 2px; }
+  .paper .ear i { color: var(--ink-soft); }
+  .paper .mast h1 { margin: 0; font: 400 clamp(44px, 8vw, 74px)/1 var(--mast); letter-spacing: .01em; color: var(--ink); text-align: center; white-space: nowrap; }
+  .paper .folio { display: flex; justify-content: space-between; gap: 4px 14px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 3px 0; margin-top: -6px;
+    font: 11px/1.3 var(--body); font-variant: small-caps; letter-spacing: .06em; color: var(--ink); }
+  .paper .kicker { font: 700 10px/1 var(--head); letter-spacing: .18em; text-transform: uppercase; color: var(--ink-soft); }
+  .paper h3 { margin: 0; font-family: var(--head); font-weight: 700; color: var(--ink); letter-spacing: -.005em; }
+  .paper .deck { margin: 0; font: italic 400 15px/1.35 var(--body); color: var(--ink); }
+  .paper .copy { font: 15px/1.45 var(--body); color: var(--ink); text-align: justify; hyphens: auto; -webkit-hyphens: auto; overflow-wrap: break-word; }
+  .paper .copy p { margin: 0; text-indent: 1.1em; }
+  .paper .copy p:first-child { text-indent: 0; }
+  .paper .copy .dl { font-variant: small-caps; letter-spacing: .04em; }
+  .paper .front { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr); gap: 0 18px; }
+  .paper .front > .left { display: grid; gap: 10px; align-content: start; padding-right: 18px; border-right: 1px solid var(--rule); }
+  .paper .side h3 { font-size: 22px; line-height: 1.08; text-align: center; }
+  .paper .side .rl { width: 40%; margin: 0 auto; border-top: 1px solid var(--rule); }
+  .paper .side .deck { text-align: center; font-size: 14px; }
+  .paper .side .copy { font-size: 14.5px; }
+  .paper .lead { display: grid; gap: 8px; align-content: start; }
+  .paper .lead .photo { order: -1; }
+  .paper .lead h3 { font-size: clamp(30px, 3.6vw, 40px); line-height: 1.03; }
+  .paper .lead .copy { column-count: 2; column-gap: 18px; column-rule: 1px solid rgba(42,37,30,.45); }
+  .paper .photo { margin: 0; display: grid; gap: 3px; }
+  .paper .photo .ph { display: block; width: 100%; aspect-ratio: 3 / 2; background: #d6d3cb; overflow: hidden; }
+  .paper .photo img { width: 100%; height: 100%; display: block; object-fit: cover; filter: grayscale(1) contrast(1.06) brightness(.98); mix-blend-mode: multiply; transition: opacity .35s ease; }
   .paper .photo img.pending { opacity: 0; }
-  .paper .photo figcaption { font: italic 11.5px/1.35 var(--body); color: var(--ink-soft); }
-  .paper .lead { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 18px; border-bottom: 1px solid var(--rule); padding-bottom: 14px; }
-  .paper .lead .hl { grid-column: 1 / -1; display: grid; gap: 6px; }
-  .paper .lead h3 { font-size: clamp(28px, 4.4vw, 42px); line-height: 1.04; }
-  .paper .lead .photo .ph { aspect-ratio: 12 / 6.2; }
-  .paper .lead > .photo { align-self: start; }
-  .paper .index .pest .when { white-space: nowrap; }
-  .paper .lead aside { display: grid; gap: 12px; align-content: start; }
-  .paper .index { border: 1.5px solid var(--rule); padding: 10px 12px; display: grid; gap: 6px; }
-  .paper .index .ttl { font: 700 10.5px/1 var(--head); letter-spacing: .16em; text-transform: uppercase; }
-  .paper .index .big { font: 700 34px/1 var(--head); color: var(--press-red); font-variant-numeric: tabular-nums; }
-  .paper .index .lbl { font: italic 12.5px/1.35 var(--body); color: var(--ink-soft); }
-  .paper .index .pest { font: 13px/1.35 var(--body); color: var(--ink); border-top: 1px solid rgba(42,37,30,.35); padding-top: 6px; }
-  .paper .index .pest b { color: var(--press-red); }
-  .paper .index table { width: 100%; border-collapse: collapse; font: 13px/1.35 var(--body); font-variant-numeric: tabular-nums; }
-  .paper .index td { color: var(--ink); padding: 2px 0; border-top: 1px dotted rgba(42,37,30,.35); }
-  .paper .index td:last-child { text-align: right; font-weight: 600; white-space: nowrap; }
+  .paper .photo .credit { justify-self: end; font: 9.5px/1.2 var(--body); font-variant: small-caps; letter-spacing: .06em; color: var(--ink-soft); }
+  .paper .photo figcaption { font: 12.5px/1.35 var(--body); color: var(--ink); }
+  .paper .lower { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr) minmax(0, 1fr); gap: 0 18px; border-top: 2px solid var(--rule); padding-top: 10px; }
+  .paper .lower > * { display: grid; gap: 7px; align-content: start; }
+  .paper .lower > * + * { border-left: 1px solid var(--rule); padding-left: 18px; }
+  .paper .lower .third h3 { font-size: 21px; line-height: 1.1; }
+  .paper .lower .third .copy { column-count: 2; column-gap: 16px; column-rule: 1px solid rgba(42,37,30,.45); font-size: 14.5px; }
+  .paper .lower.nothird { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+  .paper .lower.nothird .summary .copy { column-count: 2; column-gap: 16px; column-rule: 1px solid rgba(42,37,30,.45); }
+  .paper h4 { margin: 0; font: 700 10.5px/1 var(--head); letter-spacing: .16em; text-transform: uppercase; color: var(--ink); border-bottom: 1px solid var(--rule); padding-bottom: 5px; }
+  .paper .summary .copy p { text-indent: 0; margin-bottom: 5px; font-size: 14px; text-align: left; }
+  .paper .summary .copy p::before { content: '■ '; font-size: 8px; vertical-align: 2px; }
+  /* The boxed features: the Catastrophe Index and the economy, like a weather or markets box. */
+  .paper .box { border: 1.5px solid var(--rule); padding: 8px 10px; display: grid; gap: 5px; align-content: start; }
+  .paper .box .ttl { font: 700 10px/1.1 var(--head); letter-spacing: .16em; text-transform: uppercase; text-align: center; border-bottom: 1px solid var(--rule); padding-bottom: 5px; }
+  .paper .box .big { font: 700 30px/1 var(--head); color: var(--press-red); font-variant-numeric: tabular-nums; text-align: center; }
+  .paper .box .lbl { font: italic 12px/1.3 var(--body); color: var(--ink-soft); text-align: center; }
+  .paper .box .pest { font: 13px/1.35 var(--body); color: var(--ink); border-top: 1px solid rgba(42,37,30,.35); padding-top: 5px; text-align: center; }
+  .paper .box .pest b { color: var(--press-red); }
+  .paper .box .pest .when { white-space: nowrap; }
+  .paper .box table { width: 100%; border-collapse: collapse; font: 12.5px/1.3 var(--body); font-variant-numeric: tabular-nums; }
+  .paper .box td { color: var(--ink); padding: 2px 0; border-top: 1px dotted rgba(42,37,30,.4); }
+  .paper .box td:last-child { text-align: right; font-weight: 600; white-space: nowrap; }
+  .paper .box .up, .paper .box .dn { font-size: 10.5px; font-weight: 400; color: var(--ink-soft); }
+  .paper .box .fine { font: italic 10.5px/1.3 var(--body); color: var(--ink-soft); }
   .paper .pup { color: #2c5e2e !important; } .paper .pdn { color: var(--press-red) !important; }
-  .paper .below { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-  .paper .below.solo { grid-template-columns: minmax(0, 1fr); }
-  .paper .below > * { display: grid; gap: 7px; align-content: start; }
-  .paper .below > * + * { border-left: 1px solid var(--rule); padding-left: 18px; }
-  .paper .below h3 { font-size: 22px; line-height: 1.12; }
-  .paper .below .photo .ph { aspect-ratio: 12 / 6; }
-  .paper .below .deck { font-size: 14px; }
-  .paper .also h4 { margin: 0; font: 700 10.5px/1 var(--head); letter-spacing: .16em; text-transform: uppercase; color: var(--ink); border-bottom: 1px solid var(--rule); padding-bottom: 5px; }
-  .paper .also p { margin: 0; font: 14px/1.4 var(--body); color: var(--ink); }
-  .paper .foot { border-top: 3px double var(--rule); padding-top: 6px; font: italic 11px/1.4 var(--body); color: var(--ink-soft); text-align: center; }
+  .paper .foot { border-top: 1px solid var(--rule); padding-top: 5px; font: italic 11px/1.4 var(--body); color: var(--ink-soft); text-align: center; }
   /* Continue stays in reach at the bottom of the view, whatever the paper's length. */
   #paperView .pnext { position: sticky; bottom: 0; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px;
     padding: 22px 0 calc(14px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to bottom, rgba(3,6,13,0), rgba(3,6,13,.88) 40%); }
@@ -550,11 +570,20 @@
   #paperView .plink:hover, #paperView .plink:focus-visible { color: var(--text); outline: none; text-decoration: underline; }
   @media (max-width: 1100px) { #paperView { width: calc(100vw - 24px); min-width: 0; } }
   @media (max-width: 640px) {
+    /* One column: the lead's headline, its photo, its story, the boxes, then the other stories. */
     .paper { padding: 16px 14px 12px; }
-    .paper .ears span:last-child { display: none; }
-    .paper .lead { grid-template-columns: minmax(0, 1fr); }
-    .paper .below { grid-template-columns: minmax(0, 1fr); }
-    .paper .below > * + * { border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); padding-top: 12px; }
+    .paper .mast { grid-template-columns: minmax(0, 1fr); }
+    .paper .ear { display: none; }
+    .paper .folio { margin-top: 0; font-size: 10.5px; }
+    .paper .folio .vol { display: none; }
+    .paper .front, .paper .lower, .paper .front > .left { display: contents; }
+    .paper .lead { order: 1; }
+    .paper .lead .photo { order: 0; }
+    .paper .lead .copy, .paper .lower .third .copy, .paper .lower.nothird .summary .copy { column-count: 1; }
+    .paper .box.cat { order: 2; } .paper .box.econ { order: 3; }
+    .paper .side { order: 4; } .paper .lower .third { order: 5; } .paper .summary { order: 6; } .paper .foot { order: 7; }
+    .paper .side, .paper .lower .third, .paper .summary { border: 0 !important; padding: 12px 0 0 !important; border-top: 1px solid var(--rule) !important; }
+    .paper .lower > * + * { border-left: 0; padding-left: 0; }
     /* One compact row, so the bar takes little of a small screen. */
     #paperView .pnext { flex-wrap: nowrap; padding-top: 14px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
     #paperView .pbtn { flex: 1 1 auto; min-width: 0; justify-content: space-between; gap: 8px; padding: 7px 8px 7px 14px; font-size: 15px; }
@@ -564,13 +593,14 @@
   /* The right panel's estimate under the catastrophe so far. */
   .survival .est { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--muted); }
   .survival .est b { font-family: var(--mono); color: var(--bad); font-weight: 600; font-size: 13px; }
+  .survival .est .lbl { margin-top: 2px; font-size: 10.5px; line-height: 1.3; }
 </style>
-<script src="model.js?v=20261028160113"></script>
-<script src="events.js?v=20261028160113"></script>
-<script src="news.js?v=20261028160113"></script>
-<script src="landmask.js?v=20261028160113"></script>
-<script src="presets.js?v=20261028160113"></script>
-<script src="trees.js?v=20261028160113"></script>
+<script src="model.js?v=20261028172147"></script>
+<script src="events.js?v=20261028172147"></script>
+<script src="news.js?v=20261028172147"></script>
+<script src="landmask.js?v=20261028172147"></script>
+<script src="presets.js?v=20261028172147"></script>
+<script src="trees.js?v=20261028172147"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -623,7 +653,7 @@
     <div class="survival">
       <div class="big" id="survival">100%</div>
       <div class="lbl">expected chance of catastrophe so far</div>
-      <div class="est" id="estLine" title="The share of simulated futures from where you are now, under your current levers, that end in catastrophe by 2040, plus the catastrophe so far. Each future draws its own secret facts from the default ranges, so it uses only what you can see.">Est. by 2040: …</div>
+      <div class="est" id="estLine" title="The share of simulated futures from where you are now, under your current levers, that end in catastrophe by 2040, plus the catastrophe so far. Each future draws its own secret facts from the default ranges, so it uses only what you can see.">…</div>
     </div>
     <button class="iconbtn secbtn" id="secretsBtn" aria-pressed="false">Show secret facts</button>
     <div class="world-reveal secrets" id="secrets" hidden></div>
@@ -916,7 +946,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents, NEWS = window.SimNews;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261028160113';
+const ASSET_VERSION = '20261028172147';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1779,10 +1809,13 @@ function rollYear() {
     const failed = ['misalign', 'benevolent'].includes(res.event);
     if (res.stage === 'handoff') rec.handoff = { real: qReal, est: qEst };
     // The year's news clips, from what the player can see (news.js never reads the hidden world).
-    rec.news = NEWS.headlines({ prev: game.decisions.slice(0, -1).flatMap((d) => d.news || []), year, before: game.before, after: s, L0: game.L0, L, choice: game.lastChoiceObj,
-      risk: r, riskNext: res.event ? null : M.risks(s, L), event: res.event });
-    rec.news.forEach((n) => preloadImg(newsImgUrl(n.img)));
-    rec.result = { news: rec.news, event: res.event, stage: res.stage, st: structuredClone({ ...s, log: [] }), cat: catSoFar(s), changes: changeRows(game.before, s), est: null,
+    // Last year's illustrative economy (kept in its record) so this year's figures follow on from it.
+    const econ0 = game.decisions[game.decisions.length - 2]?.result?.econ || null;
+    const newsIn = { prev: game.decisions.slice(0, -1).flatMap((d) => d.news || []), year, before: game.before, after: s, L0: game.L0, L, choice: game.lastChoiceObj,
+      risk: r, riskNext: res.event ? null : M.risks(s, L), event: res.event, econ0 };
+    rec.news = NEWS.headlines(newsIn);
+    if (rec.news[0]) preloadImg(newsImgUrl(rec.news[0].img)); // only the lead story shows its photo
+    rec.result = { news: rec.news, event: res.event, stage: res.stage, st: structuredClone({ ...s, log: [] }), cat: catSoFar(s), changes: changeRows(game.before, s), est: null, econ: NEWS.economy(newsIn),
       note: !res.event && s.dealCollapsed === year ? 'The US–China deal collapsed this year.' : !res.event && s.dealImpaired === year ? M.dealImpairedText(s, L) : '' };
     const how = res.stage === 'handoff'
       ? `<div class="youchose">${failed
@@ -1841,36 +1874,60 @@ const escHTML = (t) => String(t ?? '').replace(/[&<>"]/g, (ch) => ({ '&': '&amp;
 const ORDINAL_WORDS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen'];
 const paperDate = (y) => new Date(Date.UTC(y, 11, 31)).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 const deskKicker = (desk) => String(desk || '').replace(/ Desk$/, '');
-function paperStory(n) {
-  return `<article><div class="kicker">${escHTML(deskKicker(n.desk))}</div><h3>${escHTML(n.text)}</h3>
-    <figure class="photo"><span class="ph"><img class="pending" src="${newsImgUrl(n.img)}" alt=""></span><figcaption>${escHTML(n.caption)}</figcaption></figure>
-    <p class="deck">${escHTML(n.deck)}</p></article>`;
+// Where each desk's stories are filed from, for the body's dateline.
+const DATELINES = { 'Policy Brief': 'Washington', 'Global Dispatch': 'Washington', 'Science Desk': 'San Francisco', 'Health Desk': 'Boston',
+  'Markets Desk': 'New York', 'Business Desk': 'New York', 'Wire Desk': '' };
+// A story's body as justified paragraphs, the first opening with its dateline.
+function paperCopy(n) {
+  const where = DATELINES[n.desk] || '';
+  return `<div class="copy">${(n.body || []).map((t, i) => `<p>${i === 0 && where ? `<span class="dl">${escHTML(where)}</span> — ` : ''}${escHTML(t)}</p>`).join('')}</div>`;
+}
+// Last year's illustrative economy, for the box's changes.
+const econArrow = (d, digits, unit = '') => (Math.abs(d) < 0.5 * 10 ** -digits ? '' : ` <span class="${d > 0 ? 'up' : 'dn'}">${d > 0 ? '▲' : '▼'}${Math.abs(d).toFixed(digits)}${unit}</span>`);
+function econBox(e, e0) {
+  if (!e) return '';
+  const money = (b) => (b >= 1000 ? `$${(b / 1000).toFixed(1)}T` : `$${Math.round(b)}B`);
+  const rows = [
+    ['Unemployment', `${e.unemp.toFixed(1)}%${econArrow(e.unemp - e0.unemp, 1)}`],
+    ['GDP growth', `${e.gdp.toFixed(1)}%${econArrow(e.gdp - e0.gdp, 1)}`],
+    ['AI capex, yearly', `${money(e.capex)}${econArrow(e.capexGrowth * 100, 0, '%')}`],
+    e.orbit > 0 ? ['Compute in orbit', e.orbit >= 1000 ? `${(e.orbit / 1000).toFixed(1)} GW` : `${Math.round(e.orbit)} MW`] : ['AI data-centre power', `${Math.round(e.power).toLocaleString('en-US')} GW${econArrow(e.newPower, 0)}`],
+    ['AI-designed drugs approved', `${e.drugs}`],
+  ];
+  return `<div class="box econ"><div class="ttl">Markets &amp; Economy</div><table aria-label="The economy this year">${rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
+    <div class="fine">Illustrative figures derived from the world state, not model outputs.</div></div>`;
 }
 function paperHTML(d, i) {
-  const r = d.result, [lead, ...rest] = r.news, final = !!r.event;
+  const r = d.result, [lead, second, third] = r.news, final = !!r.event;
+  const e = r.econ, e0 = i > 0 ? game.decisions[i - 1]?.result?.econ || NEWS.ECON_BASE : NEWS.ECON_BASE;
   const rows = (r.changes || []).map(([k, v, good]) => `<tr><td>${escHTML(M.STAT_INFO[k].name)}</td><td class="${good === null ? '' : good ? 'pup' : 'pdn'}">${v > 0 ? '▲' : '▼'} ${Math.abs(Math.round(v))}</td></tr>`).join('');
-  let below;
-  if (rest.length >= 2) below = `<section class="below">${rest.map(paperStory).join('')}</section>`;
-  else {
-    const lines = (r.changes || []).slice(0, 3).map(([k, v]) => `${M.STAT_INFO[k].name} ${v > 0 ? 'rose' : 'fell'} ${Math.abs(Math.round(v))} point${Math.abs(Math.round(v)) === 1 ? '' : 's'}.`);
-    if (r.note) lines.push(r.note);
-    lines.push(final ? (r.stage === 'end' && !M.CATASTROPHES.includes(r.event) ? `2040 arrives: ${M.OUTCOMES[r.event].title}.` : `The story ends: ${M.OUTCOMES[r.event].title}.`) : 'No catastrophe struck.');
-    const also = `<div class="also"><h4>${final ? 'The final tally' : 'Also this year'}</h4>${lines.map((t) => `<p>${escHTML(t)}</p>`).join('')}</div>`;
-    below = `<section class="below${rest.length ? '' : ' solo'}">${rest.map(paperStory).join('')}${also}</section>`;
-  }
-  return `<header class="mast"><div class="ears"><span>“All the news the hidden world allows”</span><span>${final ? 'Final edition' : 'Late edition'}</span></div><h1>The Ledger</h1></header>
-    <div class="folio"><span>Vol. I · No. ${i + 1}</span><span>${paperDate(d.year)}</span><span>Year ${ORDINAL_WORDS[i] || i + 1} of the race</span></div>
-    <section class="lead">
-      <div class="hl"><div class="kicker">${escHTML(deskKicker(lead.desk))}</div><h3>${escHTML(lead.text)}</h3></div>
-      <figure class="photo"><span class="ph"><img class="pending" src="${newsImgUrl(lead.img)}" alt=""></span><figcaption>${escHTML(lead.caption)}</figcaption></figure>
-      <aside><p class="deck">${escHTML(lead.deck)}</p>
-        <div class="index"><div class="ttl">The Catastrophe Index</div><div class="big">${pct(r.cat, 1)}</div>
-          <div class="lbl">expected chance of catastrophe so far</div>
-          ${final ? '' : `<div class="pest" id="paperEst">${r.est ? estText(r.est) : 'Est. by 2040: …'}</div>`}
-          ${rows ? `<table aria-label="Changes this year">${rows}</table>` : ''}</div></aside>
-    </section>
-    ${below}
-    <div class="foot">The Ledger is fictional. Stories are written from what you can see; the hidden facts stay hidden.</div>`;
+  // The news summary: what changed, in one line each.
+  const lines = (r.changes || []).slice(0, 3).map(([k, v]) => `${M.STAT_INFO[k].name} ${v > 0 ? 'rose' : 'fell'} ${Math.abs(Math.round(v))} point${Math.abs(Math.round(v)) === 1 ? '' : 's'}.`);
+  if (e) lines.push(`Unemployment ${e.unemp.toFixed(1)}%, growth ${e.gdp.toFixed(1)}%, AI spending ${e.capex >= 1000 ? `$${(e.capex / 1000).toFixed(1)} trillion` : `$${Math.round(e.capex)} billion`}.`);
+  if (r.note) lines.push(r.note);
+  lines.push(final ? (r.stage === 'end' && !M.CATASTROPHES.includes(r.event) ? `2040 arrives: ${M.OUTCOMES[r.event].title}.` : `The story ends: ${M.OUTCOMES[r.event].title}.`) : 'No catastrophe struck.');
+  const summary = `<section class="summary"><h4>${final ? 'The final tally' : 'News Summary'}</h4><div class="copy">${lines.map((t) => `<p>${escHTML(t)}</p>`).join('')}</div></section>`;
+  const index = `<div class="box cat"><div class="ttl">The Catastrophe Index</div><div class="big">${pct(r.cat, 1)}</div>
+    <div class="lbl">expected chance of catastrophe so far</div>
+    ${final ? '' : `<div class="pest"><span id="paperEst">${r.est ? estText(r.est) : '…'}</span><div class="lbl">${EST_LABEL}</div></div>`}
+    ${rows ? `<table aria-label="Changes this year">${rows}</table>` : ''}</div>`;
+  const side = second ? `<article class="side"><div class="kicker">${escHTML(deskKicker(second.desk))}</div><h3>${escHTML(second.text)}</h3><div class="rl"></div>
+    <p class="deck">${escHTML(second.deck)}</p>${paperCopy(second)}</article>` : '';
+  const thirdHTML = third ? `<article class="third"><div class="kicker">${escHTML(deskKicker(third.desk))}</div><h3>${escHTML(third.text)}</h3>
+    <p class="deck">${escHTML(third.deck)}</p>${paperCopy(third)}</article>` : '';
+  const price = `$${(2 + i * 0.25).toFixed(2)}`;
+  return `<header class="mast"><div class="ear"><b>${final ? 'Final edition' : 'Late edition'}</b><i>Clearing late. The race goes on.</i></div><h1>The Ledger</h1>
+      <div class="ear r"><b>Inside</b>Index p. A1 · Economy A1 · Science A1</div></header>
+    <div class="folio"><span class="vol">Vol. I · No. ${i + 1}</span><span>${paperDate(d.year)}</span><span>Year ${ORDINAL_WORDS[i] || i + 1} of the race · ${price}</span></div>
+    <div class="front">
+      <div class="left">${side}${index}</div>
+      <section class="lead"><div class="kicker">${escHTML(deskKicker(lead.desk))}</div><h3>${escHTML(lead.text)}</h3>
+        <figure class="photo"><span class="ph"><img class="pending" src="${newsImgUrl(lead.img)}" alt="${escHTML(lead.caption)}"></span>
+          <span class="credit">${escHTML(lead.credit || 'The Ledger')}</span><figcaption>${escHTML(lead.caption)}</figcaption></figure>
+        <p class="deck">${escHTML(lead.deck)}</p>${paperCopy(lead)}</section>
+    </div>
+    <div class="lower${third ? '' : ' nothird'}">${thirdHTML}${summary}${econBox(e, e0)}</div>
+    <div class="foot">The Ledger is fictional. Stories are written from what you can see; the hidden facts stay hidden. Economic figures are illustrative, derived from the visible state, not model outputs.</div>`;
 }
 function showPaper() {
   const i = game.decisions.length - 1, d = game.decisions[i];
@@ -1921,7 +1978,9 @@ function outlookTotal(s, L) {
   const acc = outlookCache.get(outlookKey(s, L));
   return acc ? M.outlookTotal(s, acc, pastCatYears(s)) : null;
 }
-const estText = (t) => `Est. by 2040: <b>${pct(t.byEnd, t.byEnd < 0.1 ? 1 : 0)}</b>${t.meanYears != null ? ` · <span class="when">avg. ${avgDate(t.meanYears)}</span>` : ''}`;
+// "78% · avg. around Oct 2030"; EST_LABEL says what it is, just below it.
+const estText = (t) => `<b>${pct(t.byEnd, t.byEnd < 0.1 ? 1 : 0)}</b>${t.meanYears != null ? ` · <span class="when">avg. ${avgDate(t.meanYears)}</span>` : ''}`;
+const EST_LABEL = 'estimated chance of catastrophe by 2040, and its average date';
 function requestOutlook() {
   if (!game || game.s.outcome) { renderOutlook(); return; }
   const key = outlookKey(game.s, game.L);
@@ -1947,7 +2006,7 @@ function renderOutlook() {
   if (game.phase === 'rolling') return; // keeps the last figure until the year resolves
   el.hidden = false;
   const t = outlookTotal(game.s, game.L);
-  el.innerHTML = t ? estText(t) : 'Est. by 2040: …';
+  el.innerHTML = `<div class="estv">${t ? estText(t) : '…'}</div><div class="lbl">${EST_LABEL}</div>`;
   if (!t) return;
   // The year's record keeps the figure for its paper and Copy for AI.
   const d = game.decisions[game.decisions.length - 1];
@@ -2471,6 +2530,7 @@ function campaignText() {
       lines.push(`- **Chance of catastrophe so far:** ${pct(d.result.cat, 1)}`);
       if (d.result.est) lines.push(`- **Est. chance of catastrophe by 2040** (share of ${OUTLOOK_N.toLocaleString('en-US')} simulated futures from this visible state under these levers, each with fresh secret facts from the default ranges, plus the catastrophe so far): ${pct(d.result.est.byEnd, 1)}${d.result.est.meanYears != null ? `, on average ${avgDate(d.result.est.meanYears)}` : ''}`);
       if (d.result.news?.length) lines.push(`- **Headlines (fictional, written from what the player could see):** ${NEWS.plain(d.result.news).join('; ')}`);
+      if (d.result.econ) lines.push(`- **Economy on the paper (illustrative flavour derived from the visible state, not model outputs):** unemployment ${d.result.econ.unemp.toFixed(1)}%, GDP growth ${d.result.econ.gdp.toFixed(1)}%, AI capex $${Math.round(d.result.econ.capex)}B a year`);
     } else lines.push('- **What happened:** the dice are still rolling.');
     return lines.join('\n');
   });
