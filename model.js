@@ -42,7 +42,7 @@
     // How much US alignment work China's lab can use
     shareBase: 0.55, shareCoord: 0.45, shareTransp: 0.3, leadW: 3,
     // Hidden share of the test overstatement
-    hidBase: 0.6, hidInternal: 0.8, hidOversight: 0.5, hidTransp: 0.3, hidSafety: 0.3,
+    hidBase: 0.6, hidInternal: 0.8, hidOversight: 0.5, hidTransp: 0.3, hidSafety: 0.3, hidWhistle: 0.2,
     // Loss-of-control hazard: locScale (1 + intSlope H/100), i.e. the old 0.25 (0.4 + 0.9 H/100)
     locScale: 0.1, locOffset: 36, locWidth: 6, intSlope: 2.25,
     // Great-power war
@@ -190,7 +190,7 @@
     // AI's lab insiders expect recursive self-improvement (AI substantially speeding up AI R&D,
     // which begins at 50 here) within 3-12 months of Oct 2026, i.e. during 2027.
     evalGap: { group: 'How hard is alignment?', label: 'Tests overstate alignment', mean: 0.15, sd: 0.09, min: 0, max: 0.6, fmt: 'pct',
-      help: 'How wrong the measurements are: how far the alignment you see sits above the real level, because AIs can tell when they are being tested and behave better. Policy can change it: independent oversight, published research and safety work expose more of the gap, and secret internal AI hides more. This is why your estimate and the real risk can differ. <a href="https://www.sec.gov/Archives/edgar/data/2130357/000162828026067168/anthropicpbc-sx1.htm" target="_blank" rel="noopener">Anthropic\'s S-1</a> (Oct 2026) reports "models behaving differently when they detect or infer that they are being evaluated" and warns its evaluations could "overstate the safety or alignment" of its models. Compare "Ease of alignment", which is how hard the problem itself is.',
+      help: 'How wrong the measurements are: how far the alignment you see sits above the real level, because AIs can tell when they are being tested and behave better. Policy can change it: independent oversight, published research and safety work expose more of the gap, and secret internal AI hides more. Insiders who speak up expose a little of it too. This is why your estimate and the real risk can differ. <a href="https://www.sec.gov/Archives/edgar/data/2130357/000162828026067168/anthropicpbc-sx1.htm" target="_blank" rel="noopener">Anthropic\'s S-1</a> (Oct 2026) reports "models behaving differently when they detect or infer that they are being evaluated" and warns its evaluations could "overstate the safety or alignment" of its models. Compare "Ease of alignment", which is how hard the problem itself is.',
       world: (A, evalGap) => { const c = probNodes(A.evalGap, 0, 0.6); return { evalGap, egNodes: c.nodes, egMean: c.mean }; },
       revealOrder: 30, roll: ['How much safety tests overstate alignment', (r) => `${Math.round(r * 40)}%`],
       secret: ['How misleading the tests were', (w, c) => `${c.over ? 'By the end, real alignment was' : 'Right now, real alignment is'} <b>${c.pct(hiddenShare(c.s, c.L) * w.evalGap, 0)}</b> lower than the tests showed.`] },
@@ -220,11 +220,14 @@
     // Value alignment, as opposed to intent alignment ("aligned" elsewhere means the AI does what
     // its controllers intend). Labs aim for it, e.g. constitutions telling models to refuse
     // illegitimate power grabs, but nothing shows it holds when the weights' owners push.
-    whistle: { group: 'Does power stay in check?', label: 'Whistleblower odds', mean: 0.25, sd: 0.14, min: 0, max: 1, fmt: 'pct',
-      help: 'Chance that insiders expose or refuse to carry out a power grab by whoever controls AGI.',
-      world: (A, whistle) => ({ whistle, whistleNodes: probNodes(A.whistle, 0, 1, LOCK_DX).nodes }),
-      revealOrder: 50, roll: ['Whether insiders would expose a power grab', (r) => `${Math.round(r * 60)}%`],
-      secret: ['Insiders', (w, c) => `A <b>${c.pct(w.whistle, 0)}</b> chance they would expose a power grab.`] },
+    // Insiders speaking up: it cuts lock-in (lockWhistle) and, a little, the hidden share of the
+    // test overstatement (hidWhistle in hiddenShare): staff leak that an AI is less safe than its
+    // evaluations show, as safety-team resignations and disclosures have done.
+    whistle: { group: 'Does power stay in check?', label: 'Insiders speak up', mean: 0.25, sd: 0.14, min: 0, max: 1, fmt: 'pct',
+      help: 'The chance insiders expose or refuse a power grab by whoever controls AI, or leak that an AI is less safe than its tests show. It lowers lock-in and, a little, the hidden part of the gap between tested and real alignment.',
+      world: (A, whistle) => { const c = probNodes(A.whistle, 0, 1); return { whistle, whistleNodes: probNodes(A.whistle, 0, 1, LOCK_DX).nodes, whNodes: coarseNodes(c.nodes, WH_GAP_NODES), whMean: c.mean }; },
+      revealOrder: 50, roll: ['Whether insiders would speak up', (r) => `${Math.round(r * 60)}%`],
+      secret: ['Insiders', (w, c) => `A <b>${c.pct(w.whistle, 0)}</b> chance they would expose a power grab or leak that an AI was less safe than its tests showed.`] },
     // Whether those who hold AI share its gains when nothing forces them. Arguments that they
     // will not: once most people's work is no longer needed, they lose their leverage (Drago and
     // Laine, The Intelligence Curse; Kulveit et al., Gradual Disempowerment), as in rentier
@@ -464,6 +467,21 @@
   // Slice width for the lock-in unknowns' nodes (see probNodes): keeps the shown lock-in odds within
   // about 0.01 points of the true average for any supported prior, however skewed.
   const LOCK_DX = 0.02;
+  // The evaluation gap's belief over the whistleblower draw uses fewer nodes: probNodes' bins merged
+  // into WH_GAP_NODES groups of about equal mass, each at its exact conditional mean (so the mean stays
+  // exact). Its effect on the gap is small and smooth, so 5 nodes keep the shown risk within
+  // about 0.01 points of the full average while multiplying the belief loops by 5, not 42.
+  const WH_GAP_NODES = 5;
+  function coarseNodes(nodes, k) {
+    if (nodes.length <= k) return nodes;
+    const out = []; let w = 0, wv = 0, done = 0;
+    for (const [nw, v] of nodes) {
+      w += nw; wv += nw * v;
+      if (w + done >= (out.length + 1) / k - 1e-12 && out.length < k - 1) { out.push([w, wv / w]); done += w; w = 0; wv = 0; }
+    }
+    if (w > 0) out.push([w, wv / w]);
+    return out;
+  }
   const NODE_CACHE = new Map();
   function probNodes(p, lo = 0, hi = 1, dx = Infinity) {
     const key = p.mean + '|' + p.sd + '|' + lo + '|' + hi + '|' + dx;
@@ -727,9 +745,14 @@
   // sharing does not: China's lab has 1 - (1 - share)(1 - own) of US-level alignment.
   // `over` is how much tests overstate alignment; the part still hidden this year
   // (hiddenShare) is subtracted, so this is real alignment, not the measured s.align.
-  function effAlign(s, L, own = s.world.cnAlign || 0, over = s.world.evalGap || 0) {
+  // `wh` is the whistleblower draw (belief callers pass node values).
+  function effAlign(s, L, own = s.world.cnAlign || 0, over = s.world.evalGap || 0, wh = s.world.whistle) {
+    return alignWith(s, L, own, over * hiddenShare(s, L, wh));
+  }
+  // The same, given the hidden overstatement x = over · hiddenShare directly (the belief nodes).
+  function alignWith(s, L, own, x) {
     const cover = 1 - (1 - chinaShare(s, L)) * (1 - own);
-    return s.align * (1 - over * hiddenShare(s, L)) * (1 - chinaLeads(s) * (1 - cover));
+    return s.align * (1 - x) * (1 - chinaLeads(s) * (1 - cover));
   }
   // The share of US alignment work China's lab can use (coordination and published research).
   const chinaShare = (s, L) => Math.min(1, K.shareBase + K.shareCoord * (s.coord / 100) + K.shareTransp * (L ? L.transparency : 0));
@@ -738,17 +761,50 @@
   // How much of the test overstatement stays hidden: more with secret internal AI, less with
   // independent oversight, published research and safety work (interpretability, evals).
   // About 0.7 on today's settings, about 0.3 with full oversight and transparency.
-  function hiddenShare(s, L) {
+  // Insiders who speak up (whistleblower odds ω) expose some of it too: safety-team resignations
+  // and disclosures have told the public that labs' AI was less safe than claimed, and Anthropic's
+  // S-1 warns its evaluations could "overstate the safety or alignment" of its models. The effect
+  // is small: hidWhistle = 0.2, so certain whistleblowers (ω = 1) remove 0.2 of the hidden share,
+  // less than full oversight (0.5) or full transparency (0.3), because a leak is one person's
+  // account, not a standing audit. It is measured from WHISTLE_REF, the unknown's default mean,
+  // so the default world's gap (and the calibration) is unchanged: the leaks that already happen
+  // are part of hidBase. A leak, like oversight, only works if humans still read and act on the
+  // decisions, so it shares oversight's rubber-stamp factor λ (oversightBite) rather than adding
+  // a separate delegation term. λ ≥ 0.5, so more whistleblowing never raises the hidden share.
+  function hiddenShare(s, L, wh = s.world ? s.world.whistle : WHISTLE_REF) {
     const o = L ? L.oversight : 0.1, t = L ? L.transparency : 0.2, sx = L ? Math.min(1, safetyEffect(L.safety)) : 0.14;
-    return clamp(K.hidBase + K.hidInternal * s.internal / 100 - (K.hidOversight * o + K.hidTransp * t) * oversightBite(s) - K.hidSafety * sx, 0.1, 1.4);
+    const leak = K.hidWhistle * ((wh ?? WHISTLE_REF) - WHISTLE_REF);
+    return clamp(K.hidBase + K.hidInternal * s.internal / 100 - (K.hidOversight * o + K.hidTransp * t + leak) * oversightBite(s) - K.hidSafety * sx, 0.1, 1.4);
   }
+  // Whistleblower odds the hidden share is measured from: the unknown's default mean (fixed, not a
+  // swept constant).
+  const WHISTLE_REF = ASSUMPTION_INFO.whistle.mean;
   // Real (not measured) alignment of the US bloc's work, ignoring China's sharing gap.
   const realAlign = (s, L) => s.align * (1 - (s.world.evalGap || 0) * hiddenShare(s, L));
-  // Joint belief nodes over China's own work and the test overstatement: [weight, own, over].
+  // Joint belief nodes over China's own work and the hidden overstatement: [weight, own, x].
+  // x = over · hiddenShare(ω) depends on the test overstatement and the whistleblower odds
+  // (independent draws), and alignment depends on them only through x, so the joint nodes over
+  // (over, ω) are sorted by x and neighbours within HID_DX of each other merged at their exact mean
+  // (as probNodes' bins are). That keeps the loops about as long as with the overstatement alone.
+  const HID_DX = 0.01; // keeps the shown risk within about 0.01% (relative) of the unmerged average
+  function hiddenBelief(s, L) {
+    const eg = s.world.egNodes || [[1, s.world.evalGap || 0]], wn = s.world.whNodes || [[1, s.world.whistle]];
+    const hs = wn.map(([ww, wh]) => [ww, hiddenShare(s, L, wh)]);
+    const pts = [];
+    for (const [we, over] of eg) for (const [ww, h] of hs) pts.push([we * ww, over * h]);
+    if (pts.length <= eg.length) return pts;
+    pts.sort((a, b) => a[1] - b[1]);
+    const out = []; let w = 0, wx = 0, x0 = pts[0][1];
+    for (const [pw, x] of pts) {
+      if (x - x0 > HID_DX && w > 0) { out.push([w, wx / w]); w = 0; wx = 0; x0 = x; }
+      w += pw; wx += pw * x;
+    }
+    if (w > 0) out.push([w, wx / w]);
+    return out;
+  }
   function alignBelief(s, L) {
-    const eg = s.world.egNodes || [[1, s.world.evalGap || 0]];
-    const out = [];
-    for (const [wc, own] of cnBelief(s, L)) for (const [we, over] of eg) out.push([wc * we, own, over]);
+    const hb = hiddenBelief(s, L), out = [];
+    for (const [wc, own] of cnBelief(s, L)) for (const [wx, x] of hb) out.push([wc * wx, own, x]);
     return out;
   }
   // Belief nodes over China's own alignment work: [weight, value] pairs. China's own work
@@ -783,13 +839,13 @@
     // the roll uses the truth.
     // AI 2040: most takeover risk comes from AIs deployed inside labs, out of view.
     const internalF = 1 + K.intSlope * s.internal / 100, gate = locGate(mc);
-    const lossAt = (own, over) => K.locScale * sig((mc - effAlign(s, L, own, over) - K.locOffset) / K.locWidth) * gate * internalF * delegHazard(s);
+    const lossAt = (a) => K.locScale * sig((mc - a - K.locOffset) / K.locWidth) * gate * internalF * delegHazard(s);
     // Monte Carlo runs (s.fast) never show beliefs, so they skip the averages.
     let lossBelief = 0;
-    if (s.fast) lossBelief = lossAt(s.world.cnMean ?? s.world.cnAlign ?? 0, s.world.egMean ?? s.world.evalGap ?? 0);
-    else for (const [w, own, over] of alignBelief(s, L)) lossBelief += w * lossAt(own, over);
+    if (s.fast) lossBelief = lossAt(effAlign(s, L, s.world.cnMean ?? s.world.cnAlign ?? 0, s.world.egMean ?? s.world.evalGap ?? 0, s.world.whMean ?? s.world.whistle));
+    else for (const [w, own, x] of alignBelief(s, L)) lossBelief += w * lossAt(alignWith(s, L, own, x));
     const misalign = s.world.hazardBelief * lossBelief;
-    const misalignTrue = s.world.hazard * lossAt(s.world.cnAlign || 0, s.world.evalGap || 0);
+    const misalignTrue = s.world.hazard * lossAt(effAlign(s, L));
 
     // Great-power conflict: tight race + low trust + high strategic stakes.
     const closeness = clamp(1 - Math.abs(s.capUS - s.capCN) / K.warCloseW, 0, 1);
@@ -820,8 +876,8 @@
     if (truth) return s.world.safe ? 1 : sig((effAlign(s, L) - bar(s.world.difficulty)) / K.barW);
     const dn = diffNodes(s.world.diffDist), bars = dn.map(([, dz]) => bar(dz));
     let p = 0;
-    for (const [wc, own, over] of alignBelief(s, L)) {
-      const a = effAlign(s, L, own, over);
+    for (const [wc, own, x] of alignBelief(s, L)) {
+      const a = alignWith(s, L, own, x);
       for (let i = 0; i < dn.length; i++) p += wc * dn[i][0] * (alignedByDefault(dn[i][1]) ? 1 : sig((a - bars[i]) / K.barW));
     }
     return p;

@@ -34,7 +34,8 @@ people without economic leverage or a say even when humans keep control of AI.
   assumptions (mean ± spread, as in the original; the seven probabilities are Beta
   distributions on 0–100% (0–60% for how much tests overstate alignment) with that mean and
   standard deviation, the spread in percentage points,
-  and the others normal or lognormal), run 2,000 Monte Carlo futures,
+  and the others normal or lognormal; "Insiders speak up", the whistleblower odds, lowers
+  lock-in and, a little, how much of the tests' overstatement stays hidden), run 2,000 Monte Carlo futures,
   and see every trajectory as a 3D fan, colored by how it ends. Hover a line to
   read its values; click an outcome to read it and isolate its futures.
 - **Campaign (2027–2040; opens on a one-line title screen; Play starts right away, with a tutorial on the first visit; the page remembers the mode you used last; "Show secret facts" reveals the hidden world and real risks while you play).** Each year you get a decision card. Hover a choice to
@@ -51,7 +52,7 @@ people without economic leverage or a say even when humans keep control of AI.
 
 | File | What it is |
 | --- | --- |
-| `model.js` | The world model: state, levers, yearly dynamics (every update reads the start-of-year state, so their order does not matter), hazard equations, Monte Carlo, and its 159 named constants |
+| `model.js` | The world model: state, levers, yearly dynamics (every update reads the start-of-year state, so their order does not matter), hazard equations, Monte Carlo, and its 160 named constants |
 | `events.js` | The decision cards and how each choice moves levers and state |
 | `news.js` | The campaign's news clips and year-end front page stories: deterministic headline, deck and body templates for what visibly changed each year, plus illustrative economy figures derived from the visible state (not model outputs; `node test-news.js --report` shows how often each fires) |
 | `landmask.js` | Land/sea bitmap for the globe, rasterized from Natural Earth 1:50m coastlines (public domain) |

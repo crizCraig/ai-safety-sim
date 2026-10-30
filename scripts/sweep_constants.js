@@ -219,6 +219,7 @@ const META = {
   hidOversight: ['J', 'loc', 'Test gap exposed by oversight', 'Hidden share removed by full oversight'],
   hidTransp: ['J', 'loc', 'Test gap exposed by transparency', 'Hidden share removed by full transparency'],
   hidSafety: ['J', 'loc', 'Test gap exposed by safety work', 'Hidden share removed by safety spending at the knee'],
+  hidWhistle: ['J', 'loc', 'Test gap exposed by insiders', 'Hidden share removed when insiders surely speak up, from the default whistleblower odds'],
   // War
   warBase: ['J', 'war', 'Peak war hazard', 'Largest yearly war risk with no coordination'],
   warCloseW: ['J', 'war', 'What counts as a close race', 'Capability gap at which the race stops counting as close'],

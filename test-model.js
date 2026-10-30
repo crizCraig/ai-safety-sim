@@ -295,6 +295,51 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Shown loss-of-control risk = average over the test overstatement (±5%)', Math.abs(shown / (sum / n) - 1) < 0.05, `${(100 * shown).toFixed(3)}% vs ${(100 * sum / n).toFixed(3)}%`);
 }
 
+// --- Insiders speak up: whistleblowers also expose a little of the hidden evaluation gap ---
+{
+  const L = { ...M.defaultLevers(), oversight: 0, transparency: 0, safety: 0 };
+  const W0 = M.ASSUMPTION_INFO.whistle.mean;
+  const at = (o, wh) => M.hiddenShare(Object.assign(M.initialState(), { internal: 50 }, o), L, wh);
+  check('Whistleblowers shrink the hidden share; neutral at the default mean; smaller than full oversight',
+    at({}, 1) < at({}, W0) && at({}, W0) < at({}, 0) && Math.abs(at({}, W0) - M.hiddenShare(Object.assign(M.initialState(), { internal: 50 }), L, null)) < 1e-12
+      && at({}, 0) - at({}, 1) < M.K.hidOversight && Math.abs(at({}, 0) - at({}, 1) - M.K.hidWhistle) < 1e-9,
+    `${at({}, 0).toFixed(3)} / ${at({}, W0).toFixed(3)} / ${at({}, 1).toFixed(3)}`);
+  check('Rubber-stamp oversight dampens leaks too', at({ deleg: 80 }, 0) - at({ deleg: 80 }, 1) < at({}, 0) - at({}, 1) - 0.03,
+    `${(at({}, 0) - at({}, 1)).toFixed(3)} -> ${(at({ deleg: 80 }, 0) - at({ deleg: 80 }, 1)).toFixed(3)}`);
+  // Monotone: more whistleblowing never raises the real loss-of-control hazard or lowers real handoff odds.
+  let mono = true;
+  for (const Lx of [L, M.defaultLevers(), { ...M.defaultLevers(), oversight: 1, transparency: 1, safety: 1 }])
+    for (const deleg of [0, 12, 60, 100]) for (const internal of [0, 50, 100]) {
+      let prev = Infinity, prevQ = -Infinity;
+      for (const wh of [0, 0.1, 0.25, 0.5, 0.75, 1]) {
+        const s = Object.assign(M.initialState(), { capUS: 92, capCN: 80, align: 60, internal, deleg });
+        s.world = Object.assign({}, s.world, { whistle: wh, evalGap: 0.4, safe: false, difficulty: 1, hazard: 1 });
+        const r = M.risks(s, Lx).misalignTrue, q = M.transitionOdds(Object.assign({}, s, { capUS: 100, align: 90 }), true, Lx);
+        if (r > prev + 1e-15 || q < prevQ - 1e-15) mono = false;
+        prev = r; prevQ = q;
+      }
+    }
+  check('More whistleblowing never raises the real loss-of-control risk or lowers real handoff odds', mono);
+  // Truth vs belief: the dice use the world's draw; the shown risk averages over the whistle unknown.
+  const A = { ...A0, ease: { mean: 0.1, sd: 0 }, cnAlign: { mean: 0.35, sd: 0 }, evalGap: { mean: 0.45, sd: 0 }, whistle: { mean: 0.5, sd: 0.3 } };
+  const ho = (s) => Object.assign({}, s, { capUS: 100, align: 90, internal: 10 }); // a handoff with odds near 40%
+  const st = (world) => Object.assign(M.initialState(world), { capUS: 95, capCN: 80, align: 62, internal: 50 });
+  const sh = st(M.sampleWorld(A, M.mulberry32(1)));
+  const shownR = M.risks(sh, L).misalign, shownQ = M.transitionOdds(ho(sh), false, L);
+  const rng = M.mulberry32(17); let sr = 0, sq = 0; const n = 40000;
+  for (let i = 0; i < n; i++) {
+    const w = M.sampleWorld(A, rng), s = st(Object.assign({}, w, { whNodes: [[1, w.whistle]] }));
+    sr += M.risks(s, L).misalign;
+    sq += M.transitionOdds(ho(s), false, L);
+  }
+  check('Shown loss-of-control risk = average over the whistleblower odds (±1%)', Math.abs(shownR / (sr / n) - 1) < 0.01, `${(100 * shownR).toFixed(3)}% vs ${(100 * sr / n).toFixed(3)}%`);
+  check('Shown handoff odds = average over the whistleblower odds (±0.2 pts)', Math.abs(shownQ - sq / n) < 0.002, `${(100 * shownQ).toFixed(2)}% vs ${(100 * sq / n).toFixed(2)}%`);
+  const twin = (wh) => Object.assign({}, sh, { world: Object.assign({}, sh.world, { whistle: wh }) });
+  check('Shown risk ignores the hidden whistleblower draw; the dice use it',
+    M.risks(twin(0), L).misalign === M.risks(twin(1), L).misalign && M.transitionOdds(twin(0), false, L) === M.transitionOdds(twin(1), false, L)
+      && M.risks(twin(1), L).misalignTrue < M.risks(twin(0), L).misalignTrue);
+}
+
 // --- Overstatement belief at the slider edge, and the careful path uses real alignment (Codex C8) ---
 {
   const L = { ...M.defaultLevers(), oversight: 0, transparency: 0, safety: 0 };

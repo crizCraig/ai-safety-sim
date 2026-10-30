@@ -103,7 +103,9 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
 3. `model.js` the truth formula reads `s.world.x` (take it as a defaulted parameter, as
    `lockinOdds(s, L, whistle, share, value)` does, so belief callers can pass node values).
 4. `model.js` the belief formula averages the truth over `s.world.xNodes` (e.g. the loops in
-   `lockinBelief`, `alignBelief`/`cnBelief`, `transitionOdds`'s difficulty loop). Fall back to the
+   `lockinBelief`, `alignBelief`/`cnBelief`, `transitionOdds`'s difficulty loop). An unknown can feed
+   more than one hazard: `whistle` enters `lockinOdds` and `hiddenShare`, so it has fine nodes
+   (`whistleNodes`, for the lock-in cap) and coarse ones (`whNodes`, joined into `alignBelief`). Fall back to the
    point value when nodes are missing (`s.world.xNodes || [[1, s.world.x]]`). Keep any cap or
    clamp inside the average, not outside it.
 5. `model.js` exports, if tests or the page call new helpers.
