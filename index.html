@@ -594,13 +594,16 @@
   .survival .est { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--muted); }
   .survival .est b { font-family: var(--mono); color: var(--bad); font-weight: 600; font-size: 13px; }
   .survival .est .lbl { margin-top: 2px; font-size: 10.5px; line-height: 1.3; }
+  #ending .endlw { margin: 14px 0 0; font-size: 13.5px; color: var(--muted); }
+  #ending .endlw a { color: var(--accent); }
+  @media (max-width: 640px) { #lwLink { display: none; } }
 </style>
-<script src="model.js?v=20261028182414"></script>
-<script src="events.js?v=20261028182414"></script>
-<script src="news.js?v=20261028182414"></script>
-<script src="landmask.js?v=20261028182414"></script>
-<script src="presets.js?v=20261028182414"></script>
-<script src="trees.js?v=20261028182414"></script>
+<script src="model.js?v=20261029174515"></script>
+<script src="events.js?v=20261029174515"></script>
+<script src="news.js?v=20261029174515"></script>
+<script src="landmask.js?v=20261029174515"></script>
+<script src="presets.js?v=20261029174515"></script>
+<script src="trees.js?v=20261029174515"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -615,6 +618,7 @@
   <button class="iconbtn" id="statsToggle" style="display:none">Stats</button>
   <button class="iconbtn lab-only" id="shareLink" title="Copy a link to these settings"><span class="long">Share these settings</span><span class="short">Share</span></button>
   <a class="iconbtn" id="ghLink" href="https://github.com/crizCraig/ai-safety-sim" target="_blank" rel="noopener" title="Source code on GitHub">GitHub ↗</a>
+  <a class="iconbtn" id="lwLink" href="https://www.lesswrong.com/posts/8Fi9ugohcPChqc3YR/game-of-agi-a-monte-carlo-sim-for-ai-safety" target="_blank" rel="noopener" title="The write-up and discussion on LessWrong">LessWrong ↗</a>
   <button class="iconbtn" id="tourBtn" title="Show the tutorial"><span class="long">How to play</span><span class="short">?</span></button>
   <button class="iconbtn" id="modelBtn"><span class="long">How the model works</span><span class="short">About</span></button>
   <a class="iconbtn" id="builtLink" href="#" target="_blank" rel="noopener" hidden>How it was built ↗</a>
@@ -762,6 +766,7 @@
       <button class="btn ghost" id="toLabBtn">Explore your policy in the Futures Lab</button>
       <button class="btn ghost" id="viewBtn">View the world</button>
     </div>
+    <p class="endlw">Disagree with how your world played out? <a href="https://www.lesswrong.com/posts/8Fi9ugohcPChqc3YR/game-of-agi-a-monte-carlo-sim-for-ai-safety" target="_blank" rel="noopener">Discuss the model on LessWrong ↗</a></p>
   </div>
 </div>
 
@@ -774,6 +779,7 @@
     <h3 class="no-copy">Origins and sources</h3>
     <p>This version extends the original <a href="https://gist.github.com/crizCraig/f4c583f0ca535ce5565f3aa66353cf99" target="_blank" rel="noopener">Game of AGI</a>, a Monte Carlo of AGI risk driven by safe-by-default odds, safety spending, oversight, the number of labs that originate AGI, whistleblowers, and takeoff vs. replication time.</p>
     <p>The main sources: <a href="https://ai-2040.com/" target="_blank" rel="noopener">AI 2040: Plan A</a> for timelines and the plans' odds of getting alignment right; a separate factored Monte Carlo estimate for open-weights pandemic risk; and <a href="https://www.nationalsecurity.ai/" target="_blank" rel="noopener"><i>Superintelligence Strategy</i></a> (Hendrycks, Schmidt and Wang) for the deterrence argument (MAIM) behind leaving state programs out; and experts on Chinese AI policy (Concordia AI, Matt Sheehan at Carnegie, SemiAnalysis) for how much alignment work China does itself and how readily it would slow down; and Craig Quiter's <a href="https://nationalsecurityresponse.ai/" target="_blank" rel="noopener">National Security Response</a> for how automation can leave most people without economic leverage or a say even when humans keep control of AI (Locked-In Power and the public wealth fund); and Gladstone AI's <a href="https://aiendgame.com/p/what-rsi-looks-like" target="_blank" rel="noopener">report on recursive self-improvement</a> (covered by <a href="https://time.com/article/2026/10/14/recursive-self-improvement-AI-report/" target="_blank" rel="noopener">TIME</a>) for the RSI 2027 scenario, where lab insiders expect AI to start substantially speeding up AI research during 2027.</p>
+    <p class="no-copy">The write-up, with the model's key assumptions and open questions, is on <a href="https://www.lesswrong.com/posts/8Fi9ugohcPChqc3YR/game-of-agi-a-monte-carlo-sim-for-ai-safety" target="_blank" rel="noopener">LessWrong</a>; feedback and critiques are welcome there.</p>
     <p class="no-copy">The code is open source on <a href="https://github.com/crizCraig/ai-safety-sim" target="_blank" rel="noopener">GitHub</a> (MIT license).</p>
     <p class="no-copy">This game was built in conversation with Claude Code. Each session's full history is browsable as a memtree:</p>
     <ol class="treelist no-copy" id="treeList"></ol>
@@ -946,7 +952,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents, NEWS = window.SimNews;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261028182414';
+const ASSET_VERSION = '20261029174515';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
