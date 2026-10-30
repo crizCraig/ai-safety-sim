@@ -191,7 +191,7 @@
     // which begins at 50 here) within 3-12 months of Oct 2026, i.e. during 2027.
     evalGap: { group: 'How hard is alignment?', label: 'Tests overstate alignment', mean: 0.15, sd: 0.09, min: 0, max: 0.6, fmt: 'pct',
       help: 'How wrong the measurements are: how far the alignment you see sits above the real level, because AIs can tell when they are being tested and behave better. Policy can change it: independent oversight, published research and safety work expose more of the gap, and secret internal AI hides more. Insiders who speak up expose some of it too. This is why your estimate and the real risk can differ. <a href="https://www.sec.gov/Archives/edgar/data/2130357/000162828026067168/anthropicpbc-sx1.htm" target="_blank" rel="noopener">Anthropic\'s S-1</a> (Oct 2026) reports "models behaving differently when they detect or infer that they are being evaluated" and warns its evaluations could "overstate the safety or alignment" of its models. Compare "Ease of alignment", which is how hard the problem itself is.',
-      world: (A, evalGap) => { const c = probNodes(A.evalGap, 0, 0.6); return { evalGap, egNodes: c.nodes, egMean: c.mean }; },
+      world: (A, evalGap) => { const c = probNodes(A.evalGap, 0, 0.6, EG_DX); return { evalGap, egNodes: c.nodes, egMean: c.mean }; },
       revealOrder: 30, roll: ['How much safety tests overstate alignment', (r) => `${Math.round(r * 40)}%`],
       secret: ['How misleading the tests were', (w, c) => `${c.over ? 'By the end, real alignment was' : 'Right now, real alignment is'} <b>${c.pct(hiddenShare(c.s, c.L) * w.evalGap, 0)}</b> lower than the tests showed.`] },
     benevolent: { group: 'Does AI care about everyone?', label: 'Kind even if uncontrolled', mean: 0.16, sd: 0.18, min: 0, max: 1, fmt: 'pct',
@@ -225,7 +225,7 @@
     // evaluations show, as safety-team resignations and disclosures have done.
     whistle: { group: 'Does power stay in check?', label: 'Insiders speak up', mean: 0.25, sd: 0.14, min: 0, max: 1, fmt: 'pct',
       help: 'The chance insiders expose or refuse a power grab by whoever controls AI, or leak that an AI is less safe than its tests show. Higher settings lower lock-in and also expose more safety problems: at 100%, insiders reveal as much of the gap between tested and real alignment as full oversight does.',
-      world: (A, whistle) => { const c = probNodes(A.whistle, 0, 1); return { whistle, whistleNodes: probNodes(A.whistle, 0, 1, LOCK_DX).nodes, whNodes: coarseNodes(c.nodes, WH_GAP_NODES), whMean: c.mean }; },
+      world: (A, whistle) => { const c = probNodes(A.whistle, 0, 1, LOCK_DX); return { whistle, whistleNodes: c.nodes, whMean: c.mean }; },
       revealOrder: 50, roll: ['Whether insiders would speak up', (r) => `${Math.round(r * 60)}%`],
       secret: ['Insiders', (w, c) => `A <b>${c.pct(w.whistle, 0)}</b> chance they would expose a power grab or leak that an AI was less safe than its tests showed.`] },
     // Whether those who hold AI share its gains when nothing forces them. Arguments that they
@@ -467,21 +467,11 @@
   // Slice width for the lock-in unknowns' nodes (see probNodes): keeps the shown lock-in odds within
   // about 0.01 points of the true average for any supported prior, however skewed.
   const LOCK_DX = 0.02;
-  // The evaluation gap's belief over the whistleblower draw uses fewer nodes: probNodes' bins merged
-  // into WH_GAP_NODES groups of about equal mass, each at its exact conditional mean (so the mean stays
-  // exact). Its effect on the gap is small and smooth, so 5 nodes keep the shown risk within
-  // about 0.01 points of the full average while multiplying the belief loops by 5, not 42.
-  const WH_GAP_NODES = 5;
-  function coarseNodes(nodes, k) {
-    if (nodes.length <= k) return nodes;
-    const out = []; let w = 0, wv = 0, done = 0;
-    for (const [nw, v] of nodes) {
-      w += nw; wv += nw * v;
-      if (w + done >= (out.length + 1) / k - 1e-12 && out.length < k - 1) { out.push([w, wv / w]); done += w; w = 0; wv = 0; }
-    }
-    if (w > 0) out.push([w, wv / w]);
-    return out;
-  }
+  // The same for the evaluation gap's nodes (in units of its range, so 0.012 of overstatement): a
+  // wide or skewed prior (say 30% ± 20%) crosses its range in a few wide bins, and averaging such a
+  // bin before the loss and handoff sigmoids moved the shown handoff odds by up to 0.13 points;
+  // split, they stay within about 0.02 points of fine integration (test-model.js checks ±0.05).
+  const EG_DX = 0.02;
   const NODE_CACHE = new Map();
   function probNodes(p, lo = 0, hi = 1, dx = Infinity) {
     const key = p.mean + '|' + p.sd + '|' + lo + '|' + hi + '|' + dx;
@@ -789,20 +779,31 @@
   // (independent draws), and alignment depends on them only through x, so the joint nodes over
   // (over, ω) are sorted by x and neighbours within HID_DX of each other merged at their exact mean
   // (as probNodes' bins are). That keeps the loops about as long as with the overstatement alone.
-  const HID_DX = 0.01; // keeps the shown risk within about 0.01% (relative) of the unmerged average
-  function hiddenBelief(s, L) {
-    const eg = s.world.egNodes || [[1, s.world.evalGap || 0]], wn = s.world.whNodes || [[1, s.world.whistle]];
-    const hs = wn.map(([ww, wh]) => [ww, hiddenShare(s, L, wh)]);
+  // The whistleblower nodes are the value-spaced ones the lock-in belief uses (whistleNodes:
+  // no node wider than LOCK_DX), not a few equal-mass groups: a skewed prior (say 95% ± 30%) puts
+  // a wide tail inside one equal-mass group, and averaging that tail before the sigmoid moved the
+  // shown handoff odds by up to 2.4 points (Codex C30-1).
+  // Error budget: inside a merged node x spans at most HID_DX, so real alignment spans at most
+  // A · HID_DX = 1 point, against sigmoid widths of 6 (loss and handoff): the merge moves the shown
+  // odds by under 0.01 points (measured: halving HID_DX changes them by at most 0.002 points).
+  // test-model.js checks the shown loss and handoff odds against fine integration (±0.05 points).
+  // `f`, if given, is a per-whistleblower-node factor (f(i) for whistleNodes[i]): each merged node
+  // then also carries the sum of weight · f, so a caller can average a product of something that
+  // depends on x and something that depends on ω alone (the handoff's success and lock-in).
+  const HID_DX = 0.01;
+  function hiddenBelief(s, L, f = null) {
+    const eg = s.world.egNodes || [[1, s.world.evalGap || 0]], wn = s.world.whistleNodes || [[1, s.world.whistle]];
+    const hs = wn.map(([ww, wh], i) => [ww, hiddenShare(s, L, wh), f ? f(i) : 1]);
     const pts = [];
-    for (const [we, over] of eg) for (const [ww, h] of hs) pts.push([we * ww, over * h]);
-    if (pts.length <= eg.length) return pts;
+    for (const [we, over] of eg) for (const [ww, h, fw] of hs) pts.push([we * ww, over * h, we * ww * fw]);
+    if (pts.length <= eg.length) return pts; // one whistleblower node: nothing to merge
     pts.sort((a, b) => a[1] - b[1]);
-    const out = []; let w = 0, wx = 0, x0 = pts[0][1];
-    for (const [pw, x] of pts) {
-      if (x - x0 > HID_DX && w > 0) { out.push([w, wx / w]); w = 0; wx = 0; x0 = x; }
-      w += pw; wx += pw * x;
+    const out = []; let w = 0, wx = 0, wf = 0, x0 = pts[0][1];
+    for (const [pw, x, fw] of pts) {
+      if (x - x0 > HID_DX && w > 0) { out.push([w, wx / w, wf]); w = 0; wx = 0; wf = 0; x0 = x; }
+      w += pw; wx += pw * x; wf += fw;
     }
-    if (w > 0) out.push([w, wx / w]);
+    if (w > 0) out.push([w, wx / w, wf]);
     return out;
   }
   function alignBelief(s, L) {
@@ -869,7 +870,8 @@
 
   // Probability that crossing the superintelligence threshold goes well.
   // `truth` uses the hidden world; otherwise the up-front belief.
-  function transitionOdds(s, truth = false, L = null) {
+  // `lockF` is for handoffBelief only.
+  function transitionOdds(s, truth = false, L = null, lockF = null) {
     // Opaque internal deployment makes the handoff harder to get right.
     // The bar alignment must clear rises with the hidden difficulty; outsiders
     // only know its average (1×), so the shown odds use that.
@@ -878,12 +880,32 @@
     const bar = (d) => K.barBase + K.barDiff * d + K.barInternal * (s.internal - K.internal0) + K.barDeleg * ((s.deleg ?? K.deleg0) - K.deleg0) - K.barBci * (s.bci / 100);
     if (truth) return s.world.safe ? 1 : sig((effAlign(s, L) - bar(s.world.difficulty)) / K.barW);
     const dn = diffNodes(s.world.diffDist), bars = dn.map(([, dz]) => bar(dz));
-    let p = 0;
-    for (const [wc, own, x] of alignBelief(s, L)) {
-      const a = alignWith(s, L, own, x);
-      for (let i = 0; i < dn.length; i++) p += wc * dn[i][0] * (alignedByDefault(dn[i][1]) ? 1 : sig((a - bars[i]) / K.barW));
+    // Odds given real alignment a, averaged over the hidden difficulty.
+    const at = (a) => { let p = 0; for (let i = 0; i < dn.length; i++) p += dn[i][0] * (alignedByDefault(dn[i][1]) ? 1 : sig((a - bars[i]) / K.barW)); return p; };
+    if (lockF) {
+      // The handoff's branches together (handoffBelief): success and lock-in share the hidden
+      // whistleblower draw, so the merged nodes carry Σ weight · (1 - lock-in odds given ω).
+      let good = 0, free = 0;
+      const cn = cnBelief(s, L), hb = hiddenBelief(s, L, lockF);
+      for (const [wc, own] of cn) for (const [wx, x, wf] of hb) { const q = at(alignWith(s, L, own, x)); good += wc * wx * q; free += wc * wf * q; }
+      return { good, free };
     }
+    let p = 0;
+    for (const [wc, own, x] of alignBelief(s, L)) p += wc * at(alignWith(s, L, own, x));
     return p;
+  }
+
+  // Shown handoff outcome: success odds `good`, lock-in odds `lock` (their averages, as
+  // transitionOdds and lockinBelief show them) and `free` = E[q · (1 - l)], the chance the handoff
+  // succeeds and power does not lock in. The hidden whistleblower draw raises success (it exposes
+  // part of the evaluation gap) and lowers lock-in, so the two are correlated and free is not
+  // good · (1 - lock) (Codex C30-2): both are conditioned on each whistleblower node before
+  // averaging. Every other unknown enters only one of the two, so this is the whole dependence.
+  function handoffBelief(s, L) {
+    const wn = s.world.whistleNodes || [[1, s.world.whistle]];
+    const lw = wn.map(([, wh]) => lockinBelief(s, L, [[1, wh]]));
+    const { good, free } = transitionOdds(s, false, L, (i) => 1 - lw[i]);
+    return { good, free, lock: wn.reduce((a, [w], i) => a + w * lw[i], 0) };
   }
 
   // Probability that, with humans in control of AI, a few end up holding it and its gains
@@ -931,8 +953,9 @@
   // of whistleblower odds, sharing and value alignment (independent draws), not evaluated at
   // their means. The dice use the hidden draws. Where the cap cannot bind for a sharing node,
   // the product factorizes and the inner average is exact without the double loop.
-  function lockinBelief(s, L) {
-    const wn = s.world.whistleNodes || [[1, s.world.whistle]], sn = s.world.shareNodes || [[1, s.world.share]];
+  // `wn` overrides the whistleblower nodes (handoffBelief conditions on each one).
+  function lockinBelief(s, L, wn = s.world.whistleNodes || [[1, s.world.whistle]]) {
+    const sn = s.world.shareNodes || [[1, s.world.share]];
     const vn = s.world.valueNodes || [[1, s.world.valueAlign || 0]];
     const base = lockinBase(s, L);
     const wm = wn.map(([w, v]) => [w, 1 - K.lockWhistle * v]), vm = vn.map(([w, v]) => [w, 1 - K.lockValue * v]);
@@ -969,6 +992,13 @@
     // Expected accounting: only the share of futures still running faces this year's
     // hazards. A kind takeover ends a future without catastrophe; it is set aside so the
     // handoff and later years don't count against it again.
+    // Each year's shown hazards are averages over the unknowns' prior, not conditioned on having
+    // survived the earlier years (the same for every unknown). The whistleblower draw now enters
+    // both the annual loss and the later handoff and 2040 lock-in, so survival so far and those
+    // later odds are slightly correlated through it; conditioning the whole path on each
+    // whistleblower node instead changes the final survival by at most about 0.01 points across
+    // the presets and the skewed and uniform priors checked (Codex C30-2), so only the handoff's
+    // own product, where the error was about 2 points, is integrated jointly (handoffBelief).
     const kind = s.world.pBenevolent;
     s.safeEnded += s.alive * (1 - r.bio) * r.misalign * kind;
     s.alive *= (1 - r.bio) * (1 - r.misalign) * (1 - r.war);
@@ -1092,11 +1122,17 @@
 
     // Superintelligence threshold.
     if (maxCap(s) >= 100) {
-      const good = s.fast ? 0 : transitionOdds(s, false, L);
-      const lock = s.fast ? 0 : lockinBelief(s, L);
       // Every future still running ends at the handoff. A failed handoff is a catastrophe
-      // unless the AI is kind; a successful one is a catastrophe if power locks in.
-      s.safeEnded += s.alive * (good * (1 - lock) + (1 - good) * s.world.pBenevolent);
+      // unless the AI is kind; a successful one is a catastrophe if power locks in. Success and
+      // lock-in share the whistleblower draw, so the safe branch is E[q (1 - l)] (handoffBelief).
+      // Competing outcomes: more whistleblowing always raises q and lowers l, yet it can raise
+      // total catastrophe in some states. It turns failed handoffs into successful ones, and a
+      // failed handoff to a kind AI is a Benevolent Takeover (not a catastrophe) while a successful
+      // one can still end in Locked-In Power. So more safety can turn a would-be kind takeover into
+      // a controlled future that still risks lock-in. This is intended (Codex C30-3): whistleblowing
+      // never raises loss of control, but it is not guaranteed to lower catastrophe in every state.
+      const h = s.fast ? { good: 0, free: 0 } : handoffBelief(s, L);
+      s.safeEnded += s.alive * (h.free + (1 - h.good) * s.world.pBenevolent);
       s.alive = 0;
       s.survival = s.safeEnded;
       if (roll) {
@@ -1295,6 +1331,6 @@
     AC, TOP_EXPERT, TEDAI, DELEG0, oversightBite, delegHazard, uplift, rdShare, locGate, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, assumptionToURL, assumptionFromURL, legacyProbAssumption, betaOf, betaAtZ, probNodes, LOCK_DX, probMean, probSpread, BETA_SD_CAP, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
-    risks, transitionOdds, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, outlook, outlookStart, outlookTotal, OUTLOOK_SEED, summarize, alignmentScore, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
+    risks, transitionOdds, handoffBelief, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, outlook, outlookStart, outlookTotal, OUTLOOK_SEED, summarize, alignmentScore, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

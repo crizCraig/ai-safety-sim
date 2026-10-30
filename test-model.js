@@ -133,9 +133,12 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   {
     const u = mk(0.5); u.capUS = 99; const r = M.risks(u, L2);
     M.step(u, L2, () => 0.99, false);
-    const q = M.transitionOdds(u, false, L2), k = 0.5, lock = M.lockinBelief(u, L2);
-    const expect = (1 - r.bio) * r.misalign * k + (1 - r.bio) * (1 - r.misalign) * (1 - r.war) * (q * (1 - lock) + (1 - q) * k);
-    check('Survival through a takeover year and handoff is sequential (kindness 0.5)', Math.abs(u.survival - expect) < 1e-9, `${u.survival.toFixed(4)} vs ${expect.toFixed(4)}`);
+    // h.free = E[q (1 - l)] over the shared whistleblower draw (Codex C30-2), close to the
+    // product of the averages at the default prior.
+    const h = M.handoffBelief(u, L2), q = M.transitionOdds(u, false, L2), k = 0.5, lock = M.lockinBelief(u, L2);
+    const expect = (1 - r.bio) * r.misalign * k + (1 - r.bio) * (1 - r.misalign) * (1 - r.war) * (h.free + (1 - q) * k);
+    check('Survival through a takeover year and handoff is sequential (kindness 0.5)', Math.abs(u.survival - expect) < 1e-9 && h.good === q && Math.abs(h.lock - lock) < 1e-12 && Math.abs(h.free - q * (1 - lock)) < 0.005,
+      `${u.survival.toFixed(4)} vs ${expect.toFixed(4)}; joint ${(100 * h.free).toFixed(3)}% vs product ${(100 * q * (1 - lock)).toFixed(3)}%`);
     const before = u.survival; M.step(u, L2, () => 0.99, false);
     check('Survival stays put after the handoff', Math.abs(u.survival - before) < 1e-12, `${before.toFixed(4)} -> ${u.survival.toFixed(4)}`);
   }
@@ -328,7 +331,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const shownR = M.risks(sh, L).misalign, shownQ = M.transitionOdds(ho(sh), false, L);
   const rng = M.mulberry32(17); let sr = 0, sq = 0; const n = 40000;
   for (let i = 0; i < n; i++) {
-    const w = M.sampleWorld(A, rng), s = st(Object.assign({}, w, { whNodes: [[1, w.whistle]] }));
+    const w = M.sampleWorld(A, rng), s = st(Object.assign({}, w, { whistleNodes: [[1, w.whistle]] }));
     sr += M.risks(s, L).misalign;
     sq += M.transitionOdds(ho(s), false, L);
   }
@@ -338,6 +341,88 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Shown risk ignores the hidden whistleblower draw; the dice use it',
     M.risks(twin(0), L).misalign === M.risks(twin(1), L).misalign && M.transitionOdds(twin(0), false, L) === M.transitionOdds(twin(1), false, L)
       && M.risks(twin(1), L).misalignTrue < M.risks(twin(0), L).misalignTrue);
+}
+
+// --- Shown beliefs at skewed whistleblower priors match fine integration (Codex C30-1) ---
+// The whistleblower and evaluation-gap nodes are value-spaced, so the shown loss and handoff odds
+// (and the handoff's joint success-without-lock-in) stay within 0.05 points of fine integration
+// over both draws, including Codex's three boundary cases and joint nonzero spreads.
+{
+  const L = { ...M.defaultLevers(), oversight: 0, transparency: 0, safety: 0 };
+  const cases = [
+    [0.95, 0.3, 0.6, 0, 30, 100], [0.05, 0.3, 0.6, 0, 0, 90], [0.95, 0.3, 0.45, 0, 80, 100], // Codex's boundary cases
+    [0.05, 0.3, 0.3, 0.2, 80, 100], [0.95, 0.3, 0.3, 0.2, 30, 90], [0.5, Math.sqrt(1 / 12), 0.45, 0.15, 0, 70],
+    [0.25, 0.14, 0.15, 0.1, 80, 90], [0.05, 0.3, 0.55, 0.1, 30, 100],
+  ];
+  let worst = 0, at = '';
+  for (const [wm, ws, em, es, internal, align] of cases) {
+    const A = {}; for (const k of Object.keys(A0)) A[k] = { ...A0[k], sd: 0 };
+    Object.assign(A, { ease: { mean: 0, sd: 0 }, evalGap: { mean: em, sd: es }, whistle: { mean: wm, sd: ws } });
+    const s = Object.assign(M.initialState(M.sampleWorld(A, M.mulberry32(1))), { capUS: 100, capCN: 60, align, internal, coord: 0, trust: 10, conc: 60, deleg: 12 });
+    const shown = { q: M.transitionOdds(s, false, L), r: M.risks(s, L).misalign, j: M.handoffBelief(s, L).free };
+    const t = structuredClone(s); t.fast = true;
+    let q = 0, r = 0, j = 0;
+    for (const [we, eg] of M.probNodes(A.evalGap, 0, 0.6, 0.004).nodes) for (const [ww, wh] of M.probNodes(A.whistle, 0, 1, 0.004).nodes) {
+      t.world.evalGap = eg; t.world.whistle = wh;
+      const qi = M.transitionOdds(t, true, L);
+      q += we * ww * qi; r += we * ww * M.risks(t, L).misalignTrue; j += we * ww * qi * (1 - M.lockinOdds(t, L));
+    }
+    for (const [k, e] of [['handoff', shown.q - q], ['loss', shown.r - r], ['handoff without lock-in', shown.j - j]])
+      if (Math.abs(e) > Math.abs(worst)) { worst = e; at = `${k} at whistle ${wm}±${ws.toFixed(2)}, gap ${em}±${es}`; }
+  }
+  check('Shown loss and handoff odds = fine integration over whistleblower and gap draws (±0.05 pts)', Math.abs(worst) < 0.0005,
+    `worst ${(100 * worst).toFixed(4)} pts (${at})`);
+}
+
+// --- The handoff's safe branch is E[q (1 - l)] over the shared whistleblower draw (Codex C30-2) ---
+// More whistleblowing raises handoff success q and lowers lock-in l, so the chance a handoff
+// succeeds without lock-in is not E[q] (1 - E[l]). Codex's fixture: a uniform whistleblower prior,
+// everything else fixed, against independent 100,000-bin integration of the joint truth.
+{
+  const A = {}; for (const k of Object.keys(A0)) A[k] = { ...A0[k], sd: 0 };
+  Object.assign(A, { ease: { mean: 0, sd: 0 }, evalGap: { mean: 0.6, sd: 0 }, whistle: { mean: 0.5, sd: Math.sqrt(1 / 12) }, benevolent: { mean: 0, sd: 0 } });
+  const L = { ...M.defaultLevers(), oversight: 0, transparency: 0, safety: 0 };
+  const truth = (s) => { let j = 0; const n = 100000; const t = structuredClone(s); for (let i = 0; i < n; i++) { t.world.whistle = (i + 0.5) / n; j += M.transitionOdds(t, true, L) * (1 - M.lockinOdds(t, L)) / n; } return j; };
+  const s = Object.assign(M.initialState(M.sampleWorld(A, M.mulberry32(9))), { capUS: 100, capCN: 60, align: 90, internal: 10, coord: 0, trust: 10, conc: 60, deleg: 12 });
+  const h = M.handoffBelief(s, L), jt = truth(s);
+  check('Handoff success without lock-in = joint integral over the whistleblower draw (±0.05 pts)',
+    Math.abs(h.free - jt) < 0.0005 && Math.abs(h.good * (1 - h.lock) - jt) > 0.01 && Math.abs(h.good - M.transitionOdds(s, false, L)) < 1e-12 && Math.abs(h.lock - M.lockinBelief(s, L)) < 1e-12,
+    `${(100 * h.free).toFixed(3)}% vs ${(100 * jt).toFixed(3)}% (product of averages ${(100 * h.good * (1 - h.lock)).toFixed(3)}%)`);
+  // Through the actual step(): annual hazards off, so survival is the handoff's safe branch alone.
+  M.setConstants({ locScale: 0, warBase: 0, warSabot: 0 });
+  const t = structuredClone(s); Object.assign(t, { align: 100, internal: 0, bio: 100, safeEnded: 0, alive: 1, survival: 1 });
+  Object.assign(t.world, { bioScale: 0, bioNodes: [[1, 0]], pBenevolent: 0 });
+  M.step(t, L, () => 0.99, false);
+  const jt2 = truth(t);
+  M.setConstants();
+  check('step() survival at the handoff = joint truth over the whistleblower draw (±0.05 pts)', Math.abs(t.survival - jt2) < 0.0005,
+    `${(100 * t.survival).toFixed(3)}% vs ${(100 * jt2).toFixed(3)}%`);
+}
+
+// --- More whistleblowing never raises loss of control, but can raise total catastrophe (Codex C30-3) ---
+// Competing outcomes, by design: a failed handoff to a kind AI is a Benevolent Takeover (not a
+// catastrophe), a successful one can still lock in. So more safety can turn a would-be kind
+// takeover into a controlled future that still risks Locked-In Power. Codex's synthetic state shows
+// it; the status quo and Plan A still do better overall with certain whistleblowers.
+{
+  const L = { ...M.defaultLevers(), oversight: 0, transparency: 0, safety: 0 };
+  const one = (wh) => {
+    const A = {}; for (const k of Object.keys(A0)) A[k] = { ...A0[k], sd: 0 };
+    Object.assign(A, { ease: { mean: 0, sd: 0 }, evalGap: { mean: 0.6, sd: 0 }, benevolent: { mean: 1, sd: 0 }, whistle: { mean: wh, sd: 0 } });
+    const s = Object.assign(M.initialState(M.sampleWorld(A, M.mulberry32(9))), { capUS: 99, capCN: 60, align: 100, internal: 0, coord: 0, trust: 10, conc: 60, deleg: 12, fast: true });
+    const r = M.risks(s, L); M.step(s, L, () => 0.99, false);
+    const q = M.transitionOdds(s, true, L), l = M.lockinOdds(s, L);
+    return { loss: r.misalignTrue, q, cat: r.bioTrue + (1 - r.bioTrue) * (1 - r.misalignTrue) * (r.war + (1 - r.war) * q * l) };
+  };
+  const a = one(0), b = one(1);
+  check('Whistleblowing lowers loss of control even where it raises catastrophe (kind takeover -> lock-in risk)',
+    b.loss < a.loss && b.q > a.q && b.cat > a.cat, `loss ${(100 * a.loss).toFixed(2)} -> ${(100 * b.loss).toFixed(2)}%, catastrophe ${(100 * a.cat).toFixed(2)} -> ${(100 * b.cat).toFixed(2)}%`);
+  for (const name of ['Status quo', 'Plan A: Verified slowdown']) {
+    const at = (wh) => M.summarize(PRESETS[name], { ...A0, whistle: { mean: wh, sd: 0 } }, 6000, 11);
+    const r0 = at(0), r1 = at(1), cat = (r) => r.catastrophe, loc = (r) => r.counts.misalign / r.n;
+    check(`${name}: certain whistleblowers lower catastrophe and never raise loss of control`, cat(r1) <= cat(r0) && loc(r1) <= loc(r0),
+      `catastrophe ${(100 * cat(r0)).toFixed(2)} -> ${(100 * cat(r1)).toFixed(2)}%, loss of control ${(100 * loc(r0)).toFixed(2)} -> ${(100 * loc(r1)).toFixed(2)}%`);
+  }
 }
 
 // --- Overstatement belief at the slider edge, and the careful path uses real alignment (Codex C8) ---
