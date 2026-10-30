@@ -35,7 +35,7 @@ people without economic leverage or a say even when humans keep control of AI.
   distributions on 0–100% (0–60% for how much tests overstate alignment) with that mean and
   standard deviation, the spread in percentage points,
   and the others normal or lognormal; "Insiders speak up", the whistleblower odds, lowers
-  lock-in and, a little, how much of the tests' overstatement stays hidden), run 2,000 Monte Carlo futures,
+  lock-in and how much of the tests' overstatement stays hidden), run 2,000 Monte Carlo futures,
   and see every trajectory as a 3D fan, colored by how it ends. Hover a line to
   read its values; click an outcome to read it and isolate its futures.
 - **Campaign (2027–2040; opens on a one-line title screen; Play starts right away, with a tutorial on the first visit; the page remembers the mode you used last; "Show secret facts" reveals the hidden world and real risks while you play).** Each year you get a decision card. Hover a choice to

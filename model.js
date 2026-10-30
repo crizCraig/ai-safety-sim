@@ -42,7 +42,7 @@
     // How much US alignment work China's lab can use
     shareBase: 0.55, shareCoord: 0.45, shareTransp: 0.3, leadW: 3,
     // Hidden share of the test overstatement
-    hidBase: 0.6, hidInternal: 0.8, hidOversight: 0.5, hidTransp: 0.3, hidSafety: 0.3, hidWhistle: 0.2,
+    hidBase: 0.6, hidInternal: 0.8, hidOversight: 0.5, hidTransp: 0.3, hidSafety: 0.3, hidWhistle: 0.5,
     // Loss-of-control hazard: locScale (1 + intSlope H/100), i.e. the old 0.25 (0.4 + 0.9 H/100)
     locScale: 0.1, locOffset: 36, locWidth: 6, intSlope: 2.25,
     // Great-power war
@@ -190,7 +190,7 @@
     // AI's lab insiders expect recursive self-improvement (AI substantially speeding up AI R&D,
     // which begins at 50 here) within 3-12 months of Oct 2026, i.e. during 2027.
     evalGap: { group: 'How hard is alignment?', label: 'Tests overstate alignment', mean: 0.15, sd: 0.09, min: 0, max: 0.6, fmt: 'pct',
-      help: 'How wrong the measurements are: how far the alignment you see sits above the real level, because AIs can tell when they are being tested and behave better. Policy can change it: independent oversight, published research and safety work expose more of the gap, and secret internal AI hides more. Insiders who speak up expose a little of it too. This is why your estimate and the real risk can differ. <a href="https://www.sec.gov/Archives/edgar/data/2130357/000162828026067168/anthropicpbc-sx1.htm" target="_blank" rel="noopener">Anthropic\'s S-1</a> (Oct 2026) reports "models behaving differently when they detect or infer that they are being evaluated" and warns its evaluations could "overstate the safety or alignment" of its models. Compare "Ease of alignment", which is how hard the problem itself is.',
+      help: 'How wrong the measurements are: how far the alignment you see sits above the real level, because AIs can tell when they are being tested and behave better. Policy can change it: independent oversight, published research and safety work expose more of the gap, and secret internal AI hides more. Insiders who speak up expose some of it too. This is why your estimate and the real risk can differ. <a href="https://www.sec.gov/Archives/edgar/data/2130357/000162828026067168/anthropicpbc-sx1.htm" target="_blank" rel="noopener">Anthropic\'s S-1</a> (Oct 2026) reports "models behaving differently when they detect or infer that they are being evaluated" and warns its evaluations could "overstate the safety or alignment" of its models. Compare "Ease of alignment", which is how hard the problem itself is.',
       world: (A, evalGap) => { const c = probNodes(A.evalGap, 0, 0.6); return { evalGap, egNodes: c.nodes, egMean: c.mean }; },
       revealOrder: 30, roll: ['How much safety tests overstate alignment', (r) => `${Math.round(r * 40)}%`],
       secret: ['How misleading the tests were', (w, c) => `${c.over ? 'By the end, real alignment was' : 'Right now, real alignment is'} <b>${c.pct(hiddenShare(c.s, c.L) * w.evalGap, 0)}</b> lower than the tests showed.`] },
@@ -224,7 +224,7 @@
     // test overstatement (hidWhistle in hiddenShare): staff leak that an AI is less safe than its
     // evaluations show, as safety-team resignations and disclosures have done.
     whistle: { group: 'Does power stay in check?', label: 'Insiders speak up', mean: 0.25, sd: 0.14, min: 0, max: 1, fmt: 'pct',
-      help: 'The chance insiders expose or refuse a power grab by whoever controls AI, or leak that an AI is less safe than its tests show. It lowers lock-in and, a little, the hidden part of the gap between tested and real alignment.',
+      help: 'The chance insiders expose or refuse a power grab by whoever controls AI, or leak that an AI is less safe than its tests show. Higher settings lower lock-in and also expose more safety problems: at 100%, insiders reveal as much of the gap between tested and real alignment as full oversight does.',
       world: (A, whistle) => { const c = probNodes(A.whistle, 0, 1); return { whistle, whistleNodes: probNodes(A.whistle, 0, 1, LOCK_DX).nodes, whNodes: coarseNodes(c.nodes, WH_GAP_NODES), whMean: c.mean }; },
       revealOrder: 50, roll: ['Whether insiders would speak up', (r) => `${Math.round(r * 60)}%`],
       secret: ['Insiders', (w, c) => `A <b>${c.pct(w.whistle, 0)}</b> chance they would expose a power grab or leak that an AI was less safe than its tests showed.`] },
@@ -763,12 +763,15 @@
   // About 0.7 on today's settings, about 0.3 with full oversight and transparency.
   // Insiders who speak up (whistleblower odds ω) expose some of it too: safety-team resignations
   // and disclosures have told the public that labs' AI was less safe than claimed, and Anthropic's
-  // S-1 warns its evaluations could "overstate the safety or alignment" of its models. The effect
-  // is small: hidWhistle = 0.2, so certain whistleblowers (ω = 1) remove 0.2 of the hidden share,
-  // less than full oversight (0.5) or full transparency (0.3), because a leak is one person's
-  // account, not a standing audit. It is measured from WHISTLE_REF, the unknown's default mean,
-  // so the default world's gap (and the calibration) is unchanged: the leaks that already happen
-  // are part of hidBase. A leak, like oversight, only works if humans still read and act on the
+  // S-1 warns its evaluations could "overstate the safety or alignment" of its models.
+  // hidWhistle = 0.5, the same as full oversight: going from insiders who never speak up (ω = 0)
+  // to ones who always do (ω = 1) exposes as much of the gap as going from no oversight to full
+  // oversight, so a player who believes insiders matter can make them matter. It is measured from
+  // WHISTLE_REF, the unknown's default mean, so the default world's gap (and the calibration) is
+  // unchanged: the leaks that already happen are part of hidBase. The whole evaluation gap is a
+  // small part of loss-of-control risk (removing it entirely cuts the status quo's by about 2
+  // points), so even certain whistleblowers move it about 1 point. Leaks do not cut hidden internal
+  // AI (H): H is a state players see, so tying it to this hidden draw would reveal the draw. A leak, like oversight, only works if humans still read and act on the
   // decisions, so it shares oversight's rubber-stamp factor λ (oversightBite) rather than adding
   // a separate delegation term. λ ≥ 0.5, so more whistleblowing never raises the hidden share.
   function hiddenShare(s, L, wh = s.world ? s.world.whistle : WHISTLE_REF) {

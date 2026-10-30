@@ -33,14 +33,14 @@
   "counts": {
    "flourish": 136,
    "bio": 8,
-   "misalign": 957,
+   "misalign": 956,
    "war": 54,
    "benevolent": 180,
-   "lockin": 165,
+   "lockin": 166,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.20931849791376914,
+  "pAlignment": 0.21001390820584145,
   "acMedian": 2030,
   "asiMedian": 2031
  },
@@ -61,31 +61,31 @@
  },
  "Plan B: Fight China": {
   "counts": {
-   "flourish": 98,
+   "flourish": 99,
    "bio": 5,
    "misalign": 587,
    "war": 261,
-   "benevolent": 112,
-   "lockin": 437,
+   "benevolent": 113,
+   "lockin": 435,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.43354943273906,
+  "pAlignment": 0.4327390599675851,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "Plan C: Burn the lead": {
   "counts": {
-   "flourish": 278,
+   "flourish": 273,
    "bio": 9,
-   "misalign": 709,
-   "war": 72,
-   "benevolent": 151,
-   "lockin": 281,
+   "misalign": 716,
+   "war": 71,
+   "benevolent": 156,
+   "lockin": 275,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.3939393939393939,
+  "pAlignment": 0.38591549295774646,
   "acMedian": 2030,
   "asiMedian": 2031
  },
@@ -138,74 +138,74 @@
   "counts": {
    "flourish": 283,
    "bio": 22,
-   "misalign": 853,
+   "misalign": 854,
    "war": 65,
    "benevolent": 150,
-   "lockin": 127,
+   "lockin": 126,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.29016277423920733,
+  "pAlignment": 0.2894550601556971,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "IAEA for AI": {
   "counts": {
-   "flourish": 488,
+   "flourish": 489,
    "bio": 6,
-   "misalign": 670,
+   "misalign": 669,
    "war": 50,
    "benevolent": 143,
    "lockin": 143,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.43698060941828254,
+  "pAlignment": 0.4376731301939058,
   "acMedian": 2031,
   "asiMedian": 2032
  },
  "Neuralink bet": {
   "counts": {
-   "flourish": 172,
+   "flourish": 174,
    "bio": 8,
-   "misalign": 853,
+   "misalign": 852,
    "war": 69,
-   "benevolent": 175,
+   "benevolent": 174,
    "lockin": 223,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.27758257203092057,
+  "pAlignment": 0.27898805340829236,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "BCI-first": {
   "counts": {
-   "flourish": 335,
-   "bio": 35,
-   "misalign": 192,
-   "war": 75,
-   "benevolent": 36,
-   "lockin": 90,
-   "pause": 676,
-   "muddle": 61
+   "flourish": 361,
+   "bio": 43,
+   "misalign": 196,
+   "war": 68,
+   "benevolent": 37,
+   "lockin": 81,
+   "pause": 663,
+   "muddle": 51
   },
-  "pAlignment": 0.7525317783653602,
+  "pAlignment": 0.7565965845169648,
   "acMedian": 2033,
   "asiMedian": 2033
  },
  "All compute on safety": {
   "counts": {
-   "flourish": 319,
+   "flourish": 317,
    "bio": 16,
-   "misalign": 572,
+   "misalign": 575,
    "war": 69,
    "benevolent": 135,
-   "lockin": 386,
+   "lockin": 385,
    "pause": 0,
    "muddle": 3
   },
-  "pAlignment": 0.49853254057050694,
+  "pAlignment": 0.496408856909635,
   "acMedian": 2032,
   "asiMedian": 2033
  }

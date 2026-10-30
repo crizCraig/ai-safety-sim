@@ -300,9 +300,9 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const L = { ...M.defaultLevers(), oversight: 0, transparency: 0, safety: 0 };
   const W0 = M.ASSUMPTION_INFO.whistle.mean;
   const at = (o, wh) => M.hiddenShare(Object.assign(M.initialState(), { internal: 50 }, o), L, wh);
-  check('Whistleblowers shrink the hidden share; neutral at the default mean; smaller than full oversight',
+  check('Whistleblowers shrink the hidden share; neutral at the default mean; at most as strong as full oversight',
     at({}, 1) < at({}, W0) && at({}, W0) < at({}, 0) && Math.abs(at({}, W0) - M.hiddenShare(Object.assign(M.initialState(), { internal: 50 }), L, null)) < 1e-12
-      && at({}, 0) - at({}, 1) < M.K.hidOversight && Math.abs(at({}, 0) - at({}, 1) - M.K.hidWhistle) < 1e-9,
+      && at({}, 0) - at({}, 1) <= M.K.hidOversight + 1e-12 && Math.abs(at({}, 0) - at({}, 1) - M.K.hidWhistle) < 1e-9,
     `${at({}, 0).toFixed(3)} / ${at({}, W0).toFixed(3)} / ${at({}, 1).toFixed(3)}`);
   check('Rubber-stamp oversight dampens leaks too', at({ deleg: 80 }, 0) - at({ deleg: 80 }, 1) < at({}, 0) - at({}, 1) - 0.03,
     `${(at({}, 0) - at({}, 1)).toFixed(3)} -> ${(at({ deleg: 80 }, 0) - at({ deleg: 80 }, 1)).toFixed(3)}`);
