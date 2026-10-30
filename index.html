@@ -598,12 +598,12 @@
   #ending .endlw a { color: var(--accent); }
   @media (max-width: 640px) { #lwLink { display: none; } }
 </style>
-<script src="model.js?v=20261030133748"></script>
-<script src="events.js?v=20261030133748"></script>
-<script src="news.js?v=20261030133748"></script>
-<script src="landmask.js?v=20261030133748"></script>
-<script src="presets.js?v=20261030133748"></script>
-<script src="trees.js?v=20261030133748"></script>
+<script src="model.js?v=20261030140415"></script>
+<script src="events.js?v=20261030140415"></script>
+<script src="news.js?v=20261030140415"></script>
+<script src="landmask.js?v=20261030140415"></script>
+<script src="presets.js?v=20261030140415"></script>
+<script src="trees.js?v=20261030140415"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -953,7 +953,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents, NEWS = window.SimNews;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261030133748';
+const ASSET_VERSION = '20261030140415';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -2333,13 +2333,21 @@ function unknownPreset() {
 function syncAssumptions(setInputs) {
   const u = unknownPreset();
   $('unkPresets').querySelectorAll('[data-u]').forEach((b) => b.classList.toggle('on', b.dataset.u === u));
+  // A chance on 0–100% can only spread as far as its center allows (a Beta's spread is capped,
+  // and is zero at 0% or 100%), so say so when the slider asks for more than is possible.
+  const pctLabel = (k) => {
+    const eff = M.probSpread(k, labA[k]), base = `${fmtA(k, labA[k].mean)} ± ${fmtA(k, eff, true)}`;
+    if (labA[k].sd - eff <= 0.005) return base;
+    return eff < 0.005 ? `${base} (no spread possible at the edge)` : `${base} (the most possible at this center)`;
+  };
   const note = $('unkNote');
   note.hidden = !u; if (u) note.innerHTML = UNKNOWN_PRESETS[u].html || UNKNOWN_PRESETS[u].text;
   for (const k in M.ASSUMPTION_INFO) {
     if (setInputs) { $('am-' + k).value = labA[k].mean; $('as-' + k).value = labA[k].sd; }
     $('av-' + k).textContent = M.ASSUMPTION_INFO[k].fmt.startsWith('log')
       ? `${fmtA(k, labA[k].mean)} (${fmtA(k, labA[k].sd, true)} spread)`
-      : `${fmtA(k, labA[k].mean)} ± ${fmtA(k, M.ASSUMPTION_INFO[k].fmt === 'pct' ? M.probSpread(k, labA[k]) : labA[k].sd, true)}`; // a Beta's spread after its cap
+      : M.ASSUMPTION_INFO[k].fmt === 'pct' ? pctLabel(k)
+      : `${fmtA(k, labA[k].mean)} ± ${fmtA(k, labA[k].sd, true)}`;
   }  // Keep a selected preset's note in step (it qualifies its promise when the unknowns differ).
   const on = $('presets').querySelector('[data-p].on'); if (on) selectPreset(on.dataset.p);
 }
