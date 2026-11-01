@@ -209,9 +209,6 @@
       world: (A, valueAlign) => ({ valueAlign, valueNodes: probNodes(A.valueAlign, 0, 1, LOCK_DX).nodes }),
       revealOrder: 70, roll: ['Whether aligned AI fights corruption', (r) => `${Math.round(r * 70)}%`],
       secret: ['Aligned AI fights corruption', (w, c) => `A <b>${c.pct(w.valueAlign, 0)}</b> chance an aligned AI would refuse to help a few seize power, even if its controllers asked.`] },
-    // Lognormal, set in log10 units. Calibrated to a separate factored Monte Carlo
-    // decomposition: decade median 1.2e-4, 95% interval ~5e-7 to ~3e-2,
-    // P(>1%) ≈ 5.5%, P(>10%) ≈ 0.7%. That is median 10^-3.92 with a log10 sd of about 1.2.
     share: { group: 'Does power stay in check?', label: 'The powerful share the gains', mean: 0.31, sd: 0.19, min: 0, max: 1, fmt: 'pct',
       help: 'If a few control AI and nothing forces them, the chance they share its gains broadly anyway. Low means the powerful keep AI and its gains once most people\'s work is no longer needed. The wealth fund, oversight, transparency and whistleblowers can still force sharing.',
       world: (A, share) => ({ share, shareNodes: probNodes(A.share, 0, 1, LOCK_DX).nodes }),
@@ -242,10 +239,15 @@
       help: 'How far China cuts its AI race once there are signs of losing control. It notices later than the US would, slows more if the US slows or a deal is in force, and never slows for fear of concentrated power: an AI that obeys the Party counts as aligned in Beijing.',
       world: (A, cnCaution) => ({ cnCaution }),
       revealOrder: 45, roll: ['Whether China slows down near the brink', (r) => `${Math.round(r * 70)}%`] },
-    // Evaluation awareness: current AIs can often tell when they are being tested and behave
-    // better then, so measured alignment may overstate the real thing.
-    bioDecade: { group: 'How dangerous are open weights?', label: 'Open-weights bio risk per decade', mean: -3.92, sd: 1.2, min: -7, max: -1, fmt: 'log',
-      help: 'Chance that open-weights models enable a pandemic killing 100M+ people within ten years, on the default path for open models and biodefense under the default assumptions. Policy scales it up or down from there.',
+    // Aggregate fit to a two-pathway Monte Carlo (2M samples, seed 20261001):
+    // uncertain sustained transmission, or an already-transmissible starting point
+    // whose transmission must be retained. One attempt pool, split Beta(2,2);
+    // retention logit-normal with central 90% 0.25–0.95. These are judgments.
+    // Source median 6.55e-4, mean 8.37e-3, 95% 5.75e-6–6.69e-2.
+    // Fit median and mean, rounded to the Lab's log10 units: -3.18, 1.00.
+    // Fit P(>1%) ≈ 11.9%, P(>10%) ≈ 1.46%; not total AI-enabled bio risk.
+    bioDecade: { group: 'How dangerous are open weights?', label: 'Open-weights bio risk per decade', mean: -3.18, sd: 1, min: -7, max: -1, fmt: 'log',
+      help: 'Chance that open-weights models enable a pandemic killing 100M+ people within ten years, on the default path. Includes both uncertain transmission and an already-transmissible starting point; both still face physical, containment, severity and attribution barriers. The illustrative fit has a 0.066% median and 0.83% mean per decade. Policy scales it from there. This is not total bio risk.',
       sample: (A, rng) => Math.min(0.99, Math.pow(10, A.bioDecade.mean + A.bioDecade.sd * gauss(rng))), // unclamped in log space: the tails are the point
       atMean: (A) => Math.pow(10, A.bioDecade.mean), world: (A, d) => bioWorld(d, A.bioDecade), notInBase: true,
       revealOrder: 90, roll: ['Pandemic risk from open models', (r) => `${(Math.pow(10, -6 + 4 * r) * 100).toPrecision(2)}%`],
@@ -583,9 +585,11 @@
 
   // Relative bio hazard of a state: open-weights uplift (dominant once open models
   // pass expert level) times how much biodefense (synthesis screening, surveillance,
-  // stockpiles) is missing. Closed-model and state-program pandemics are treated as
-  // negligible: states are deterred, and closed models keep capabilities away from
-  // rogue actors (see Superintelligence Strategy, nationalsecurity.ai).
+  // stockpiles) is missing. Both source pathways enter through the aggregate decade
+  // prior and share this coarse policy scaling, an assumption rather than a measured
+  // response. Natural outbreaks and closed-model misuse are outside this estimate. State
+  // programs are left out because states are deterred (MAIM, Superintelligence Strategy,
+  // nationalsecurity.ai).
   function bioShape(s) {
     return sig((s.openCap - K.bioOpenMid) / K.bioOpenW) * Math.pow(1 - s.bio / 100, K.bioDefExp);
   }

@@ -28,6 +28,15 @@ Locked-In Power (a catastrophe) and the public wealth fund follow
 [National Security Response](https://nationalsecurityresponse.ai/): automation can leave most
 people without economic leverage or a say even when humans keep control of AI.
 
+The pandemic estimate covers 100M+ deaths counterfactually attributable to open
+weights. Its illustrative prior now includes both uncertain transmission and an
+already-transmissible starting point, with the same attempt pool divided between
+them. The fitted decade prior has a 0.066% median and a 0.83% mean; these are
+different from the share of game futures ending in a pandemic. Natural outbreaks
+and closed-model misuse are outside that estimate; state programs are left out because
+states are deterred (MAIM, [Superintelligence Strategy](https://www.nationalsecurity.ai/)). The model page
+explains the assumptions, sensitivity and exposure calibration.
+
 ## Two modes
 
 - **Futures Lab**. Set ten policy levers and eleven uncertain

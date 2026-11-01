@@ -39,7 +39,7 @@ check('Status quo superintelligence 2031–2032 (median)', sq.asiMedian >= 2031 
 {
   const rng = M.mulberry32(11), L = M.defaultLevers(), n = 20000, risks = [];
   for (let i = 0; i < n; i++) {
-    const s = M.initialState(M.sampleWorld(A0, rng));
+    const s = M.initialState(M.sampleWorld(A0, rng)); s.fast = true; // only truth/outcomes are used here
     let h = 0;
     for (let y = 0; y < 10 && !s.outcome; y++) { h += M.bioShape(s); M.step(s, L, rng, true); }
     risks.push(1 - Math.exp(-s.world.bioScale * h));
@@ -47,9 +47,25 @@ check('Status quo superintelligence 2031–2032 (median)', sq.asiMedian >= 2031 
   risks.sort((a, b) => a - b);
   const q = (p) => risks[Math.floor(p * (n - 1))];
   const over = (x) => risks.filter((r) => r > x).length / n;
-  check('Bio realized decade risk median ≈ 1.2e-4 (within ×1.6)', q(0.5) > 1.2e-4 / 1.6 && q(0.5) < 1.2e-4 * 1.6, q(0.5).toExponential(2));
-  check('Bio P(decade risk > 1%) ≈ 0.055 (0.035–0.08)', over(0.01) >= 0.035 && over(0.01) <= 0.08, over(0.01).toFixed(3));
-  check('Bio P(decade risk > 10%) ≈ 0.007 (0.003–0.013)', over(0.1) >= 0.003 && over(0.1) <= 0.013, over(0.1).toFixed(4));
+  check('Bio realized decade risk median ≈ 6.6e-4 (within ×1.6)', q(0.5) > 6.6e-4 / 1.6 && q(0.5) < 6.6e-4 * 1.6, q(0.5).toExponential(2));
+  check('Bio P(decade risk > 1%) ≈ 0.12 (0.09–0.15)', over(0.01) >= 0.09 && over(0.01) <= 0.15, over(0.01).toFixed(3));
+  check('Bio P(decade risk > 10%) ≈ 0.015 (0.009–0.022)', over(0.1) >= 0.009 && over(0.1) <= 0.022, over(0.1).toFixed(4));
+}
+
+// The source mixture is summarized by the existing lognormal slider, not by new
+// world draws. Keep its median AND tail-driven mean close to the 2M-sample source;
+// the realized path checks above separately exercise exposure and competing endings.
+{
+  const rng = M.mulberry32(20261001), n = 200000, rs = [];
+  let sum = 0, above1 = 0, above10 = 0;
+  for (let i = 0; i < n; i++) {
+    const r = M.sampleWorld(A0, rng).bioDecade;
+    rs.push(r); sum += r; above1 += r > .01; above10 += r > .1;
+  }
+  rs.sort((a, b) => a - b);
+  check('Two-pathway bio fit keeps the source median (±10%)', Math.abs(rs[n / 2] / 6.55e-4 - 1) < .1, rs[n / 2].toExponential(3));
+  check('Two-pathway bio fit keeps the source mean (±10%)', Math.abs(sum / n / 8.37e-3 - 1) < .1, (sum / n).toExponential(3));
+  check('Two-pathway bio fit retains both exceedance tails (±20%)', Math.abs(above1 / n / .1267 - 1) < .2 && Math.abs(above10 / n / .0162 - 1) < .2);
 }
 
 // --- A pause holds capability still ---
@@ -108,6 +124,10 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const shown = M.risks(s, M.defaultLevers()).bio, g = M.bioShape(s), rng = M.mulberry32(13), n = 200000;
   let sum = 0; for (let i = 0; i < n; i++) sum += 1 - Math.exp(-M.sampleWorld(A0, rng).bioScale * g);
   check('Shown pandemic risk = expected risk over the unknown (±10%)', Math.abs(shown / (sum / n) - 1) < 0.1, `${(100 * shown).toFixed(3)}% vs ${(100 * sum / n).toFixed(3)}%`);
+  const changed = { ...s, world: { ...s.world, bioDecade: .1, bioScale: -Math.log(.9) / M.bioRefExposure() } };
+  check('Pandemic belief ignores the hidden draw while the real hazard uses it',
+    M.risks(changed, M.defaultLevers()).bio === shown
+      && M.risks(changed, M.defaultLevers()).bioTrue > M.risks(s, M.defaultLevers()).bioTrue);
   // Kindness belief matches the sampled share, also at the slider edge (a very skewed Beta).
   const A = { ...A0, benevolent: { mean: 0.05, sd: 1 / 3 } };
   let kind = 0; const r2 = M.mulberry32(3); for (let i = 0; i < 50000; i++) if (M.sampleWorld(A, r2).benevolent) kind++;
@@ -640,7 +660,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Ending difficulty: ties counted separately (22% / 13% / 65%)', Math.round(r.below * 100) === 22 && Math.round(r.same * 100) === 13 && Math.round(r.above * 100) === 65, JSON.stringify(r));
   // C14-1: the searched promises name their assumption, and the page flags differing unknowns.
   const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
-  check('Safest mix / Under 2% promises say they assume the defaults', /under 2% under the default \(AI 2040\) assumptions/.test(PR.PRESET_INFO['Under 2% risk']) && /Under the default \(AI 2040\) assumptions, about 1%/.test(PR.PRESET_INFO['Safest mix']) && html.includes('Your hidden assumptions differ from the defaults'));
+  check('Safest mix / Under 2% promises say they assume the defaults', /under 2% under the default \(AI 2040\) assumptions/.test(PR.PRESET_INFO['Under 2% risk']) && /Under the default \(AI 2040\) assumptions, about 1\.6%/.test(PR.PRESET_INFO['Safest mix']) && html.includes('Your hidden assumptions differ from the defaults'));
   // C14-4: the reference and README document Current capability.
   const readme = require('fs').readFileSync(__dirname + '/README.md', 'utf8');
   check('Reference documents Current capability and README counts eleven assumptions', html.includes('Current capability: the US bloc') && Object.keys(M.ASSUMPTION_INFO).length === 11 && readme.includes('eleven uncertain'));

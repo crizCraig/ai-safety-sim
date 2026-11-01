@@ -1,211 +1,211 @@
 {
  "Safest mix": {
   "counts": {
-   "flourish": 6,
-   "bio": 7,
-   "misalign": 3,
-   "war": 17,
+   "flourish": 11,
+   "bio": 15,
+   "misalign": 5,
+   "war": 14,
    "benevolent": 0,
    "lockin": 0,
-   "pause": 1460,
-   "muddle": 7
+   "pause": 1447,
+   "muddle": 8
   },
-  "pAlignment": 0.841939142828331,
+  "pAlignment": 0.8419750993519927,
   "acMedian": 2038,
   "asiMedian": 2039
  },
  "Under 2% risk": {
   "counts": {
-   "flourish": 5,
-   "bio": 9,
-   "misalign": 3,
+   "flourish": 3,
+   "bio": 8,
+   "misalign": 2,
    "war": 14,
    "benevolent": 1,
    "lockin": 0,
-   "pause": 1448,
-   "muddle": 20
+   "pause": 1454,
+   "muddle": 18
   },
-  "pAlignment": 0.8449284541543362,
+  "pAlignment": 0.8444352727388392,
   "acMedian": 2038,
   "asiMedian": 2039
  },
  "Status quo": {
   "counts": {
-   "flourish": 136,
-   "bio": 8,
-   "misalign": 956,
-   "war": 54,
-   "benevolent": 180,
-   "lockin": 166,
+   "flourish": 131,
+   "bio": 15,
+   "misalign": 942,
+   "war": 58,
+   "benevolent": 182,
+   "lockin": 172,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.21001390820584145,
+  "pAlignment": 0.212333566923616,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "Plan A: Verified slowdown": {
   "counts": {
-   "flourish": 257,
-   "bio": 31,
-   "misalign": 189,
-   "war": 33,
-   "benevolent": 31,
-   "lockin": 38,
-   "pause": 863,
-   "muddle": 58
+   "flourish": 223,
+   "bio": 52,
+   "misalign": 207,
+   "war": 34,
+   "benevolent": 33,
+   "lockin": 44,
+   "pause": 853,
+   "muddle": 54
   },
-  "pAlignment": 0.7454602147237006,
+  "pAlignment": 0.7217808859152612,
   "acMedian": 2032,
-  "asiMedian": 2035
+  "asiMedian": 2034
  },
  "Plan B: Fight China": {
   "counts": {
-   "flourish": 99,
-   "bio": 5,
+   "flourish": 98,
+   "bio": 7,
    "misalign": 587,
    "war": 261,
    "benevolent": 113,
-   "lockin": 435,
+   "lockin": 434,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.4327390599675851,
+  "pAlignment": 0.4318181818181818,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "Plan C: Burn the lead": {
   "counts": {
-   "flourish": 273,
-   "bio": 9,
-   "misalign": 716,
+   "flourish": 271,
+   "bio": 11,
+   "misalign": 717,
    "war": 71,
    "benevolent": 156,
-   "lockin": 275,
+   "lockin": 274,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.38591549295774646,
+  "pAlignment": 0.3843441466854725,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "Plan D: Race to ASI": {
   "counts": {
    "flourish": 42,
-   "bio": 8,
-   "misalign": 1009,
-   "war": 47,
-   "benevolent": 202,
-   "lockin": 192,
+   "bio": 11,
+   "misalign": 1005,
+   "war": 48,
+   "benevolent": 201,
+   "lockin": 193,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.1619377162629758,
+  "pAlignment": 0.16308119361554477,
   "acMedian": 2029,
   "asiMedian": 2030
  },
  "Plan S: Shut it down": {
   "counts": {
-   "flourish": 7,
-   "bio": 3,
+   "flourish": 8,
+   "bio": 5,
    "misalign": 3,
-   "war": 13,
+   "war": 8,
    "benevolent": 1,
    "lockin": 0,
-   "pause": 1351,
-   "muddle": 122
+   "pause": 1367,
+   "muddle": 108
   },
-  "pAlignment": 0.7507973311560472,
+  "pAlignment": 0.7657727436250084,
   "acMedian": 2038,
   "asiMedian": 2039
  },
  "Open everything": {
   "counts": {
-   "flourish": 227,
-   "bio": 19,
-   "misalign": 912,
-   "war": 59,
-   "benevolent": 177,
-   "lockin": 106,
+   "flourish": 210,
+   "bio": 41,
+   "misalign": 904,
+   "war": 57,
+   "benevolent": 184,
+   "lockin": 104,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.23417721518987342,
+  "pAlignment": 0.2239657631954351,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "Open + biodefense": {
   "counts": {
-   "flourish": 283,
-   "bio": 22,
-   "misalign": 854,
-   "war": 65,
-   "benevolent": 150,
+   "flourish": 276,
+   "bio": 40,
+   "misalign": 847,
+   "war": 64,
+   "benevolent": 147,
    "lockin": 126,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.2894550601556971,
+  "pAlignment": 0.28796561604584525,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "IAEA for AI": {
   "counts": {
-   "flourish": 489,
-   "bio": 6,
-   "misalign": 669,
-   "war": 50,
-   "benevolent": 143,
-   "lockin": 143,
+   "flourish": 474,
+   "bio": 20,
+   "misalign": 667,
+   "war": 65,
+   "benevolent": 139,
+   "lockin": 135,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.4376731301939058,
+  "pAlignment": 0.4303886925795053,
   "acMedian": 2031,
   "asiMedian": 2032
  },
  "Neuralink bet": {
   "counts": {
-   "flourish": 174,
-   "bio": 8,
-   "misalign": 852,
-   "war": 69,
-   "benevolent": 174,
-   "lockin": 223,
+   "flourish": 165,
+   "bio": 12,
+   "misalign": 850,
+   "war": 67,
+   "benevolent": 167,
+   "lockin": 239,
    "pause": 0,
    "muddle": 0
   },
-  "pAlignment": 0.27898805340829236,
+  "pAlignment": 0.28430682617874736,
   "acMedian": 2030,
   "asiMedian": 2031
  },
  "BCI-first": {
   "counts": {
-   "flourish": 361,
-   "bio": 43,
-   "misalign": 196,
-   "war": 68,
-   "benevolent": 37,
-   "lockin": 81,
-   "pause": 663,
-   "muddle": 51
+   "flourish": 349,
+   "bio": 100,
+   "misalign": 198,
+   "war": 77,
+   "benevolent": 41,
+   "lockin": 92,
+   "pause": 590,
+   "muddle": 53
   },
-  "pAlignment": 0.7565965845169648,
+  "pAlignment": 0.7490020507804899,
   "acMedian": 2033,
   "asiMedian": 2033
  },
  "All compute on safety": {
   "counts": {
-   "flourish": 317,
-   "bio": 16,
-   "misalign": 575,
-   "war": 69,
-   "benevolent": 135,
-   "lockin": 385,
+   "flourish": 301,
+   "bio": 24,
+   "misalign": 588,
+   "war": 65,
+   "benevolent": 129,
+   "lockin": 389,
    "pause": 0,
-   "muddle": 3
+   "muddle": 4
   },
-  "pAlignment": 0.496408856909635,
+  "pAlignment": 0.49031985352718416,
   "acMedian": 2032,
   "asiMedian": 2033
  }

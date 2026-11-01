@@ -4,3 +4,6 @@ node_modules/
 
 # Local secrets (API keys); never commit
 .env
+
+# Private source material and local analyses
+/private/
