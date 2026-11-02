@@ -1187,7 +1187,7 @@
     lockin: { title: 'Locked-In Power', color: '#c38bff',
       text: 'Humans kept control of AI, but a few now hold it and nearly all of its gains. Whether they seized it or it drifted to them as AI took over the work, most people have lost their economic leverage and their say, and nothing checks the few. Absolute power corrupts absolutely.' },
     pause: { title: 'The Careful Path', color: '#7fe3ff',
-      text: 'A verified international regime kept frontier capability inside what alignment could handle. Superintelligence has not arrived yet — but when it does, the tools and the trust to handle it will be there.' },
+      text: '2040 arrives with no catastrophe: real alignment has kept up with the most capable AI, and the US and China are cooperating. Superintelligence has not arrived yet, but the world is well placed to handle it when it does.' },
     muddle: { title: 'Muddling Through', color: '#b8c4d6',
       text: '2040 arrives with no catastrophe — and no resolution. The race continues, the risks compound, and the hardest decisions still lie ahead.' },
   };
