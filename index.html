@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Game of AGI</title>
 <meta name="description" content="A 3D strategy simulator for AI safety decisions: the US–China race, open weights and bio risk, neural interfaces, and the road to superintelligence.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Game of AGI">
+<meta property="og:url" content="https://thegameofagi.com/">
+<meta property="og:title" content="Can you win the Game of AGI?">
+<meta property="og:description" content="Set your priors and play out 2,000 futures of the AI race: alignment, the US–China race, open weights, power concentration. Can you save humanity?">
+<meta property="og:image" content="https://thegameofagi.com/assets/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Game of AGI: a glowing globe with the question Can you win the Game of AGI? and a Play button">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Can you win the Game of AGI?">
+<meta name="twitter:description" content="Set your priors and play out 2,000 futures of the AI race: alignment, the US–China race, open weights, power concentration. Can you save humanity?">
+<meta name="twitter:image" content="https://thegameofagi.com/assets/og.jpg">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2711%27 fill=%27none%27 stroke=%27%237fe3ff%27 stroke-width=%273%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%274%27 fill=%27%23ffd76a%27/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -598,12 +611,12 @@
   #ending .endlw a { color: var(--accent); }
   @media (max-width: 640px) { #lwLink { display: none; } }
 </style>
-<script src="model.js?v=20261101162108"></script>
-<script src="events.js?v=20261101162108"></script>
-<script src="news.js?v=20261101162108"></script>
-<script src="landmask.js?v=20261101162108"></script>
-<script src="presets.js?v=20261101162108"></script>
-<script src="trees.js?v=20261101162108"></script>
+<script src="model.js?v=20261101211042"></script>
+<script src="events.js?v=20261101211042"></script>
+<script src="news.js?v=20261101211042"></script>
+<script src="landmask.js?v=20261101211042"></script>
+<script src="presets.js?v=20261101211042"></script>
+<script src="trees.js?v=20261101211042"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -958,7 +971,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents, NEWS = window.SimNews;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261101162108';
+const ASSET_VERSION = '20261101211042';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
