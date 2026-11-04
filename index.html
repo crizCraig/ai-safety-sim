@@ -69,6 +69,25 @@
   body.mode-campaign #card { top: 50%; bottom: auto; transform: translate(-50%, -50%); width: min(820px, calc(100vw - 640px)); }
   body.mode-campaign #card.hidden { transform: translate(-50%, -46%); }
   @media (prefers-reduced-motion: reduce) { canvas#gl, #card { transition: none; } }
+  /* No-3D mode (WebGL unavailable or lost): a still sky stands in for the globe, and the Lab
+     draws its futures flat. Everything else works the same. */
+  #flat { position: fixed; inset: 0; display: none; overflow: hidden; transition: filter .6s ease;
+    background: radial-gradient(ellipse 80% 60% at 50% 45%, #0c1c3e 0%, #060c1c 55%, var(--bg) 100%); }
+  /* A faint planet and a few stars, so the page doesn't look broken. */
+  #flat::before { content: ''; position: absolute; left: 50%; top: 50%; width: min(70vw, 70vh); aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #12305e 0%, #0a1a3a 45%, #050c1e 70%); box-shadow: 0 0 80px 10px rgba(61, 139, 255, .22), inset 0 0 40px rgba(127, 227, 255, .12); opacity: .75; }
+  #flat::after { content: ''; position: absolute; inset: 0; opacity: .7; background:
+    radial-gradient(1px 1px at 12% 18%, #9fb4ff, transparent), radial-gradient(1px 1px at 78% 12%, #9fb4ff, transparent), radial-gradient(1.5px 1.5px at 64% 82%, #9fb4ff, transparent),
+    radial-gradient(1px 1px at 30% 70%, #9fb4ff, transparent), radial-gradient(1px 1px at 88% 56%, #9fb4ff, transparent), radial-gradient(1.5px 1.5px at 22% 42%, #9fb4ff, transparent),
+    radial-gradient(1px 1px at 52% 8%, #9fb4ff, transparent), radial-gradient(1px 1px at 6% 88%, #9fb4ff, transparent), radial-gradient(1px 1px at 94% 90%, #9fb4ff, transparent); }
+  body.mode-lab #flat::before, body.mode-lab #flat::after { display: none; }
+  #flat2d { position: absolute; inset: 0; width: 100%; height: 100%; display: none; }
+  #flat .flat-note { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); margin: 0; display: none; max-width: calc(100% - 32px); white-space: nowrap;
+    font-size: 11px; color: var(--muted); text-align: center; }
+  body.no3d #flat { display: block; }
+  body.no3d canvas#gl, body.no3d #labels, body.no3d #axisHelp { display: none !important; }
+  body.no3d.mode-lab #flat2d, body.no3d.mode-lab #flat .flat-note { display: block; }
+  body.deciding #flat, body.reading #flat { filter: blur(8px) brightness(.5) saturate(.8); }
   button { font-family: inherit; color: inherit; cursor: pointer; }
 
   /* ---------- top bar ---------- */
@@ -463,6 +482,7 @@
     #catBig .cb-num { font-size: 34px; }
     #catBig .cb-lbl { font-size: 9.5px; }
     body.mode-lab canvas#gl { z-index: 4; border-bottom: 1px solid var(--line); }
+    body.mode-lab #flat { z-index: 4; border-bottom: 1px solid var(--line); }
     body.mode-lab #left, body.mode-lab #right { position: relative; z-index: 1; top: auto; left: auto; right: auto; bottom: auto; }
     body.mode-lab #left { order: 2; }
 
@@ -624,15 +644,16 @@
   #ending .endlw a { color: var(--accent); }
   @media (max-width: 640px) { #lwLink { display: none; } }
 </style>
-<script src="model.js?v=20261103220918"></script>
-<script src="events.js?v=20261103220918"></script>
-<script src="news.js?v=20261103220918"></script>
-<script src="landmask.js?v=20261103220918"></script>
-<script src="presets.js?v=20261103220918"></script>
-<script src="trees.js?v=20261103220918"></script>
+<script src="model.js?v=20261103221646"></script>
+<script src="events.js?v=20261103221646"></script>
+<script src="news.js?v=20261103221646"></script>
+<script src="landmask.js?v=20261103221646"></script>
+<script src="presets.js?v=20261103221646"></script>
+<script src="trees.js?v=20261103221646"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
+<div id="flat" aria-hidden="true"><canvas id="flat2d"></canvas><p class="flat-note" id="flatNote">3D view unavailable on this device; outcomes below.</p></div>
 
 <div id="top">
   <a class="brand" id="brand" href="./" title="Go to the campaign">GAME OF AGI<small>an AI safety simulator</small></a>
@@ -983,8 +1004,17 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents, NEWS = window.SimNews;
+// Older Chromium (before 98) has import maps but no structuredClone. Game state is plain data
+// plus Sets, which this copies.
+const structuredClone = globalThis.structuredClone || function clone(v) {
+  if (v instanceof Set) return new Set([...v].map(clone));
+  if (v instanceof Map) return new Map([...v].map(([k, x]) => [clone(k), clone(x)]));
+  if (Array.isArray(v)) return v.map(clone);
+  if (v && typeof v === 'object') { const o = {}; for (const k in v) o[k] = clone(v[k]); return o; }
+  return v;
+};
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261103220918';
+const ASSET_VERSION = '20261103221646';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -993,9 +1023,27 @@ const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 
  * Three.js scene
  * ===================================================================== */
 const canvas = $('gl');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.setSize(innerWidth, innerHeight);
+// WebGL can be missing on real phones (hardware acceleration off, a crashed or blocklisted GPU
+// process, some in-app browsers) or lost mid-game. Without it the page runs in no-3D mode:
+// renderer, composer and bloom stay null, the animation loop stops, a still sky replaces the
+// globe and the Lab draws its futures flat (drawFlat). The scene objects below are plain
+// JavaScript and are still built, so nothing else needs to know.
+let renderer = null, composer = null, bloom = null, gl3d = false;
+let flatPaths = null; // the Lab's latest futures, for the flat fallback chart
+function goNo3D(why) {
+  if (why) console.error('Game of AGI: running without 3D.', why);
+  gl3d = false;
+  document.body.classList.add('no3d');
+  try { $('labels').replaceChildren(); } catch (e) {}
+  if (flatPaths) drawFlat();
+}
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
+  gl3d = true;
+} catch (e) { renderer = null; goNo3D(e); }
+canvas.addEventListener('webglcontextlost', (e) => { goNo3D(new Error('WebGL context lost')); });
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x03060d, 0.012);
 const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 500);
@@ -1007,18 +1055,24 @@ controls.autoRotateSpeed = 0.35;
 controls.minDistance = 9; controls.maxDistance = 80;
 controls.enablePan = false;
 
-const composer = new EffectComposer(renderer);
-composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.95, 0.55, 0.12);
-composer.addPass(bloom);
-composer.addPass(new OutputPass());
+if (gl3d) {
+  try {
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.95, 0.55, 0.12);
+    composer.addPass(bloom);
+    composer.addPass(new OutputPass());
+    bloom.enabled = false;
+  } catch (e) { console.error('Game of AGI: bloom unavailable.', e); composer = null; bloom = null; }
+}
 // The glow fades in after first paint. Compiling the bloom shaders blocks the first frame for
 // about half a second, so the first frames render without bloom; once the page is idle, the
 // shaders compile in the background (parallel compile where the GPU supports it) and the glow
 // ramps up over a second. bloomGoal is the strength the current mode wants.
 let bloomGoal = 0.95, bloomFade = 0;
-bloom.enabled = false;
 function enableBloom() {
+  if (!gl3d || !bloom || !renderer) return;
+  try {
   const qs = [bloom.materialHighPassFilter, ...bloom.separableBlurMaterials, bloom.compositeMaterial, bloom.blendMaterial];
   const warm = new THREE.Scene(), geo = new THREE.PlaneGeometry(2, 2);
   for (const m of qs) warm.add(new THREE.Mesh(geo, m));
@@ -1032,6 +1086,7 @@ function enableBloom() {
     bloomFade = reduce ? 1 : 0; bloom.strength = bloomGoal * bloomFade; bloom.enabled = true;
   };
   ready.then(go, go);
+  } catch (e) { console.error('Game of AGI: bloom unavailable.', e); }
 }
 const bloomSoon = () => setTimeout(() => (window.requestIdleCallback || setTimeout)(enableBloom, { timeout: 1000 }), 500);
 if (document.readyState === 'complete') bloomSoon(); else addEventListener('load', bloomSoon);
@@ -1276,6 +1331,8 @@ const fanZ = (a) => 6 - THREE.MathUtils.clamp(a, 0, 100) / 100 * 12;
 let fanAnim = 0;
 // Every line ends at the state it reached, in a sphere of its outcome's colour (the outcome list's bullets match).
 function buildFan(paths) {
+  flatPaths = paths;
+  if (!gl3d) { drawFlat(); return; }
   setHover(null);
   for (const ch of [...fanLines.children]) {
     ch.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); });
@@ -1301,6 +1358,66 @@ function buildFan(paths) {
     line.add(end); line.userData.end = end;
   }
   fanAnim = 0;
+}
+
+// No-3D fallback for the Lab: the same futures drawn flat, capability by year, coloured by
+// outcome, with the outcome focus applied. Drawn on demand (new futures, focus, resize).
+function drawFlat() {
+  if (gl3d || !flatPaths || currentMode() !== 'lab') return;
+  const cv = $('flat2d'), box = cv.getBoundingClientRect();
+  const W = Math.round(box.width), H = Math.round(box.height);
+  const x = W && H ? cv.getContext('2d') : null;
+  if (!x) return;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  cv.width = W * dpr; cv.height = H * dpr;
+  x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, H);
+  // The plot sits under the headline number and, on wide screens, between the side panels.
+  $('flatNote').textContent = `3D view unavailable on this device; ${phoneLayout() ? 'capability by year, outcomes below' : 'showing capability by year'}.`;
+  let l = 48, r = W - 24, t = 72, b = H - 50;
+  if (!phoneLayout()) {
+    const Lr = $('left').getBoundingClientRect(), Rr = $('right').getBoundingClientRect(), cb = $('catBig').getBoundingClientRect();
+    if (Lr.width) l = Lr.right + 56;
+    if (Rr.width) r = Rr.left - 28;
+    if (cb.height) t = cb.bottom - box.top + 36;
+    if (r - l < 200) { l = 48; r = W - 24; }
+  }
+  if (b - t < 80) t = Math.max(8, b - 80);
+  const Y0 = M.START_YEAR, Y1 = M.END_YEAR, CMAX = 110;
+  const px = (y) => l + (y - Y0) / (Y1 - Y0) * (r - l);
+  const py = (c) => b - Math.min(CMAX, Math.max(0, c)) / CMAX * (b - t);
+  x.font = '500 11px Space Grotesk, sans-serif'; x.lineWidth = 1;
+  // Grid and axes
+  x.strokeStyle = '#1c2a48';
+  for (let c = 0; c <= 100; c += 25) { x.beginPath(); x.moveTo(l, py(c)); x.lineTo(r, py(c)); x.stroke(); }
+  x.fillStyle = '#8a97ad'; x.textAlign = 'right'; x.textBaseline = 'middle';
+  for (let c = 0; c <= 100; c += 50) x.fillText(String(c), l - 8, py(c));
+  x.textAlign = 'center'; x.textBaseline = 'top';
+  for (const y of [Y0, 2030, 2035, Y1]) x.fillText(String(y), px(y), b + 6);
+  x.strokeStyle = '#4b6a9a'; x.beginPath(); x.moveTo(l, t); x.lineTo(l, b); x.lineTo(r, b); x.stroke();
+  x.fillStyle = '#c3cee0'; x.textAlign = 'left'; x.textBaseline = 'bottom'; x.fillText('capability', l - 30, t - 8);
+  const mark = (c, col, txt, dash) => {
+    x.save(); x.strokeStyle = col; x.globalAlpha = 0.6; x.setLineDash(dash); x.beginPath(); x.moveTo(l, py(c)); x.lineTo(r, py(c)); x.stroke(); x.restore();
+    x.fillStyle = col; x.textAlign = 'right'; x.textBaseline = 'bottom'; x.fillText(txt, r, py(c) - 3);
+  };
+  mark(70, '#7fe3ff', 'automated coder', [5, 4]);
+  mark(100, '#ffd76a', 'superintelligence threshold', []);
+  // Futures: the focused outcome stands out, the rest fade, as in the 3D view.
+  x.lineWidth = 1.2; x.lineJoin = 'round';
+  const shown = (p) => !labFocus || p.outcome === labFocus;
+  const order = [...flatPaths].sort((a, c) => shown(a) - shown(c)); // focused ones on top
+  for (const p of order) {
+    const col = M.OUTCOMES[p.outcome].color, pts = p.points;
+    x.globalAlpha = !labFocus ? 0.32 : shown(p) ? 0.7 : 0.03;
+    x.strokeStyle = col; x.beginPath();
+    pts.forEach((q, i) => (i ? x.lineTo : x.moveTo).call(x, px(q.year), py(q.cap)));
+    x.stroke();
+  }
+  for (const p of order) {
+    const q = p.points[p.points.length - 1];
+    x.globalAlpha = shown(p) ? 1 : 0.08; x.fillStyle = M.OUTCOMES[p.outcome].color;
+    x.beginPath(); x.arc(px(q.year), py(q.cap), 2.6, 0, Math.PI * 2); x.fill();
+  }
+  x.globalAlpha = 1;
 }
 
 /* ---------- hover readout: snap to the nearest simulated year ---------- */
@@ -1370,7 +1487,11 @@ function syncTarget(s, L) {
 const clock = new THREE.Clock();
 const tmpV = new THREE.Vector3(), tmpC = new THREE.Color();
 function animate() {
+  if (!gl3d) return; // no-3D mode: nothing to draw, the loop stops
   requestAnimationFrame(animate);
+  try { frame(); } catch (e) { goNo3D(e); }
+}
+function frame() {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
   for (const k in target) if (typeof target[k] === 'number' && k !== 'outT') vis[k] += (target[k] - vis[k]) * Math.min(1, dt * 2.5);
   if (vis.outcome) vis.outT = Math.min(1, vis.outT + dt * 0.35);
@@ -1387,8 +1508,8 @@ function animate() {
   }
   updateHover();
   controls.update();
-  if (bloom.enabled) { bloomFade = Math.min(1, bloomFade + dt); bloom.strength = bloomGoal * bloomFade; }
-  composer.render();
+  if (bloom && bloom.enabled) { bloomFade = Math.min(1, bloomFade + dt); bloom.strength = bloomGoal * bloomFade; }
+  if (composer) composer.render(); else renderer.render(scene, camera);
   updateLabels();
 }
 
@@ -1519,10 +1640,13 @@ function resizeView() {
   canvas.style.top = hdr + 'px';
   canvas.style.height = h + 'px';
   canvas.style.bottom = phoneLab ? 'auto' : '';
+  const flat = $('flat');
+  flat.style.top = hdr + 'px'; flat.style.height = h + 'px'; flat.style.bottom = phoneLab ? 'auto' : '';
   document.documentElement.style.setProperty('--graph-bottom', (hdr + h) + 'px');
   document.documentElement.style.setProperty('--graph-top', hdr + 'px');
   camera.aspect = innerWidth / h; camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, h); composer.setSize(innerWidth, h);
+  if (renderer) try { renderer.setSize(innerWidth, h); composer?.setSize(innerWidth, h); } catch (e) { console.error(e); }
+  drawFlat();
 }
 const currentMode = () => (document.body.classList.contains('mode-lab') ? 'lab' : 'campaign');
 addEventListener('resize', resizeView);
@@ -1637,7 +1761,8 @@ function preloadImg(url) {
   return preloaded.get(url);
 }
 let preloadStarted = false;
-function preloadCardArt() {
+function preloadCardArt() { try { preloadCardArt1(); } catch (e) { console.error('Game of AGI: preloading failed.', e); } }
+function preloadCardArt1() {
   const conn = navigator.connection;
   if (preloadStarted || (conn && (conn.saveData || /2g$/.test(conn.effectiveType || '')))) return;
   preloadStarted = true;
@@ -2419,6 +2544,7 @@ $('outcomes').addEventListener('click', (e) => {
 });
 const lineOpacity = (line) => !labFocus ? 0.32 : line.userData.path.outcome === labFocus ? 0.7 : 0.03;
 function applyFocus() {
+  drawFlat();
   for (const line of fanLines.children) {
     line.material.opacity = lineOpacity(line);
     line.userData.end.material.transparent = true;
@@ -2721,15 +2847,21 @@ function loadShared() {
 }
 $('shareLink').onclick = () => {
   const url = shareURL();
-  if (navigator.share && matchMedia('(pointer: coarse)').matches) { navigator.share({ title: 'Game of AGI', text: 'My settings in the Game of AGI. Can you save humanity?', url }).catch(() => {}); return; }
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+    try { navigator.share({ title: 'Game of AGI', text: 'My settings in the Game of AGI. Can you save humanity?', url }).catch(() => {}); return; } catch (e) {}
+  }
   const ok = () => toast('Link copied. Anyone who opens it sees these settings in the Futures Lab.');
-  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).then(ok, () => copyFallback(url));
-  else copyFallback(url);
+  writeClip(url, ok);
 };
 function copyForAI(text, msg) {
   const ok = () => toast(msg);
-  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(ok, () => copyFallback(text));
-  else copyFallback(text);
+  writeClip(text, ok);
+}
+// The async clipboard can be missing (http, some in-app browsers) or throw; the fallback shows
+// the text selected in a box to copy by hand.
+function writeClip(text, ok) {
+  try { if (navigator.clipboard?.writeText) { navigator.clipboard.writeText(text).then(ok, () => copyFallback(text)); return; } } catch (e) {}
+  copyFallback(text);
 }
 $('copyPage').onclick = () => copyForAI(scenarioText(), 'Copied. Paste it into Claude or another AI and ask it to poke holes in the model.');
 $('copyCampaign').onclick = $('endCopy').onclick = () => { if (game) copyForAI(campaignText(), 'Copied. Paste it into Claude or another AI and ask why your game went the way it did.'); };
@@ -3145,20 +3277,28 @@ $('tourBtn').onclick = () => {
 
 // thegameofagi.com/#model (or #how-it-works) opens straight to "How the model works".
 const DEEP_MODEL = /^#(model|how-it-works)$/i.test(location.hash);
-syncSecrets();
-if (loadShared()) { setMode('lab'); maybeTour('lab'); }
-else {
-  selectPreset('Status quo');
-  let saved = null;
-  try { saved = localStorage.getItem('goagi-mode'); } catch (e) {}
-  if (saved === 'lab') { setMode('lab'); maybeTour('lab'); } else openSplash();
-}
-if (DEEP_MODEL) { closeSplash(); $('modelBtn').onclick(); }
+// Startup is guarded so a failure in one step (a bad shared link, the 3D view, a tutorial)
+// is logged and the home screen still opens.
+const guard = (what, f) => { try { return f(); } catch (e) { console.error('Game of AGI: ' + what + ' failed.', e); } };
+guard('secrets', syncSecrets);
+let shared = false, started = false;
+try { shared = loadShared(); } catch (e) { console.error('Game of AGI: shared link failed.', e); }
+guard('startup', () => {
+  if (shared) { setMode('lab'); started = true; maybeTour('lab'); }
+  else {
+    guard('preset', () => selectPreset('Status quo'));
+    let saved = null;
+    try { saved = localStorage.getItem('goagi-mode'); } catch (e) {}
+    if (saved === 'lab') { setMode('lab'); started = true; maybeTour('lab'); } else { openSplash(); started = true; }
+  }
+});
+if (!started) guard('home screen', openSplash);
+if (DEEP_MODEL) guard('model page', () => { closeSplash(); $('modelBtn').onclick(); });
 // Closing the model page with no game under it brings back the title screen.
 function afterModelClose() { if (mode === 'campaign' && !game) openSplash(); }
 document.querySelectorAll('[data-close="modelInfo"]').forEach((b) => b.addEventListener('click', afterModelClose));
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && DEEP_MODEL) afterModelClose(); });
-animate();
+guard('3D view', animate);
 </script>
 </body>
 </html>
