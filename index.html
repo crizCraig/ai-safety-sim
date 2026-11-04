@@ -611,12 +611,12 @@
   #ending .endlw a { color: var(--accent); }
   @media (max-width: 640px) { #lwLink { display: none; } }
 </style>
-<script src="model.js?v=20261103162141"></script>
-<script src="events.js?v=20261103162141"></script>
-<script src="news.js?v=20261103162141"></script>
-<script src="landmask.js?v=20261103162141"></script>
-<script src="presets.js?v=20261103162141"></script>
-<script src="trees.js?v=20261103162141"></script>
+<script src="model.js?v=20261103212339"></script>
+<script src="events.js?v=20261103212339"></script>
+<script src="news.js?v=20261103212339"></script>
+<script src="landmask.js?v=20261103212339"></script>
+<script src="presets.js?v=20261103212339"></script>
+<script src="trees.js?v=20261103212339"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -971,7 +971,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const M = window.SimModel, E = window.SimEvents, NEWS = window.SimNews;
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261103162141';
+const ASSET_VERSION = '20261103212339';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
