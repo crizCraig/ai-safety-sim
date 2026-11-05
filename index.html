@@ -159,6 +159,11 @@
   .cardart { display: block; width: calc(100% + 40px); margin: -18px -20px 12px; padding: 0; border: 0; border-bottom: 1px solid var(--line);
     border-radius: 16px 16px 0 0; overflow: hidden; background: transparent; cursor: zoom-in; height: 150px; }
   .cardart img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
+  /* A split president picture (Republican | Democrat) shows one half once the player has picked
+     who won the 2028 election: the image is drawn twice as wide and shifted. */
+  .cardart { overflow: hidden; }
+  .cardart img.half { width: 200%; max-width: none; object-position: 50% 50% !important; }
+  .cardart img.half.r { margin-left: -100%; }
   .cardart.expanded { height: auto; aspect-ratio: 12 / 5; cursor: zoom-out; }
   /* Pencil sketches on light paper: dim and tone them slightly and fade the bottom edge into the
      dark card so they sit behind the text; full brightness on hover or when expanded. */
@@ -180,6 +185,22 @@
   .choice { text-align: left; background: rgba(255,255,255,0.035); border: 1px solid var(--line); border-radius: 11px; padding: 10px 12px; transition: all .18s; }
   .choice:hover, .choice:focus-visible { border-color: var(--accent); background: rgba(127,227,255,0.08); transform: translateY(-2px); outline: none; }
   .choice strong { display: block; font-size: 13.5px; margin-bottom: 3px; }
+  /* Let Washington decide: a row under the choices that skips one or more years. */
+  .ff { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 12px; color: var(--muted); }
+  .ff button { font: inherit; color: var(--text); background: rgba(255,255,255,0.035); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+  .ff button:hover, .ff button:focus-visible { border-color: var(--accent); outline: none; }
+  .ff .ffgo { color: var(--accent); font-weight: 600; }
+  .ff .fflbl { flex: 1 1 100%; min-width: 0; line-height: 1.35; }
+  .ff .fflbl b { color: var(--text); font-weight: 500; }
+  .ff .ffsep { color: var(--muted); }
+  .ff .ffparty { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; }
+  .choice.ffpick { border-color: var(--accent); }
+  .ffwhy { font-size: 12px !important; color: var(--muted) !important; }
+  .ffwhy a { color: var(--accent); }
+  #ffBar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 12; display: flex; white-space: nowrap; width: max-content; align-items: center; gap: 10px; background: var(--panel-solid); border: 1px solid var(--accent); border-radius: 999px; padding: 5px 6px 5px 14px; font-size: 12.5px; max-width: calc(100vw - 32px); box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+  #ffBar[hidden] { display: none; }
+  #ffBar button { font: inherit; font-weight: 600; color: var(--text); background: var(--bad); border: 0; border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+  .declist li .who { color: var(--muted); font-size: 10.5px; }
   .choice small { display: block; font-size: 11.5px; color: var(--muted); line-height: 1.35; }
   .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
   .chip { font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 5px; background: rgba(255,255,255,0.06); }
@@ -505,6 +526,7 @@
     /* A split picture (Vance | Democrat) would lose one president to the backdrop's centre
        crop, so it is shown whole, as a strip in the backdrop's visible part. */
     #card > .cardart img.split { object-fit: contain; object-position: 50% 55% !important; }
+    #card > .cardart img.half { object-fit: cover; }
     /* Darker choice buttons over the picture keep their small grey text at the plain card's contrast. */
     #card:not(.resolved) .choice { background: rgba(8,13,26,.62); }
     /* Ending on phones: like the cards, the picture is a faint backdrop behind the top of the
@@ -644,12 +666,12 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261105105149"></script>
-<script src="events.js?v=20261105105149"></script>
-<script src="news.js?v=20261105105149"></script>
-<script src="landmask.js?v=20261105105149"></script>
-<script src="presets.js?v=20261105105149"></script>
-<script src="trees.js?v=20261105105149"></script>
+<script src="model.js?v=20261110104741"></script>
+<script src="events.js?v=20261110104741"></script>
+<script src="news.js?v=20261110104741"></script>
+<script src="landmask.js?v=20261110104741"></script>
+<script src="presets.js?v=20261110104741"></script>
+<script src="trees.js?v=20261110104741"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -757,6 +779,7 @@
   </div>
 </div>
 <div id="toast" role="status" hidden></div>
+<div id="ffBar" class="campaign-only" role="status" hidden><span id="ffBarText"></span><button id="ffStop">Stop</button></div>
 <div class="modal hidden" id="copyFallback">
   <div class="box">
     <div class="kicker">Copy for AI</div>
@@ -840,7 +863,7 @@
       <li>Otherwise apply the yearly updates (section 5), clamp every state variable to 0–100 and move to the next year. Every update reads the state as it stood at the start of the year, so the order of the updates does not matter. The one exception is a deal shock (section 5): when a deal dissolves or weakens, the cut to coordination <span class="mi">K</span> applies this year, before alignment's sharing term and coordination's own update read it.</li>
       <li>If frontier capability reaches 100, resolve the superintelligence handoff; in 2040, resolve the ending (section 4).</li>
     </ol>
-    <p>The Futures Lab runs 2,000 futures with the levers held fixed. In the campaign, each decision card also moves levers and state directly (<code>events.js</code>).</p>
+    <p>The Futures Lab runs 2,000 futures with the levers held fixed. In the campaign, each decision card also moves levers and state directly (<code>events.js</code>). <b>Let Washington decide</b> skips a year by applying the choice the US government would most likely make (<code>policies.js</code>): for 2027–2028 the Trump administration's, from its stated and enacted AI policy (the July 2025 AI Action Plan, its executive orders, export-control and international stances); from 2029, a Republican or Democratic administration's, picked by the player or a coin flip, from each party's stated positions (platforms, leaders' statements, recent bills). Where a party has no stated position on a card's issue, the closest stated principle is used and flagged as a judgment call. Every default depends only on the card, the year and the party, never on the hidden facts, and each comes with a one-line reason and its sources.</p>
 
     <h3>2. Notation</h3>
     <p><b>State variables</b>, each on a 0–100 scale:</p>
@@ -1003,7 +1026,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
-const M = window.SimModel, E = window.SimEvents, NEWS = window.SimNews;
+const M = window.SimModel, E = window.SimEvents, NEWS = window.SimNews, POL = window.SimPolicies;
 // Older Chromium (before 98) has import maps but no structuredClone. Game state is plain data
 // plus Sets, which this copies.
 const structuredClone = globalThis.structuredClone || function clone(v) {
@@ -1014,7 +1037,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261105105149';
+const ASSET_VERSION = '20261110104741';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1654,15 +1677,7 @@ addEventListener('resize', resizeView);
 /* =====================================================================
  * Campaign
  * ===================================================================== */
-const QUIET = {
-  id: 'quiet', tag: 'Budget', title: 'Budget Season',
-  text: 'A quieter year. Congress asks where the next $100 billion of AI spending should go.',
-  choices: [
-    { label: 'Compute & capabilities', note: 'Bigger clusters, faster models.', lev: { race: +0.1 }, st: { capUS: +3 } },
-    { label: 'Alignment research', note: 'Interpretability, control, evals.', lev: { safety: +0.03 }, st: { align: +3 } },
-    { label: 'Biodefense & diplomacy', note: 'Split between the two.', lev: { biodef: +0.1, diplomacy: +0.1 }, st: { coord: +3, bio: +2 } },
-  ],
-};
+const QUIET = E.QUIET;
 
 let game = null;
 // The pictures that show the post-2028 US president (PRESIDENT_ART) are split down the middle:
@@ -1680,9 +1695,11 @@ const pickPresident = () => (PRESIDENTS.includes(FORCED_PRESIDENT) ? FORCED_PRES
 const yearRng = (salt) => M.mulberry32((game.seed + game.s.year * 7919 + salt) | 0);
 
 function newGame() {
+  stopAuto(false);
   const seed = (Math.random() * 2 ** 31) | 0;
   game = { seed, s: M.initialState(M.sampleWorld(M.defaultAssumptions(), M.mulberry32(seed))), L: M.defaultLevers(),
-    used: new Set(), decisions: [], history: [], phase: 'choose', card: null, president: pickPresident() };
+    used: new Set(), decisions: [], history: [], phase: 'choose', card: null, president: pickPresident(),
+    party: null, partyFlip: false, auto: null };
   vis.outcome = null; vis.outT = 0;
   syncTarget(game.s, game.L);
   Object.assign(vis, target);
@@ -1697,12 +1714,96 @@ function nextCard() {
   const c = E.pickCard(game.s, game.L, game.used, yearRng(1)) || QUIET;
   game.used.add(c.id);
   showCard(c);
+  if (game.auto) {
+    if (game.auto.big && BIG_CARDS.has(c.id)) { stopAuto(false); toast(`Stopped for a big decision: ${c.title}.`); }
+    else game.autoTimer = setTimeout(() => { if (game.auto && game.phase === 'choose') ffDecide(); }, prefersReducedMotion() ? 250 : 650);
+  }
 }
+
+/* ---------- Let Washington decide (policies.js) ---------- */
+// Cards that stop "Skip to the next big decision".
+const BIG_CARDS = new Set(['deal', 'threshold', 'collapse', 'covert', 'taiwan', 'sabotage', 'automate', 'cern']);
+const PARTY_NAME = { rep: 'Republican', dem: 'Democratic' };
+// The likely choice on the current card, or null when the year needs a party not yet picked.
+const ffDefault = () => POL.defaultChoice(game.card, game.s.year, game.party);
+const adminLabel = (admin) => POL.ADMINS[admin].name;
+const srcLinks = (src) => src.map((k, i) => `<a href="${POL.SOURCES[k][1]}" target="_blank" rel="noopener" title="${escHTML(POL.SOURCES[k][0])}">[${i + 1}]</a>`).join(' ');
+const srcPlain = (src) => src.map((k) => `${POL.SOURCES[k][0]} (${POL.SOURCES[k][1]})`).join('; ');
+// The row under the choices.
+function ffRowHTML() {
+  const y = game.s.year, d = ffDefault();
+  const party = game.party ? `<button class="ffparty" data-ffparty title="Change who won the 2028 election">${PARTY_NAME[game.party]}${game.partyFlip ? ' (coin flip)' : ''}</button>` : '';
+  const lbl = d
+    ? `${y <= POL.TRUMP_LAST_YEAR ? 'The Trump administration' : `A ${party} administration`} would likely choose <b>${escHTML(d.choice.label)}</b>${d.entry.judgment ? ' (a judgment call: no stated position)' : ''}.`
+    : 'From 2029, the next president decides: you pick who won the 2028 election.';
+  const tip = d ? `${d.entry.why} Based on ${POL.ADMINS[d.admin].basis}. Sources: ${d.entry.src.map((k) => POL.SOURCES[k][0]).join('; ')}.` : '';
+  return `<div class="ff" id="ff"><span class="fflbl" title="${escHTML(tip)}">${lbl}</span>
+    <button class="ffgo" data-ff="1" title="Apply this choice and play the year">Let Washington decide</button>
+    <span class="ffsep">Skip:</span><button data-ff="3" title="Let Washington decide this year and the next two">3 years</button><button data-ff="big" title="Let Washington decide until a crisis or other big decision comes up">next big decision</button><button data-ff="end" title="Let Washington decide every year to the end">to 2040</button></div>`;
+}
+// Ask who won the 2028 election, then carry on with `then`.
+function askParty(then) {
+  const ff = $('ff'); if (!ff) return;
+  ff.innerHTML = `<span class="fflbl">Who won the 2028 election? From 2029, Washington's choices follow that party's stated positions.</span>
+    <button data-pickparty="rep">Republican</button><button data-pickparty="dem">Democratic</button><button data-pickparty="flip">Coin flip</button><button data-pickparty="">Cancel</button>`;
+  ff.querySelectorAll('[data-pickparty]').forEach((b) => b.onclick = (e) => {
+    e.stopPropagation();
+    const v = b.dataset.pickparty;
+    if (v) {
+      game.partyFlip = v === 'flip';
+      game.party = v === 'flip' ? (Math.random() < 0.5 ? 'rep' : 'dem') : v;
+      if (game.partyFlip) toast(`Coin flip: a ${PARTY_NAME[game.party]} administration takes office in 2029.`);
+      showCardArt(game.card);
+    }
+    ff.outerHTML = ffRowHTML(); wireFF();
+    if (v && then) then();
+  });
+  ff.querySelector('[data-pickparty]').focus({ preventScroll: true });
+}
+function wireFF() {
+  const ff = $('ff'); if (!ff) return;
+  ff.querySelectorAll('[data-ff]').forEach((b) => {
+    b.onclick = () => startFF(b.dataset.ff);
+    if (b.dataset.ff === '1') {
+      const hi = (on) => { const d = ffDefault(); if (!d) return; const i = game.card.choices.indexOf(d.choice); $('choices').querySelectorAll('.choice').forEach((c, j) => c.classList.toggle('ffpick', on && j === i)); renderRisks(on ? preview(d.choice) : undefined); };
+      b.onmouseenter = b.onfocus = () => hi(true); b.onmouseleave = b.onblur = () => hi(false);
+    }
+  });
+  const pb = ff.querySelector('[data-ffparty]'); if (pb) pb.onclick = () => askParty(null);
+}
+// Start letting Washington decide: '1' this year, '3' three years, 'big' until a big card, 'end' to 2040.
+function startFF(kind) {
+  if (game.phase !== 'choose') return;
+  const y = game.s.year;
+  const until = kind === '1' ? y : kind === '3' ? y + 2 : M.END_YEAR;
+  if (!game.party && until > POL.TRUMP_LAST_YEAR) { askParty(() => startFF(kind)); return; }
+  game.auto = kind === '1' ? null : { until, big: kind === 'big' };
+  renderFFBar();
+  ffDecide();
+}
+function ffDecide() {
+  const d = ffDefault();
+  if (!d) { stopAuto(false); askParty(() => startFF('1')); return; }
+  choose(d.choice, { admin: d.admin, why: d.entry.why, src: d.entry.src, judgment: d.entry.judgment, party: game.party, flip: game.partyFlip });
+}
+function stopAuto(render = true) {
+  if (!game) return;
+  clearTimeout(game.autoTimer);
+  game.auto = null;
+  if (render) renderFFBar(); else $('ffBar').hidden = true;
+}
+function renderFFBar() {
+  const a = game?.auto;
+  $('ffBar').hidden = !a;
+  if (a) $('ffBarText').textContent = `Letting Washington decide ${a.big ? 'until the next big decision' : a.until >= M.END_YEAR ? 'to the end' : `through ${a.until}`}…`;
+}
+$('ffStop').onclick = () => stopAuto();
 
 // Return to the decision made at history[i]; later years are discarded.
 function rewind(i) {
   const h = game.history[i];
   if (!h || game.phase === 'rolling') return;
+  stopAuto(false);
   game.s = structuredClone(h.s); game.L = { ...h.L }; game.used = new Set(h.used);
   game.decisions.length = i; game.history.length = i;
   vis.outcome = null; vis.outT = 0;
@@ -1728,12 +1829,17 @@ function setArt(art, img, src, focusId, fallback) {
   img.classList.add('pending');
   img.onload = () => img.classList.remove('pending');
   img.onerror = () => {
-    if (fallback && img.src !== new URL(fallback, location.href).href) { img.style.objectPosition = ''; img.classList.remove('split'); img.src = fallback; } else art.hidden = true;
+    if (fallback && img.src !== new URL(fallback, location.href).href) { img.style.objectPosition = ''; img.classList.remove('split', 'half', 'r'); img.src = fallback; } else art.hidden = true;
   };
   img.style.objectPosition = focusPos(focusId);
-  img.classList.toggle('split', PRESIDENT_ART.has(focusId));
+  const half = presidentHalf(focusId);
+  img.classList.toggle('split', PRESIDENT_ART.has(focusId) && !half);
+  img.classList.toggle('half', !!half); img.classList.toggle('r', half === 'r');
   img.src = src;
 }
+// Once the player has picked who won the 2028 election, a split picture after 2028 shows only
+// that party's president: the left half (Republican) or the right (Democrat).
+const presidentHalf = (id) => (PRESIDENT_ART.has(id) && game?.party && game.s.year > POL.TRUMP_LAST_YEAR ? (game.party === 'rep' ? 'l' : 'r') : null);
 // The file for a picture: <id>-vance-<democrat> for the split ones that show the president.
 const artFile = (id) => (PRESIDENT_ART.has(id) ? `${id}-vance-${game?.president || PRESIDENTS[0]}` : id);
 const cardArtUrl = (id) => `assets/cards-gpt/${artFile(id)}.webp?v=${ASSET_VERSION}`;
@@ -1857,6 +1963,7 @@ function fillCard(c) {
     b.addEventListener('click', () => choose(ch));
     wrap.append(b);
   });
+  wrap.insertAdjacentHTML('beforeend', ffRowHTML()); wireFF();
   $('card').classList.remove('hidden');
 }
 
@@ -1896,20 +2003,30 @@ function project(ch) {
 }
 function preview(ch) { return { now: project(ch), base: project(null) }; }
 
-function choose(ch) {
+function choose(ch, by = null) {
   if (game.phase !== 'choose') return;
+  // A choice of your own ends any skipping.
+  if (!by && game.auto) stopAuto();
+  clearTimeout(game.autoTimer);
   game.phase = 'rolling';
   document.body.classList.remove('deciding');
   game.before = { ...game.s };
   game.L0 = { ...game.L };
   game.lastChoice = ch.label; game.lastChoiceObj = ch;
   E.applyChoice(game.s, game.L, ch);
-  game.decisions.push({ year: game.s.year, title: game.card.title, label: ch.label });
+  game.decisions.push({ year: game.s.year, title: game.card.title, label: ch.label, by });
   syncTarget(game.s, game.L);
   renderAll();
   rollYear();
 }
 
+// "You chose: X", or who decided when Washington did, with the reason and sources.
+function youChoseHTML(d) {
+  if (!d.by) return `<div class="youchose">You chose: ${escHTML(d.label)}</div>`;
+  const b = d.by;
+  return `<div class="youchose">You let Washington decide: ${adminLabel(b.admin)}${b.admin !== 'trump' && b.flip ? ' (by coin flip)' : ''} chose ${escHTML(d.label)}.</div>
+    <div class="youchose ffwhy">${escHTML(b.why)}${b.judgment ? ' A judgment call: no stated position on this issue.' : ''} Based on ${POL.ADMINS[b.admin].basis}. ${srcLinks(b.src)}</div>`;
+}
 function rollYear() {
   const s = game.s, L = game.L, year = s.year;
   const r = M.risks(s, L);
@@ -1939,19 +2056,21 @@ function rollYear() {
   }).join('') +
     `<div class="rollfoot"><details class="rollhelp"><summary><span class="ibub" aria-hidden="true">i</span><span class="rhl">How the dice fell</span></summary><div class="note pop">Each red bar is the real chance of that catastrophe this year, drawn to scale. The white needle is where the die landed: inside the red means it happened. "Expected" is your best guess without the secret facts: the average over every world you might be in. The real chance can differ because those facts, like how hard alignment really is, stay hidden${secretsOn ? '' : ' (Show secret facts reveals them)'}.</div></details></div><div class="verdict" id="verdict">Rolling ${year}…</div>`;
   const reduce = prefersReducedMotion();
+  // Skipping years rolls faster.
+  const SETTLE = game.auto ? 600 : 1300;
   let t0 = 0;
   const wiggle = () => {
-    const el = reduce ? 1300 : performance.now() - t0;
+    const el = reduce ? SETTLE : performance.now() - t0;
     for (let i = 0; i < lanes.length; i++) {
       const n = $('nd' + i); if (!n) return;
-      const settle = Math.min(1, el / 1300);
+      const settle = Math.min(1, el / SETTLE);
       // Lanes after a hit were never rolled.
       if (hitLane >= 0 && i > hitLane) { n.style.display = 'none'; n.parentElement.parentElement.classList.add('skipped'); continue; }
       const final = lanes[i][4] * 100; // same scale as the zone, unclamped
       const x = settle < 1 ? (Math.sin(el / 60 + i * 2) * 0.5 + 0.5) * 100 * (1 - settle) + final * settle : final;
       n.style.left = x + '%';
     }
-    if (el < 1300) requestAnimationFrame(wiggle);
+    if (el < SETTLE) requestAnimationFrame(wiggle);
   };
   // Stage 1: the bars fade in where the choices were, in about the same space, and the
   // needles roll. The card keeps its size and place.
@@ -1963,7 +2082,7 @@ function rollYear() {
     roll.style.minHeight = choicesH + 'px';
     t0 = performance.now(); wiggle();
     // Stage 2, a beat after the needles settle: the outcome.
-    setTimeout(showOutcome, reduce ? 700 : 1600);
+    setTimeout(showOutcome, reduce ? (game.auto ? 300 : 700) : SETTLE + 300);
   }, [$('choices'), roll], true);
   function showOutcome() {
     syncTarget(s, L);
@@ -1993,7 +2112,7 @@ function rollYear() {
     const c0 = M.maxCap(game.before), c1 = M.maxCap(s);
     const cue = res.event ? '' : c0 < M.TOP_EXPERT && c1 >= M.TOP_EXPERT
       ? 'AI now rivals top human experts and does most of its own research: loss-of-control risk climbs fast from here.'
-      : c0 < M.AC && c1 >= M.AC ? 'AI now does most of its own coding and research: loss-of-control risk starts rising.' : '';
+      : c0 < M.AC && c1 >= M.AC ? 'AI now does all of its own engineering and most of its research: loss-of-control risk starts rising.' : '';
     const cueHTML = cue ? `<div class="youchose" style="color:var(--warn)">${cue}</div>` : '';
     if (res.event) { vis.outcome = res.event; vis.outT = 0; preloadImg(endArtUrl(res.event)); }
     game.phase = res.event ? 'ended' : 'result';
@@ -2008,13 +2127,16 @@ function rollYear() {
       // The picture keeps its choosing size and tone in the result (tap still opens it whole).
       // The outcome sits on the left and Continue on the right on desktop; on phones Continue
       // grows to fill the space, so the card keeps the size it had while choosing.
-      $('verdict').innerHTML = `<div class="vtext">${verdict}<div class="youchose">You chose: ${game.lastChoice}</div>${cueHTML}${yearChanges(game.before, s)}</div>
+      $('verdict').innerHTML = `<div class="vtext">${verdict}${youChoseHTML(rec)}${cueHTML}${yearChanges(game.before, s)}</div>
         <div class="nxcol"><button class="btn next" id="nextBtn"><span class="nxl"><small>${res.event ? 'The story ends' : 'Next year'}</small>${res.event ? 'See the ending' : `Continue to ${s.year}`}</span><span class="nxa" aria-hidden="true">→</span></button>
         <button class="linkbtn rechoose" data-rewind="${game.decisions.length - 1}">↺ Change my choice</button></div>`;
       const short = h0 - card.getBoundingClientRect().height;
       if (short > 1) roll.style.minHeight = (roll.getBoundingClientRect().height + short) + 'px';
       $('nextBtn').onclick = advance;
       $('nextBtn').focus({ preventScroll: true });
+      // Skipping on: go straight to next year's card (the front page stays in the history).
+      if (game.auto && !res.event && s.year <= game.auto.until) game.autoTimer = setTimeout(() => { if (game.auto && game.phase === 'result') { game.paperOpen = true; advance(); } }, prefersReducedMotion() ? 300 : 900);
+      else if (game.auto) stopAuto();
     // The picture, tag, title and description stay put; only the parts below them change.
     }, cardParts().filter((el) => !['cardArt', 'cardTag', 'cardTitle', 'cardText'].includes(el.id)), true);
   }
@@ -2092,10 +2214,26 @@ function paperHTML(d, i) {
     <div class="lower${third ? '' : ' nothird'}">${thirdHTML}${summary}${econBox(e, e0)}</div>
     <div class="foot">The Ledger is fictional. Stories are written from what you can see; the hidden facts stay hidden. Economic figures are illustrative, derived from the visible state, not model outputs.</div>`;
 }
-function showPaper() {
-  const i = game.decisions.length - 1, d = game.decisions[i];
+// An earlier year's front page, from the history list; its button returns to where you were.
+function openArchivePaper(i) {
+  const d = game.decisions[i];
+  if (!d?.result?.news?.length || game.phase === 'rolling' || game.phase === 'over') return;
+  game.archive = { i, wasOpen: !!game.paperOpen };
+  stopAuto();
+  showPaper(i);
+}
+function closeArchivePaper() {
+  const a = game.archive; game.archive = null;
+  if (a.wasOpen) { showPaper(); return; }
+  hidePaper();
+  $('card').classList.remove('hidden');
+}
+function showPaper(at) {
+  const archive = at != null;
+  const i = archive ? at : game.decisions.length - 1, d = game.decisions[i];
+  if (!archive) game.archive = null;
   if (!d?.result?.news?.length) { game.paperOpen = true; advance(); return; }
-  game.paperOpen = true;
+  if (!archive) game.paperOpen = true;
   const paper = $('paper'), view = $('paperView');
   paper.innerHTML = paperHTML(d, i);
   // Pictures fade in once loaded (as card art does); a missing one leaves the paper-toned box.
@@ -2104,7 +2242,9 @@ function showPaper() {
     if (im.complete && im.naturalWidth) done(); else { im.onload = done; im.onerror = () => { im.style.visibility = 'hidden'; }; }
   });
   const end = game.phase === 'ended';
-  $('paperNext').innerHTML = `<span><small>${end ? 'The story ends' : 'Next year'}</small>${end ? 'See the ending' : `Continue to ${game.s.year}`}</span><span class="nxa" aria-hidden="true">→</span>`;
+  $('paperNext').innerHTML = archive
+    ? `<span><small>Front page of ${d.year}</small>Back to the game</span><span class="nxa" aria-hidden="true">→</span>`
+    : `<span><small>${end ? 'The story ends' : 'Next year'}</small>${end ? 'See the ending' : `Continue to ${game.s.year}`}</span><span class="nxa" aria-hidden="true">→</span>`;
   $('paperBack').dataset.rewind = i;
   view.style.top = Math.round($('top').getBoundingClientRect().bottom + 6) + 'px';
   $('card').classList.add('hidden');
@@ -2115,11 +2255,11 @@ function showPaper() {
   $('paperNext').focus({ preventScroll: true });
 }
 function hidePaper() {
-  if (game) game.paperOpen = false;
+  if (game) { game.paperOpen = false; game.archive = null; }
   $('paperView').classList.add('hidden');
   document.body.classList.remove('reading');
 }
-$('paperNext').onclick = () => advance();
+$('paperNext').onclick = () => (game.archive ? closeArchivePaper() : advance());
 $('paperBack').onclick = () => rewind(+$('paperBack').dataset.rewind);
 
 // ---------- Est. chance of catastrophe by 2040 ----------
@@ -2241,8 +2381,8 @@ function mcBar(mc) {
 function renderAll() { renderTimeline(); renderChart(); renderStats(); renderRisks(); renderLevers(); renderHistory(); }
 
 function decisionItems(withNews = false) {
-  return game.decisions.map((d, i) => `<li><b>${d.year}</b>${d.title}: ${d.label}
-    <button class="rewind" data-rewind="${i}" title="Go back to ${d.year} and choose again">change</button>${withNews && d.news?.length
+  return game.decisions.map((d, i) => `<li><b>${d.year}</b>${d.title}: ${d.label}${d.by ? ` <span class="who">(${POL.ADMINS[d.by.admin].short})</span>` : ''}
+    <button class="rewind" data-rewind="${i}" title="Go back to ${d.year} and choose again">change</button>${!withNews && d.result?.news?.length && i < game.decisions.length - (['result', 'ended'].includes(game.phase) ? 1 : 0) ? `<button class="rewind" data-paper="${i}" title="Read the ${d.year} front page">page</button>` : ''}${withNews && d.news?.length
       ? `<span class="dnews"><i>${d.news[0].desk}:</i> ${d.news[0].text}</span>` : ''}</li>`).join('');
 }
 function renderHistory() {
@@ -2251,6 +2391,8 @@ function renderHistory() {
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-rewind]');
   if (b) rewind(+b.dataset.rewind);
+  const p = e.target.closest('[data-paper]');
+  if (p) openArchivePaper(+p.dataset.paper);
 });
 
 function renderTimeline() {
@@ -2688,7 +2830,9 @@ function campaignText() {
   const s = game.s, over = !!s.outcome, showSecrets = over || secretsOn;
   const leverLine = (L) => M.LEVER_ORDER.map((k) => `${M.LEVER_INFO[k].label} ${leverText(k, L[k])}`).join('; ');
   const years = game.decisions.map((d) => {
-    const lines = [`### ${d.year}: ${d.title}`, '', `- **Choice:** ${d.label}`];
+    const lines = [`### ${d.year}: ${d.title}`, '', d.by
+      ? `- **Choice:** ${d.label}. **Decided by:** Washington, not the player: ${adminLabel(d.by.admin)}${d.by.admin !== 'trump' ? ` (the player ${d.by.flip ? 'left the 2028 election to a coin flip' : `picked a ${PARTY_NAME[d.by.party]} win in 2028`})` : ''}, based on ${POL.ADMINS[d.by.admin].basis}${d.by.judgment ? ' (a judgment call: no stated position on this issue, so the closest stated principle)' : ''}. Reason: ${d.by.why} Sources: ${srcPlain(d.by.src)}.`
+      : `- **Choice:** ${d.label}. **Decided by:** the player.`];
     if (d.L) lines.push(`- **Levers after the choice:** ${leverLine(d.L)}`);
     if (d.st) lines.push(`- **State after the choice (0–100):** ${statLine(d.st)}`);
     if (d.risk) {
@@ -2744,7 +2888,7 @@ If the whole period had run under the final policy settings, ${e.mc.n.toLocaleSt
   }
   return `# Game of AGI: campaign playthrough
 
-Below is a playthrough of the campaign in Game of AGI, a toy simulator of AI-safety policy from 2027 to 2040 (${SITE}, code: ${REPO}). It is meant to make trade-offs tangible, not to forecast. Each year the player gets one card and picks one choice; the choice moves the policy levers and the world, then the model steps a year and rolls dice for each catastrophe using this world's hidden facts. ${over ? `This game ended in ${s.year}.` : `This game is in progress: it is ${s.year}.`}
+Below is a playthrough of the campaign in Game of AGI, a toy simulator of AI-safety policy from 2027 to 2040 (${SITE}, code: ${REPO}). It is meant to make trade-offs tangible, not to forecast. Each year the player gets one card and picks one choice, or lets Washington decide (the choice the US government would most likely make, from the sitting or chosen administration's stated positions); the choice moves the policy levers and the world, then the model steps a year and rolls dice for each catastrophe using this world's hidden facts. ${over ? `This game ended in ${s.year}.` : `This game is in progress: it is ${s.year}.`}
 
 Treat every number as an assumption of this model, not as evidence about the real world. Quote the model code when it matters. My question is at the end, after the model reference and code.
 
@@ -3116,12 +3260,14 @@ document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (
 addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { $('modelInfo').classList.add('hidden'); if (tour) endTour(); if (distOpen) closeDist(); }
   if (tour) return;
+  if (mode === 'campaign' && game?.archive && ['Enter', ' ', 'ArrowRight', 'Escape'].includes(e.key)) { e.preventDefault(); closeArchivePaper(); return; }
   if (mode === 'campaign' && game && ['result', 'ended'].includes(game.phase) && ['Enter', ' ', 'ArrowRight'].includes(e.key)) {
     e.preventDefault(); advance(); return;
   }
   if (mode === 'campaign' && game && game.phase === 'choose' && ['1', '2', '3'].includes(e.key)) {
     const ch = game.card.choices[+e.key - 1]; if (ch) choose(ch);
   }
+  if (mode === 'campaign' && game && game.phase === 'choose' && !game.auto && (e.key === 'w' || e.key === 'W') && !e.metaKey && !e.ctrlKey) startFF('1');
 });
 
 buildLabUI();

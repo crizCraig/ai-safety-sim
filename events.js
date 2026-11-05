@@ -261,6 +261,17 @@
     },
   ];
 
+  // The quiet year, when no card applies (pickCard returns null).
+  const QUIET = {
+    id: 'quiet', tag: 'Budget', title: 'Budget Season',
+    text: 'A quieter year. Congress asks where the next $100 billion of AI spending should go.',
+    choices: [
+      { label: 'Compute & capabilities', note: 'Bigger clusters, faster models.', lev: { race: +0.1 }, st: { capUS: +3 } },
+      { label: 'Alignment research', note: 'Interpretability, control, evals.', lev: { safety: +0.03 }, st: { align: +3 } },
+      { label: 'Biodefense & diplomacy', note: 'Split between the two.', lev: { biodef: +0.1, diplomacy: +0.1 }, st: { coord: +3, bio: +2 } },
+    ],
+  };
+
   function applyChoice(s, L, choice) {
     // A verified deal in force before the choice caps what the choice can add to capability.
     const capped = SimModel.dealActive(s, L);
@@ -291,5 +302,5 @@
     return pool[Math.floor(rng() * pool.length)];
   }
 
-  root.SimEvents = { CARDS, applyChoice, pickCard };
+  root.SimEvents = { CARDS, QUIET, applyChoice, pickCard };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
