@@ -9,7 +9,7 @@ and how much compute goes to safety.
 
 **Play it:** https://thegameofagi.com
 
-**Write-up and discussion:** [Game of AGI: a Monte Carlo sim for AI-safety](https://www.lesswrong.com/posts/8Fi9ugohcPChqc3YR/game-of-agi-a-monte-carlo-sim-for-ai-safety) on LessWrong.
+Write-up: [Game of AGI](https://crizcraig.substack.com/p/game-of-agi-a-monte-carlo-sim-for) on Substack.
 
 **Run it locally:** open `index.html` in a browser, or serve the folder
 (`python3 -m http.server`) and visit http://localhost:8000.
