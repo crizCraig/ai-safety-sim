@@ -644,12 +644,12 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261104171952"></script>
-<script src="events.js?v=20261104171952"></script>
-<script src="news.js?v=20261104171952"></script>
-<script src="landmask.js?v=20261104171952"></script>
-<script src="presets.js?v=20261104171952"></script>
-<script src="trees.js?v=20261104171952"></script>
+<script src="model.js?v=20261104173727"></script>
+<script src="events.js?v=20261104173727"></script>
+<script src="news.js?v=20261104173727"></script>
+<script src="landmask.js?v=20261104173727"></script>
+<script src="presets.js?v=20261104173727"></script>
+<script src="trees.js?v=20261104173727"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -1014,7 +1014,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261104171952';
+const ASSET_VERSION = '20261104173727';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -2212,7 +2212,7 @@ function showEnding() {
   $('endDiff').innerHTML = `<b>How hard your world was: <span class="diff-tier" style="color:${d.tier[1]}">${d.tier[0]}</span></b>
     <p style="margin:6px 0 0">${d.here > d.typical ? 'Even a strong plan' : 'A strong plan'} (AI 2040's Plan A) would end in catastrophe <b>${pct(d.here, 0)}</b> of the time in this world, against ${pct(d.typical, 0)} in a typical one. ${diffSentence(d)} Your final policy, run from 2027 in this same world, would end in catastrophe <b>${pct(mine, 0)}</b> of the time.</p>`;
   $('endWorld').innerHTML = `<b>What you couldn't know until now</b>${secretList(s, game.L)}${SECRETS_NOTE}`;
-  $('endMC').innerHTML = `<p class="mcline">If the whole decade had run under your <i>final</i> policy settings, 1,500 simulated futures would end like this:</p>` + mcBar(mc);
+  $('endMC').innerHTML = `<p class="mcline">Your game was one path through one world. For comparison: if your <i>final</i> policy had been in place since 2027, across ${mc.n.toLocaleString()} possible worlds, futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
   // Always open at the top (the outcome and its picture), whatever was scrolled before.
   const toTop = () => { [$('ending'), ...$('ending').querySelectorAll('*')].forEach((el) => { if (el.scrollTop) el.scrollTop = 0; }); window.scrollTo(0, 0); };
