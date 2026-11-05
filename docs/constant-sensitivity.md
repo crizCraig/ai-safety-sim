@@ -10,7 +10,7 @@ Most of the model's 160 constants are judgment calls, so we tested how much each
 
 **The plan comparisons are more sensitive.** 7 constants move a plan's risk or alignment odds by more than 10 points, up to 17.4 points (where safety spending stops paying fully). Most are about how fast AI improves, how alignment research pays off, and whether a US–China deal forms. Several of them are fitted to AI 2040's timeline or plan odds, so their swings say how much hitting that target matters rather than adding uncertainty of their own.
 
-**Most constants barely matter.** 57 of 160 move some headline number by 1 point or more and 24 by more than 3; the other 103 move none by even 1 point.
+**Most constants barely matter.** 56 of 160 move some headline number by 1 point or more and 22 by more than 3; the other 104 move none by even 1 point.
 
 Baseline, with every constant at its default: today's-path catastrophe 79%, Plan A catastrophe 20%, Safest mix catastrophe 1%, Plan A alignment odds 76%, Plan B alignment odds 46%, Plan C alignment odds 41%, Plan D alignment odds 17%.
 
@@ -43,10 +43,10 @@ Each year frontier capability grows by a base pace, scaled by compute (set by th
 
 | Constant | What it does | Value | Biggest effect | Moves | Type |
 |---|---|---|---|---|---|
-| Base pace of AI progress | Capability points gained per year before compute, speed and uplift; fitted so an Automated Coder arrives around 2030 | 7 | at 3.5: Plan C alignment odds +10.6 points | Plan A risk; Safest mix risk; Plans A–C alignment odds | Fitted to a target |
-| Returns to compute | Progress speed grows as compute to this power (AI 2040: 10× compute ≈ 5.5× speed) | 0.74 | at 0.37: Safest mix catastrophe +4.0 points | Plan A risk; Safest mix risk; Plans A–C alignment odds | From a source |
+| Base pace of AI progress | Capability points gained per year before compute, speed and uplift; fitted so an Automated Coder arrives around 2030 | 7 | at 3.5: Plan C alignment odds +10.6 points | Plan A risk; Plans A–C alignment odds | Fitted to a target |
 | Where AI starts speeding up AI research | Capability at which AI begins to speed up its own R&D (AI 2040) | 50 | at 40: Plan A catastrophe +4.0 points | Plan A risk; Plans A, C alignment odds | From a source |
 | Speed-up at top-expert-dominating AI | How much faster AI research goes at capability 90 (AI 2040: about 40×) | 40 | at 20: Plan B alignment odds −3.3 points | Plans A–C alignment odds | From a source |
+| Returns to compute | Progress speed grows as compute to this power (AI 2040: 10× compute ≈ 5.5× speed) | 0.74 | at 0.37: Plan A catastrophe +2.9 points | Plan A risk; Safest mix risk; Plans A–C alignment odds | From a source |
 | Speed-up at an Automated Coder | How much faster AI research goes at capability 70 (AI 2040: 3×) | 3 | at 1.5: Plan A catastrophe −2.8 points | Plan A risk; Plans B, C alignment odds | From a source |
 
 6 others, each under 1 point: chance of a capability breakthrough; US breakthrough size; compute taken by oversight; US breakthrough spread; China breakthrough spread; China breakthrough size.
@@ -137,12 +137,11 @@ China's race intensity responds to how hard the US pushes and to coordination. I
 | Constant | What it does | Value | Biggest effect | Moves | Type |
 |---|---|---|---|---|---|
 | China's race intensity | How hard China races against a middling US push | 0.6 | at 0.9: Plan A catastrophe +9.9 points | today's-path risk; Plan A risk; Safest mix risk; Plans A–C alignment odds | Judgment call |
-| China calmed by coordination | How much coordination cools China's race | 0.55 | at 0.275: Safest mix catastrophe +3.7 points | Safest mix risk | Judgment call |
+| China calmed by coordination | How much coordination cools China's race | 0.55 | at 0.275: Safest mix catastrophe +2.7 points | Safest mix risk | Judgment call |
 | US alignment work China can use | Default share of US alignment work a leading Chinese lab can use | 0.55 | at 0.275: Plan C alignment odds −1.7 points | Plan C alignment odds | Judgment call |
-| China's response to the US push | How strongly China's race tracks the US push | 0.45 | at 0.225: Safest mix catastrophe +1.2 points | Safest mix risk | Judgment call |
 | China slowed by sabotage | Share of China's progress lost to full sabotage | 0.35 | at 0.175: Plan B alignment odds −1.1 points | Plan B alignment odds | Judgment call |
 
-12 others, each under 1 point: China's starting gap; catch-up from published research; what counts as China leading; safety spending read as slowing; extra sharing from published research; China's reciprocity; extra sharing from coordination; where China sees warning signs; what reads as the US slowing; warning sharpness; alignment gap that alarms China; most China slows.
+13 others, each under 1 point: China's starting gap; China's response to the US push; catch-up from published research; what counts as China leading; safety spending read as slowing; extra sharing from published research; China's reciprocity; extra sharing from coordination; where China sees warning signs; what reads as the US slowing; warning sharpness; alignment gap that alarms China; most China slows.
 
 ### Power and lock-in
 

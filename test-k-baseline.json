@@ -1,33 +1,33 @@
 {
  "Safest mix": {
   "counts": {
-   "flourish": 11,
-   "bio": 15,
-   "misalign": 5,
-   "war": 14,
+   "flourish": 9,
+   "bio": 6,
+   "misalign": 2,
+   "war": 15,
    "benevolent": 0,
    "lockin": 0,
-   "pause": 1447,
-   "muddle": 8
+   "pause": 1459,
+   "muddle": 9
   },
-  "pAlignment": 0.8419750993519927,
+  "pAlignment": 0.8581426806755443,
   "acMedian": 2038,
   "asiMedian": 2039
  },
  "Under 2% risk": {
   "counts": {
    "flourish": 3,
-   "bio": 8,
-   "misalign": 2,
-   "war": 14,
-   "benevolent": 1,
+   "bio": 5,
+   "misalign": 1,
+   "war": 9,
+   "benevolent": 2,
    "lockin": 0,
-   "pause": 1454,
-   "muddle": 18
+   "pause": 1464,
+   "muddle": 16
   },
-  "pAlignment": 0.8444352727388392,
+  "pAlignment": 0.8472513267052907,
   "acMedian": 2038,
-  "asiMedian": 2039
+  "asiMedian": 2036
  },
  "Status quo": {
   "counts": {

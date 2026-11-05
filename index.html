@@ -644,12 +644,12 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261104173727"></script>
-<script src="events.js?v=20261104173727"></script>
-<script src="news.js?v=20261104173727"></script>
-<script src="landmask.js?v=20261104173727"></script>
-<script src="presets.js?v=20261104173727"></script>
-<script src="trees.js?v=20261104173727"></script>
+<script src="model.js?v=20261105105149"></script>
+<script src="events.js?v=20261105105149"></script>
+<script src="news.js?v=20261105105149"></script>
+<script src="landmask.js?v=20261105105149"></script>
+<script src="presets.js?v=20261105105149"></script>
+<script src="trees.js?v=20261105105149"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -963,7 +963,7 @@
         <tr><td>Bio decade risk: 95% interval</td><td>5.8e-6 to 6.7e-2 (source mixture)</td><td>5.1e-6 to 5.5e-2</td></tr>
         <tr><td>Bio decade risk: P(&gt; 1%), P(&gt; 10%)</td><td>0.127, 0.0162 (source mixture)</td><td>0.111, 0.0135</td></tr>
         <tr><td>Bio prior mean before exposure scaling</td><td>0.00837 (source mixture)</td><td>0.00831 (lognormal fit)</td></tr>
-        <tr><td>Under 2% risk preset</td><td>Catastrophe below 2%</td><td>Biodefense raised from 60% to 80% after the bio recalibration; about 1.9%</td></tr>
+        <tr><td>Under 2% risk preset</td><td>Catastrophe below 2%</td><td>Retuned after the bio-risk revision (fewer open weights, full biodefense, oversight 80%); about 1.6%</td></tr>
       </tbody>
     </table></div>
     <p>AI plan checks use 6,000 futures; lock-in uses 40,000; realized bio calibration uses 80,000 (seed 11), and the prior mean is analytic. The bio source mixture and its lognormal approximation differ, and each future's exposure varies around the reference average. These account for differences between the source targets and realized risks. p(alignment) counts aligned handoffs as 1 and loss of control as 0, benevolent or not; futures still short of superintelligence in 2040 count their handoff odds given the hidden world; pandemic and war futures are left out.</p>
@@ -1014,7 +1014,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261104173727';
+const ASSET_VERSION = '20261105105149';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';

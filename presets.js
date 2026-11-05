@@ -9,8 +9,8 @@
   const AI2040_PLANS = 'https://ai-2040.com/supplements/comparing-possible-plans';
   // Short descriptions for the non-AI-2040 presets.
   const PRESET_INFO = {
-    'Under 2% risk': 'A small change from the status quo that keeps catastrophe under 2% under the default (AI 2040) assumptions, with a buffer. Only five levers move: stop the race, put half of AI compute on safety, quadruple biodefense, cooperate fully with China, and set up strong oversight. Everything else stays at today\'s settings.',
-    'Safest mix': 'The safest settings a search over every lever could find: stop racing, put a third of AI compute on safety, publish all research, and max out biodefense, diplomacy and oversight. With racing stopped, open weights and neural interfaces can stay at today\'s settings at only a small added risk. Under the default (AI 2040) assumptions, about 1.6% of futures still end badly, mostly in war or a pandemic. Most futures reach 2040 on the careful path, with superintelligence still ahead.',
+    'Under 2% risk': 'A modest change from the status quo that keeps catastrophe under 2% under the default (AI 2040) assumptions, with a buffer. Six levers move: stop the race, put half of AI compute on safety, release fewer open weights, max out biodefense, cooperate fully with China, and set up strong oversight. Everything else stays at today\'s settings.',
+    'Safest mix': 'The safest settings a search over every lever could find: stop racing, put a third of AI compute on safety, keep frontier weights closed, publish all research, and max out biodefense, diplomacy, oversight and a public AI wealth fund. Under the default (AI 2040) assumptions, about 1.2% of futures still end badly, mostly in war. Most futures reach 2040 on the careful path, with superintelligence still ahead.',
     'Status quo': 'Today\'s trajectory: an intense race, an illustrative 5% of AI compute on safety (no lab publishes this figure; OpenAI\'s 2023 pledge of 20% was reportedly never met), partly open weights and little diplomacy.',
     'Open everything': 'Release frontier weights and most research. Power spreads out, but capable models reach anyone, including would-be bioterrorists. Pandemic risk only bites on paths that last long enough for open models to reach expert level.',
     'Open + biodefense': 'Open everything, plus heavy investment in DNA synthesis screening, surveillance and stockpiles to offset the bio risk.',
@@ -32,9 +32,10 @@
   const PRESETS = {
     // Found by searching all levers to minimize catastrophe, benevolent takeover and lock-in,
     // then moving each lever back to the status quo where that costs little. After the
-    // two-pathway bio recalibration, about 1.6% of 80,000 futures end in catastrophe
-    // and 97% reach the careful path. The 35% safety share leaves alignment ahead in 2040.
-    'Safest mix': P({ race: 0, safety: 0.35, transparency: 1, biodef: 1, diplomacy: 1, oversight: 1, aggression: 0 }),
+    // bio-risk revision raised open-weights risk, closing weights cut catastrophe from about
+    // 1.6% to 1.2% (6 x 20,000 futures, seeds 201-206; the Lab's seed shows 1.0%); the fund
+    // removes most remaining lock-in. About 98% reach the careful path.
+    'Safest mix': P({ race: 0, safety: 0.35, openness: 0, transparency: 1, biodef: 1, diplomacy: 1, oversight: 1, aggression: 0, fund: 1 }),
     // A small weighted change from the status quo that keeps catastrophe under 2% with a buffer.
     // The two-pathway bio recalibration raises the original mix above 2%; increasing
     // biodefense from 0.6 to 0.8 restores the promise (1.91% in 80,000 fresh futures,
@@ -42,7 +43,10 @@
     // Biodefense 0.6 was added when yearly updates began reading the start-of-year state: open
     // models then lag a year, the bio reference exposure falls and long paths face more
     // pandemic risk (2.1–2.3% catastrophe without it).
-    'Under 2% risk': P({ race: 0, safety: 0.5, biodef: 0.8, diplomacy: 1, oversight: 0.6, aggression: 0 }),
+    // Nov 2026: after the bio-risk revision the mix above averaged 1.8% but showed 2.15% at
+    // the Lab's seed. Fewer open weights (0.2), full biodefense and oversight 0.8 give about
+    // 1.6% (6 x 20,000 futures, seeds 201-206: 1.36-1.75%) and 1.55% in the Lab.
+    'Under 2% risk': P({ race: 0, safety: 0.5, openness: 0.2, biodef: 1, diplomacy: 1, oversight: 0.8, aggression: 0 }),
     'Status quo': P({}),
     // AI 2040's five plans as fixed levers (their plans change over time; these are approximations).
     'Plan A: Verified slowdown': P({ race: 0.35, safety: 0.08, openness: 0.15, transparency: 0.9, biodef: 0.5, diplomacy: 0.85, oversight: 0.7 }),

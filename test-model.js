@@ -660,7 +660,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Ending difficulty: ties counted separately (22% / 13% / 65%)', Math.round(r.below * 100) === 22 && Math.round(r.same * 100) === 13 && Math.round(r.above * 100) === 65, JSON.stringify(r));
   // C14-1: the searched promises name their assumption, and the page flags differing unknowns.
   const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
-  check('Safest mix / Under 2% promises say they assume the defaults', /under 2% under the default \(AI 2040\) assumptions/.test(PR.PRESET_INFO['Under 2% risk']) && /Under the default \(AI 2040\) assumptions, about 1\.6%/.test(PR.PRESET_INFO['Safest mix']) && html.includes('Your hidden assumptions differ from the defaults'));
+  check('Safest mix / Under 2% promises say they assume the defaults', /under 2% under the default \(AI 2040\) assumptions/.test(PR.PRESET_INFO['Under 2% risk']) && /Under the default \(AI 2040\) assumptions, about 1\.2%/.test(PR.PRESET_INFO['Safest mix']) && html.includes('Your hidden assumptions differ from the defaults'));
   // C14-4: the reference and README document Current capability.
   const readme = require('fs').readFileSync(__dirname + '/README.md', 'utf8');
   check('Reference documents Current capability and README counts eleven assumptions', html.includes('Current capability: the US bloc') && Object.keys(M.ASSUMPTION_INFO).length === 11 && readme.includes('eleven uncertain'));
