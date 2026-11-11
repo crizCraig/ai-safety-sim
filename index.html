@@ -483,11 +483,16 @@
   .declist li.ahead:hover { opacity: .8; }
   /* Back and forward through the years, like a browser: top right of the card. */
   .yrnav { position: absolute; top: 10px; right: 10px; z-index: 2; display: flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 999px; background: rgba(8,13,26,.78); backdrop-filter: blur(6px); font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
-  .yrnav button { width: 26px; height: 24px; border: 0; border-radius: 999px; background: none; color: var(--accent); font-size: 17px; line-height: 1; padding: 0 0 2px; cursor: pointer; }
+  .yrnav button { height: 24px; border: 0; border-radius: 999px; background: none; color: var(--accent); font: 500 11px/1 var(--mono); padding: 0 9px; cursor: pointer; white-space: nowrap; }
+  .yrnav button span[aria-hidden] { font-size: 15px; position: relative; top: 1px; }
   .yrnav button:hover:not(:disabled), .yrnav button:focus-visible { background: rgba(127,227,255,.14); outline: none; }
   .yrnav button:disabled { color: #3a4a66; cursor: default; }
   .yrnav #navTxt:empty { display: none; }
+  #ending .box { position: relative; }
+  .yrnav.endnav { top: 12px; right: 12px; }
   .yrnav #navTxt { padding: 0 4px; white-space: nowrap; color: var(--warn); }
+  .yrnav #navTxt::before { content: '·'; margin-right: 6px; color: var(--muted); }
+  .yrnav #navTxt::after { content: '·'; margin-left: 6px; color: var(--muted); }
   #timeline .yr.ahead::before { background: transparent; border: 1.5px solid #4b6a9a; width: 5px; height: 5px; }
   .declist li.empty { list-style: none; margin-left: -18px; color: var(--muted); }
   #history { margin: 0; }
@@ -552,8 +557,9 @@
     body.mode-campaign #card { top: calc(50% + 40px); max-height: calc(100vh - 128px); }
     #card { bottom: 12px; padding: 16px; }
     .yrnav { top: 8px; right: 8px; }
-    .yrnav .long { display: none; }
-    #card .tag { padding-right: 112px; } /* clear of the ‹ › control */
+    .yrnav #navTxt { display: none; }
+    .yrnav button { padding: 0 7px; }
+    #card .tag { padding-right: 150px; } /* clear of the Back / Forward control */
     .cardart { width: calc(100% + 32px); margin: -16px -16px 10px; height: 64px; }
     /* No room for a strip while choosing: the picture becomes a faded backdrop behind the
        card's text and choices (z-index -1 keeps it above the card's own background, since
@@ -706,13 +712,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261111150631"></script>
-<script src="events.js?v=20261111150631"></script>
-<script src="policies.js?v=20261111150631"></script>
-<script src="news.js?v=20261111150631"></script>
-<script src="landmask.js?v=20261111150631"></script>
-<script src="presets.js?v=20261111150631"></script>
-<script src="trees.js?v=20261111150631"></script>
+<script src="model.js?v=20261111151914"></script>
+<script src="events.js?v=20261111151914"></script>
+<script src="policies.js?v=20261111151914"></script>
+<script src="news.js?v=20261111151914"></script>
+<script src="landmask.js?v=20261111151914"></script>
+<script src="presets.js?v=20261111151914"></script>
+<script src="trees.js?v=20261111151914"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -790,7 +796,7 @@
 
 <div id="card" class="campaign-only hidden">
   <button class="cardart" id="cardArt" hidden aria-expanded="false" title="Show the whole picture"><img id="cardImg" alt=""></button>
-  <div class="yrnav" id="yrNav"><button id="navBack" title="Back a year (←)" aria-label="Back a year">‹</button><span id="navTxt" aria-live="polite"></span><button id="navFwd" title="Forward a year (→)" aria-label="Forward a year">›</button></div>
+  <div class="yrnav" id="yrNav"><button id="navBack" title="Back a year (← key)"><span aria-hidden="true">‹</span> Back</button><span id="navTxt" aria-live="polite"></span><button id="navFwd" title="Forward a year (→ key)"><span id="navFwdTxt">Forward</span> <span aria-hidden="true">›</span></button></div>
   <div class="tag" id="cardTag"></div>
   <h2 id="cardTitle"></h2>
   <p id="cardText"></p>
@@ -873,6 +879,7 @@
 <div class="modal hidden" id="ending">
   <div class="box">
     <button class="cardart endart" id="endArt" hidden aria-expanded="false" title="Show the whole picture"><img id="endImg" alt=""></button>
+    <div class="yrnav endnav"><button id="endBack" title="Undo your last choice and go back to that year (← key)">‹ Back to 2027</button></div>
     <div class="kicker" id="endKicker"></div>
     <h1 id="endTitle"></h1>
     <p id="endText"></p>
@@ -1088,7 +1095,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261111150631';
+const ASSET_VERSION = '20261111151914';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1923,11 +1930,14 @@ function renderNav() {
   $('navFwd').disabled = !canForward();
   const last = game.redo[game.redo.length - 1], y = last?.h.s.year;
   const here = game.phase === 'choose' ? game.s.year : game.decisions[game.decisions.length - 1]?.year;
-  $('navTxt').innerHTML = y > here ? `<span class="long">viewing an earlier year · </span>→ <span class="long">to return to </span>${y}`
-    : canForward() ? '<span class="long">viewing an earlier choice · </span>→ <span class="long">to </span>replay' : '';
+  $('navTxt').textContent = y > here ? 'viewing an earlier year' : canForward() ? 'viewing an earlier choice' : '';
+  $('navFwdTxt').textContent = y > here ? `To ${y}` : 'Forward';
+  $('navFwd').title = y > here ? `Forward a year, replaying your choices back to ${y} (→ key)` : canForward() ? 'Replay the choice you made before (→ key)' : 'Nothing to go forward to yet';
   $('yrNav').title = y > here ? `You went back from ${y}. → replays your later choices; a different choice starts a new path.` : '';
 }
 $('navBack').onclick = (e) => { e.stopPropagation(); goBack(); };
+// The ending's Back undoes the final year's choice; Forward from there plays it out again.
+$('endBack').onclick = () => goBack();
 $('navFwd').onclick = (e) => { e.stopPropagation(); goForward(); };
 
 // Where each painted image's focal point (key face or subject) sits, as a % of its height,
@@ -2464,6 +2474,7 @@ function showEnding() {
   $('endTitle').style.color = o.color;
   $('endText').textContent = o.text;
   $('endDecisions').innerHTML = decisionItems(true);
+  $('endBack').textContent = `‹ Back to ${game.decisions[game.decisions.length - 1].year}`;
   const { mc, d, mine } = endingInfo();
   $('endDiff').innerHTML = `<b>How hard your world was: <span class="diff-tier" style="color:${d.tier[1]}">${d.tier[0]}</span></b>
     <p style="margin:6px 0 0">${d.here > d.typical ? 'Even a strong plan' : 'A strong plan'} (AI 2040's Plan A) would end in catastrophe <b>${pct(d.here, 0)}</b> of the time in this world, against ${pct(d.typical, 0)} in a typical one. ${diffSentence(d)} Your final policy, run from 2027 in this same world, would end in catastrophe <b>${pct(mine, 0)}</b> of the time.</p>`;
