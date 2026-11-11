@@ -440,8 +440,6 @@
   .unk-list .uv { font-family: var(--mono); font-size: 12.5px; color: var(--accent); white-space: nowrap; }
   .unk-list li.locked .uv { color: var(--muted); }
   .roll-note { border-top: 1px solid var(--line); padding-top: 10px; }
-  .roll-quote { margin: 8px 0 0; font-style: italic; color: #dbe5f5; font-size: 14.5px; }
-  .roll-quote cite { display: block; margin-top: 3px; font-style: normal; font-family: var(--mono); font-size: 11px; color: var(--muted); }
   /* The footer keeps Begin's height from the start, so nothing moves when it appears, and
      sticks to the bottom of the box if a short screen has to scroll. */
   .roll-foot { position: sticky; bottom: -1px; height: 58px; margin: 6px -4px -4px; padding: 8px 4px 4px; background: linear-gradient(to bottom, transparent, var(--panel-solid) 10px); }
@@ -461,7 +459,6 @@
     .unk-list { margin: 8px 0 10px; gap: 4px; }
     .unk-list li { font-size: 12.5px; padding: 6px 9px; line-height: 1.25; }
     .unk-list .uv { font-size: 11px; }
-    .roll-quote { font-size: 13.5px; }
   }
   @supports (height: 100dvh) { .modal .box { max-height: calc(100dvh - 32px); } }
   .world-reveal.difficulty { margin-bottom: 10px; }
@@ -724,13 +721,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261111153030"></script>
-<script src="events.js?v=20261111153030"></script>
-<script src="policies.js?v=20261111153030"></script>
-<script src="news.js?v=20261111153030"></script>
-<script src="landmask.js?v=20261111153030"></script>
-<script src="presets.js?v=20261111153030"></script>
-<script src="trees.js?v=20261111153030"></script>
+<script src="model.js?v=20261111153136"></script>
+<script src="events.js?v=20261111153136"></script>
+<script src="policies.js?v=20261111153136"></script>
+<script src="news.js?v=20261111153136"></script>
+<script src="landmask.js?v=20261111153136"></script>
+<script src="presets.js?v=20261111153136"></script>
+<script src="trees.js?v=20261111153136"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -875,10 +872,6 @@
     <ul class="unk-list" id="unkList"></ul>
     <div class="roll-note">
       <p>Real leaders must decide without knowing these facts. Neither will you: you'll learn them only when your world ends.</p>
-      <!-- Dwight D. Eisenhower, remarks at the National Defense Executive Reserve Conference,
-           Washington, 14 November 1957 (Public Papers of the Presidents, 1957, no. 230):
-           "Plans are worthless, but planning is everything." -->
-      <p class="roll-quote">“Plans are worthless, but planning is everything.”<cite>Dwight D. Eisenhower, 1957</cite></p>
     </div>
     <div class="roll-foot">
       <div class="roll-wait"><div class="roll-bar"><i></i></div><div class="roll-skip">Tap to finish the roll</div></div>
@@ -1107,7 +1100,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261111153030';
+const ASSET_VERSION = '20261111153136';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
