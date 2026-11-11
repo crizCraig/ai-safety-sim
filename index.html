@@ -474,6 +474,16 @@
   .declist li { font-size: 12.5px; line-height: 1.5; }
   .declist li .rewind { background: none; border: 1px solid var(--line); border-radius: 6px; font-size: 10.5px; padding: 0 6px; margin-left: 4px; color: var(--accent); }
   .declist li .rewind:hover, .declist li .rewind:focus-visible { border-color: var(--accent); outline: none; }
+  .declist li.ahead { opacity: .5; }
+  .declist li.ahead:hover { opacity: .8; }
+  /* Back and forward through the years, like a browser: top right of the card. */
+  .yrnav { position: absolute; top: 10px; right: 10px; z-index: 2; display: flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 999px; background: rgba(8,13,26,.78); backdrop-filter: blur(6px); font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+  .yrnav button { width: 26px; height: 24px; border: 0; border-radius: 999px; background: none; color: var(--accent); font-size: 17px; line-height: 1; padding: 0 0 2px; cursor: pointer; }
+  .yrnav button:hover:not(:disabled), .yrnav button:focus-visible { background: rgba(127,227,255,.14); outline: none; }
+  .yrnav button:disabled { color: #3a4a66; cursor: default; }
+  .yrnav #navTxt:empty { display: none; }
+  .yrnav #navTxt { padding: 0 4px; white-space: nowrap; color: var(--warn); }
+  #timeline .yr.ahead::before { background: transparent; border: 1.5px solid #4b6a9a; width: 5px; height: 5px; }
   .declist li.empty { list-style: none; margin-left: -18px; color: var(--muted); }
   #history { margin: 0; }
   #history li { font-size: 11.5px; margin-bottom: 4px; }
@@ -536,6 +546,9 @@
     body.compact-open #card { display: none !important; }
     body.mode-campaign #card { top: calc(50% + 40px); max-height: calc(100vh - 128px); }
     #card { bottom: 12px; padding: 16px; }
+    .yrnav { top: 8px; right: 8px; }
+    .yrnav .long { display: none; }
+    #card .tag { padding-right: 112px; } /* clear of the ‹ › control */
     .cardart { width: calc(100% + 32px); margin: -16px -16px 10px; height: 64px; }
     /* No room for a strip while choosing: the picture becomes a faded backdrop behind the
        card's text and choices (z-index -1 keeps it above the card's own background, since
@@ -688,13 +701,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261111142819"></script>
-<script src="events.js?v=20261111142819"></script>
-<script src="policies.js?v=20261111142819"></script>
-<script src="news.js?v=20261111142819"></script>
-<script src="landmask.js?v=20261111142819"></script>
-<script src="presets.js?v=20261111142819"></script>
-<script src="trees.js?v=20261111142819"></script>
+<script src="model.js?v=20261111145807"></script>
+<script src="events.js?v=20261111145807"></script>
+<script src="policies.js?v=20261111145807"></script>
+<script src="news.js?v=20261111145807"></script>
+<script src="landmask.js?v=20261111145807"></script>
+<script src="presets.js?v=20261111145807"></script>
+<script src="trees.js?v=20261111145807"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -772,6 +785,7 @@
 
 <div id="card" class="campaign-only hidden">
   <button class="cardart" id="cardArt" hidden aria-expanded="false" title="Show the whole picture"><img id="cardImg" alt=""></button>
+  <div class="yrnav" id="yrNav"><button id="navBack" title="Back a year (←)" aria-label="Back a year">‹</button><span id="navTxt" aria-live="polite"></span><button id="navFwd" title="Forward a year (→)" aria-label="Forward a year">›</button></div>
   <div class="tag" id="cardTag"></div>
   <h2 id="cardTitle"></h2>
   <p id="cardText"></p>
@@ -1067,7 +1081,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261111142819';
+const ASSET_VERSION = '20261111145807';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1729,7 +1743,7 @@ function newGame() {
   const seed = (Math.random() * 2 ** 31) | 0;
   game = { seed, s: M.initialState(M.sampleWorld(M.defaultAssumptions(), M.mulberry32(seed))), L: M.defaultLevers(),
     used: new Set(), decisions: [], history: [], phase: 'choose', card: null, president: pickPresident(),
-    party: null, partyFlip: false, auto: null };
+    party: null, partyFlip: false, auto: null, redo: [] };
   vis.outcome = null; vis.outT = 0;
   syncTarget(game.s, game.L);
   Object.assign(vis, target);
@@ -1829,13 +1843,30 @@ function renderFFBar() {
 }
 $('ffStop').onclick = () => stopAuto();
 
-// Return to the decision made at history[i]; later years are discarded.
+// Back and forward through the years, like a browser. game.decisions and game.history hold
+// the years up to the one on screen; game.redo holds the years after it that the player went
+// back from, as { h: history entry, d: decision } with redo[k] for year index
+// decisions.length + k (in the choosing view redo[0].h is the card on screen). Going forward
+// replays the stored choice with the same dice (they come from the seed and year); choosing
+// the same again keeps the tail, a different choice drops it.
+// The year index on screen: 0 for 2027.
+const yearOnScreen = () => game.decisions.length - (game.phase === 'choose' ? 0 : 1);
+// Return to the decision made at history[i]; the years after it go to the redo tail.
 function rewind(i) {
   const h = game.history[i];
   if (!h || game.phase === 'rolling') return;
   stopAuto(false);
-  game.s = structuredClone(h.s); game.L = { ...h.L }; game.used = new Set(h.used);
+  const tail = [];
+  for (let k = i; k < game.decisions.length; k++) tail.push({ h: game.history[k], d: game.decisions[k] });
+  if (game.redo.length) tail.push(...game.redo);
+  else if (game.history.length > game.decisions.length) tail.push({ h: game.history[game.decisions.length] });
+  game.redo = tail;
   game.decisions.length = i; game.history.length = i;
+  restoreCard(h);
+}
+// Show the card stored in a history entry, with the state and levers it began with.
+function restoreCard(h) {
+  game.s = structuredClone(h.s); game.L = { ...h.L }; game.used = new Set(h.used);
   vis.outcome = null; vis.outT = 0;
   $('ending').classList.add('hidden');
   hidePaper();
@@ -1845,6 +1876,52 @@ function rewind(i) {
   renderAll();
   requestOutlook();
 }
+const canBack = () => !!game && game.phase !== 'rolling' && game.decisions.length > 0;
+const canForward = () => !!game?.redo.length && (game.phase === 'choose' ? !!game.redo[0].d : game.phase === 'result');
+function goBack() { if (canBack()) rewind(game.decisions.length - 1); }
+// One year forward: from a result, the next card; from a card, replay the choice made before
+// and land on the next year's card (or, for the last stored year, play it out as before).
+function goForward() {
+  if (!canForward()) return;
+  stopAuto(false);
+  if (game.phase === 'result') { restoreCard(game.redo[0].h); return; }
+  const [cur, next] = game.redo, d = cur.d, ch = game.card.choices.find((c) => c.label === d.label);
+  if (!ch) { game.redo = []; renderAll(); return; }
+  if (!next) { choose(ch, d.by); return; }
+  // Replay the year off screen with the same dice and check it lands where it did before.
+  const s = structuredClone(game.s), L = { ...game.L };
+  E.applyChoice(s, L, ch); M.risks(s, L); M.step(s, L, yearRng(2), true);
+  if (JSON.stringify([s, L]) !== JSON.stringify([next.h.s, next.h.L])) {
+    console.error(`Game of AGI: replaying ${d.year} did not reproduce it; playing it again.`);
+    game.redo = [cur]; choose(ch, d.by); return;
+  }
+  game.decisions.push(d);
+  game.redo.shift();
+  restoreCard(next.h);
+}
+// Jump to year index k (0 for 2027): back by rewinding, forward by replaying stored years.
+function goToYear(k) {
+  if (!game || game.phase === 'rolling') return;
+  const n = yearOnScreen();
+  if (k < n || (k === n && game.phase !== 'choose')) { rewind(k); return; }
+  for (let guard = 20; yearOnScreen() < k && guard--;) {
+    if (!canForward() || (game.phase === 'choose' && game.redo.length < 2)) break;
+    goForward();
+  }
+}
+// The ‹ › control on the card, and where you are when you've gone back.
+function renderNav() {
+  if (!game) return;
+  $('navBack').disabled = !canBack();
+  $('navFwd').disabled = !canForward();
+  const last = game.redo[game.redo.length - 1], y = last?.h.s.year;
+  const here = game.phase === 'choose' ? game.s.year : game.decisions[game.decisions.length - 1]?.year;
+  $('navTxt').innerHTML = y > here ? `<span class="long">viewing an earlier year · </span>→ <span class="long">to return to </span>${y}`
+    : canForward() ? '<span class="long">viewing an earlier choice · </span>→ <span class="long">to </span>replay' : '';
+  $('yrNav').title = y > here ? `You went back from ${y}. → replays your later choices; a different choice starts a new path.` : '';
+}
+$('navBack').onclick = (e) => { e.stopPropagation(); goBack(); };
+$('navFwd').onclick = (e) => { e.stopPropagation(); goForward(); };
 
 // Where each painted image's focal point (key face or subject) sits, as a % of its height,
 // so the thin header slice shows it. Written by scripts/process_card_art.py.
@@ -2045,6 +2122,8 @@ function choose(ch, by = null) {
   game.lastChoice = ch.label; game.lastChoiceObj = ch;
   E.applyChoice(game.s, game.L, ch);
   game.decisions.push({ year: game.s.year, title: game.card.title, label: ch.label, by });
+  // The same choice as before keeps the later years to go forward to; a different one drops them.
+  if (game.redo[0]?.d?.label === ch.label) game.redo.shift(); else game.redo = [];
   syncTarget(game.s, game.L);
   renderAll();
   rollYear();
@@ -2416,16 +2495,26 @@ function decisionItems(withNews = false) {
       ? `<span class="dnews"><i>${d.news[0].desk}:</i> ${d.news[0].text}</span>` : ''}</li>`).join('');
 }
 function renderHistory() {
-  $('history').innerHTML = game.decisions.length ? decisionItems() : '<li class="empty">Your choices will appear here.</li>';
+  const n = yearOnScreen();
+  // The years you went back from, dimmed, each with a button to go forward to it.
+  const ahead = game.redo.filter((r) => r.d).map((r) => {
+    const k = r.d.year - M.START_YEAR;
+    return `<li class="ahead"><b>${r.d.year}</b>${r.d.title}: ${r.d.label}${r.d.by ? ` <span class="who">(${POL.ADMINS[r.d.by.admin].short})</span>` : ''}
+      ${k > n ? `<button class="rewind" data-goto="${k}" title="Go forward to ${r.d.year}, replaying your choices">go</button>` : '<span class="who">(your choice before)</span>'}</li>`;
+  }).join('');
+  $('history').innerHTML = game.decisions.length || ahead ? decisionItems() + ahead : '<li class="empty">Your choices will appear here.</li>';
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-rewind]');
   if (b) rewind(+b.dataset.rewind);
   const p = e.target.closest('[data-paper]');
   if (p) openArchivePaper(+p.dataset.paper);
+  const g = e.target.closest('[data-goto]');
+  if (g) goToYear(+g.dataset.goto);
 });
 
 function renderTimeline() {
+  renderNav();
   const el = $('timeline');
   let html = '';
   for (let y = M.START_YEAR; y <= M.END_YEAR; y++) {
@@ -2433,9 +2522,12 @@ function renderTimeline() {
     let style = '';
     if (game.s.outcome && y === game.s.year) { cls = 'end'; style = `style="--endc:${M.OUTCOMES[game.s.outcome].color}"`; }
     const i = game.decisions.findIndex((d) => d.year === y);
+    const k = y - M.START_YEAR, ahead = i < 0 && k > yearOnScreen() && game.redo.some((r) => r.h.s.year === y);
     html += i >= 0 && game.phase !== 'rolling'
       ? `<button class="yr ${cls}" ${style} data-rewind="${i}" title="Change your ${y} decision">${y}</button>`
-      : `<div class="yr ${cls}" ${style}>${y}</div>`;
+      : ahead && game.phase !== 'rolling'
+        ? `<button class="yr ahead" data-goto="${k}" title="Go forward to ${y}, replaying your choices">${y}</button>`
+        : `<div class="yr ${cls}" ${style}>${y}</div>`;
   }
   el.innerHTML = html;
 }
@@ -3324,6 +3416,12 @@ addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { $('modelInfo').classList.add('hidden'); if (tour) endTour(); if (distOpen) closeDist(); }
   if (tour) return;
   if (mode === 'campaign' && game?.archive && ['Enter', ' ', 'ArrowRight', 'Escape'].includes(e.key)) { e.preventDefault(); closeArchivePaper(); return; }
+  // ← and → step back and forward through the years (→ only when there is a year to return to).
+  if (mode === 'campaign' && game && !e.metaKey && !e.ctrlKey && !e.altKey && !e.target.closest?.('input, select, textarea')
+    && !document.querySelector('.modal:not(.hidden):not(#ending)')
+    && (e.key === 'ArrowLeft' ? canBack() : e.key === 'ArrowRight' && canForward())) {
+    e.preventDefault(); if (e.key === 'ArrowLeft') goBack(); else goForward(); return;
+  }
   if (mode === 'campaign' && game && ['result', 'ended'].includes(game.phase) && ['Enter', ' ', 'ArrowRight'].includes(e.key)) {
     e.preventDefault(); advance(); return;
   }
@@ -3344,7 +3442,7 @@ const TOURS = {
     ['#choices', 'What each option does', 'The tags under each option show what it changes: green makes things safer, red riskier. Hover or tap an option to preview next year\'s risk. You can also press 1, 2 or 3.'],
     ['#left', 'Watch AI climb', 'The top chart tracks your chance of catastrophe so far, year by year. Below it, each side\'s AI capability: past the Automated Coder line (70), AI does most of its own research and control can start to slip; alignment (green) has to keep up. Further down: the rest of the world\'s state and your past decisions.'],
     ['#right', 'This year\'s risk', 'Your estimate of each catastrophe this year. After you choose, a die is rolled for each one. When AI becomes superintelligent, there is one more test: whether its alignment is good enough to keep it on our side. The big number is your chance of having made it this far without catastrophe. Copy for AI copies your game so far as a prompt, so you can ask an AI why it went the way it did.'],
-    ['#timeline', 'Go back in time', 'Click any earlier year to rewind and choose differently. Each year keeps its luck, so only your choice changes.'],
+    ['#timeline', 'Go back in time', 'Click any earlier year to rewind and choose differently, or use ‹ › on the card (← → keys). Each year keeps its luck, so only your choice changes, and you can go forward again until you choose differently.'],
     ['#statsToggle', 'World state and risk', 'Tap Stats to watch AI capability climb year by year toward the line where control can be lost, with this year\'s risk and your past decisions. Tap it again to return to the decision.'],
     ['#modelBtn', 'Curious how it works?', 'Every number comes from formulas you can read here, with their sources.'],
   ],
