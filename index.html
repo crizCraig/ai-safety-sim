@@ -707,13 +707,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261111155937"></script>
-<script src="events.js?v=20261111155937"></script>
-<script src="policies.js?v=20261111155937"></script>
-<script src="news.js?v=20261111155937"></script>
-<script src="landmask.js?v=20261111155937"></script>
-<script src="presets.js?v=20261111155937"></script>
-<script src="trees.js?v=20261111155937"></script>
+<script src="model.js?v=20261111160900"></script>
+<script src="events.js?v=20261111160900"></script>
+<script src="policies.js?v=20261111160900"></script>
+<script src="news.js?v=20261111160900"></script>
+<script src="landmask.js?v=20261111160900"></script>
+<script src="presets.js?v=20261111160900"></script>
+<script src="trees.js?v=20261111160900"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -768,7 +768,7 @@
     <div class="survival">
       <div title="The share of simulated futures from where you are now, under your current levers, that end in catastrophe by 2040, counting the risk already run. Each future draws its own secret facts from the default ranges, so it uses only what you can see.">
       <div class="big" id="survival">…</div>
-      <div class="lbl">projected chance of catastrophe by 2040</div>
+      <div class="lbl">chance of catastrophe</div>
       <div class="est" id="estLine"></div></div>
     </div>
     <button class="iconbtn secbtn" id="secretsBtn" aria-pressed="false">Show secret facts</button>
@@ -1087,7 +1087,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261111155937';
+const ASSET_VERSION = '20261111160900';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -2403,9 +2403,10 @@ function outlookTotal(s, L) {
   const acc = outlookCache.get(outlookKey(s, L));
   return acc ? M.outlookTotal(s, acc, pastCatYears(s)) : null;
 }
-// The front page's index: the projection by 2040 and its average date ("…" until computed).
-const paperEstHTML = (t) => `<div class="big">${t ? estPct(t.byEnd) : '…'}</div><div class="lbl">projected chance of catastrophe by 2040</div>
-  ${t?.meanYears != null ? `<div class="pest"><span class="when">avg. ${avgDate(t.meanYears)}</span></div>` : ''}`;
+// The front page's index: the projected chance of catastrophe (over 2027–2040) and when it is
+// expected, the mean date among the futures where it happens ("…" until computed).
+const paperEstHTML = (t) => `<div class="big">${t ? estPct(t.byEnd) : '…'}</div><div class="lbl">chance of catastrophe</div>
+  ${t?.meanYears != null ? `<div class="pest"><span class="when">expected ${avgDate(t.meanYears)}</span></div>` : ''}`;
 function requestOutlook() {
   if (!game || game.s.outcome) { renderOutlook(); return; }
   const key = outlookKey(game.s, game.L);
@@ -2430,12 +2431,12 @@ function requestOutlook() {
 const estPct = (x) => pct(x, x < 0.1 ? 1 : 0);
 function tagEstInner() {
   const t = game && !game.s.outcome && outlookTotal(game.s, game.L);
-  return `<span class="sep"> · </span>Projected by 2040: <b>${t ? estPct(t.byEnd) : '…'}</b>`;
+  return `<span class="sep"> · </span>Chance of catastrophe: <b>${t ? estPct(t.byEnd) : '…'}</b>`;
 }
 function cardEstInner() {
   const t = outlookTotal(game.s, game.L), h = game.history[game.history.length - 1];
   const t0 = h && outlookTotal(h.s, h.L);
-  const lbl = '<span class="cpre">Projected catastrophe</span><span class="cshort">Catastrophe</span> by 2040:';
+  const lbl = '<span class="cpre">Chance of catastrophe:</span><span class="cshort">Catastrophe:</span>';
   if (!t) return `${lbl} <b>…</b>`;
   let delta = '';
   if (t0) {
@@ -2443,7 +2444,7 @@ function cardEstInner() {
     delta = a < 0.05 ? ' <span>(no change)</span>'
       : ` <span class="${d > 0 ? 'up' : 'dn'}">(${d > 0 ? '▲' : '▼'}${a.toFixed(a < 1 ? 1 : 0)}<span class="cfrom"> from ${estPct(t0.byEnd)}</span>)</span>`;
   }
-  return `${lbl} <b>${estPct(t.byEnd)}</b>${delta}${t.meanYears != null ? ` · avg. ${avgDate(t.meanYears).replace(/^around /, '<span class="cpre">around </span>')}` : ''}`;
+  return `${lbl} <b>${estPct(t.byEnd)}</b>${delta}${t.meanYears != null ? ` · expected ${avgDate(t.meanYears).replace(/^around /, '<span class="cpre">around </span>')}` : ''}`;
 }
 function renderOutlook() {
   const el = $('estLine');
@@ -2453,7 +2454,7 @@ function renderOutlook() {
   el.hidden = false;
   const t = outlookTotal(game.s, game.L);
   $('survival').textContent = t ? estPct(t.byEnd) : '…';
-  el.innerHTML = t?.meanYears != null ? `avg. ${avgDate(t.meanYears)}` : '';
+  el.innerHTML = t?.meanYears != null ? `expected ${avgDate(t.meanYears)}` : '';
   if (game.phase === 'choose' && $('tagEst')) $('tagEst').innerHTML = tagEstInner();
   if (game.phase === 'result' && $('cardEst')) $('cardEst').innerHTML = cardEstInner();
   if (!t) return;
@@ -2618,15 +2619,15 @@ function renderChart() {
   const est = pts.map((p) => (p.s.outcome ? null : outlookTotal(p.s, p.L))).map((t, i) => (t ? [X(pts[i].s.year), A(t.byEnd), t.byEnd, pts[i].s.year] : null)).filter(Boolean);
   if (est.length) {
     const segs = est.slice(1).map((e, i) => `<path d="${path([est[i], e])}" stroke="var(--bad)" stroke-width="2.4" stroke-linecap="round" fill="none"/>`).join('');
-    const dots = est.map((e, i) => `<circle cx="${e[0].toFixed(1)}" cy="${e[1].toFixed(1)}" r="${i === est.length - 1 ? 3.6 : 2.4}" fill="var(--bad)"><title>${e[3]}: ${pct(e[2], 0)} by 2040</title></circle>`).join('');
+    const dots = est.map((e, i) => `<circle cx="${e[0].toFixed(1)}" cy="${e[1].toFixed(1)}" r="${i === est.length - 1 ? 3.6 : 2.4}" fill="var(--bad)"><title>${e[3]}: ${pct(e[2], 0)} chance of catastrophe</title></circle>`).join('');
     const [lx, ly, p] = est[est.length - 1];
     // The current value sits in the open space under the line (over it once the line is low),
     // to the right of the last point when there is room, else ending just past it.
     const right = lx + 56 < x1, ty = p > 0.5 ? ly + 19 : ly - 9;
     surv = `${segs}${dots}<text class="now halo" x="${(lx + (right ? 6 : 4)).toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="${right ? 'start' : 'end'}" style="fill:var(--bad)">${estPct(p)}</text>`;
   }
-  const p1 = `<div class="ct">Projected catastrophe by 2040</div>
-    <svg viewBox="0 0 ${W} ${aBot + 16}" role="img" aria-label="Projected chance of catastrophe by 2040, as it stood each year">
+  const p1 = `<div class="ct">Chance of catastrophe</div>
+    <svg viewBox="0 0 ${W} ${aBot + 16}" role="img" aria-label="Projected chance of catastrophe (over 2027–2040), as it stood each year">
     ${grid}${surv}${ticks(aBot + 14)}</svg>`;
 
   // Panel 2: capability vs alignment.
@@ -2995,7 +2996,7 @@ function campaignText() {
     if (d.result) {
       lines.push(`- **What happened:** ${d.result.event ? `${M.OUTCOMES[d.result.event].title}. ${M.OUTCOMES[d.result.event].text}` : d.result.stage === 'end' ? '2040 arrived.' : `${d.year} passed without catastrophe.`}${d.result.note ? ' ' + d.result.note : ''}`);
       lines.push(`- **State at the end of the year:** ${statLine(d.result.st)}`);
-      if (d.result.est) lines.push(`- **Projected chance of catastrophe by 2040** (share of ${OUTLOOK_N.toLocaleString('en-US')} simulated futures from this visible state under these levers, each with fresh secret facts from the default ranges, counting the risk already run): ${pct(d.result.est.byEnd, 1)}${d.result.est.meanYears != null ? `, on average ${avgDate(d.result.est.meanYears)}` : ''}`);
+      if (d.result.est) lines.push(`- **Projected chance of catastrophe by 2040** (share of ${OUTLOOK_N.toLocaleString('en-US')} simulated futures from this visible state under these levers, each with fresh secret facts from the default ranges, counting the risk already run): ${pct(d.result.est.byEnd, 1)}${d.result.est.meanYears != null ? `, expected ${avgDate(d.result.est.meanYears)} (the mean date among the futures where it happens)` : ''}`);
       if (d.result.news?.length) lines.push(`- **Headlines (fictional, written from what the player could see):** ${NEWS.plain(d.result.news).join('; ')}`);
       if (d.result.econ) lines.push(`- **Economy on the paper (illustrative flavour derived from the visible state, not model outputs):** unemployment ${d.result.econ.unemp.toFixed(1)}%, GDP growth ${d.result.econ.gdp.toFixed(1)}%, AI capex $${Math.round(d.result.econ.capex)}B a year`);
     } else lines.push('- **What happened:** the dice are still rolling.');
@@ -3007,7 +3008,7 @@ function campaignText() {
       ...game.card.choices.map((ch, i) => `${i + 1}. ${ch.label}${ch.note ? ': ' + ch.note : ''}`), '',
       `- **Levers now:** ${leverLine(game.L)}`, `- **State now (0–100):** ${statLine(s)}`,
       `- **Risks shown this year before choosing:** engineered pandemic ${pct(r.bio)}, AI escapes control ${pct(r.misalign)}, great-power war ${pct(r.war)}`,
-      ...(() => { const t = outlookTotal(s, game.L); return t ? [`- **Projected chance of catastrophe by 2040 under the current levers:** ${pct(t.byEnd, 1)}${t.meanYears != null ? `, on average ${avgDate(t.meanYears)}` : ''}`] : []; })()].join('\n'));
+      ...(() => { const t = outlookTotal(s, game.L); return t ? [`- **Projected chance of catastrophe by 2040 under the current levers:** ${pct(t.byEnd, 1)}${t.meanYears != null ? `, expected ${avgDate(t.meanYears)} (the mean date among the futures where it happens)` : ''}`] : []; })()].join('\n'));
   }
   const secretsTxt = (L) => M.secretRows(s, L, { pct, over }).map(([k, v]) => `- **${k}:** ${plainText(v)}`).join('\n');
   const hidden = showSecrets
@@ -3483,8 +3484,8 @@ const TOURS = {
   campaign: [
     ['#card', 'One decision a year', 'Each year brings a new situation. Read it, then pick one of the options.'],
     ['#choices', 'What each option does', 'The tags under each option show what it changes: green makes things safer, red riskier. Hover or tap an option to preview next year\'s risk. You can also press 1, 2 or 3.'],
-    ['#left', 'Watch AI climb', 'The top chart tracks the projected chance of catastrophe by 2040, as it stood each year. Below it, each side\'s AI capability: past the Automated Coder line (70), AI does most of its own research and control can start to slip; alignment (green) has to keep up. Further down: the rest of the world\'s state and your past decisions.'],
-    ['#right', 'This year\'s risk', 'Your estimate of each catastrophe this year. After you choose, a die is rolled for each one. When AI becomes superintelligent, there is one more test: whether its alignment is good enough to keep it on our side. The big number is the projected chance of catastrophe by 2040 from where you are, under your current policies. Copy for AI copies your game so far as a prompt, so you can ask an AI why it went the way it did.'],
+    ['#left', 'Watch AI climb', 'The top chart tracks the projected chance of catastrophe, as it stood each year. Below it, each side\'s AI capability: past the Automated Coder line (70), AI does most of its own research and control can start to slip; alignment (green) has to keep up. Further down: the rest of the world\'s state and your past decisions.'],
+    ['#right', 'This year\'s risk', 'Your estimate of each catastrophe this year. After you choose, a die is rolled for each one. When AI becomes superintelligent, there is one more test: whether its alignment is good enough to keep it on our side. The big number is the projected chance of catastrophe from where you are, under your current policies (looking ahead to 2040), and when it would most likely come. Copy for AI copies your game so far as a prompt, so you can ask an AI why it went the way it did.'],
     ['#timeline', 'Go back in time', 'Click any earlier year to rewind and choose differently, or use ‹ › on the card (← → keys). Each year keeps its luck, so only your choice changes, and you can go forward again until you choose differently.'],
     ['#statsToggle', 'World state and risk', 'Tap Stats to watch AI capability climb year by year toward the line where control can be lost, with this year\'s risk and your past decisions. Tap it again to return to the decision.'],
     ['#modelBtn', 'Curious how it works?', 'Every number comes from formulas you can read here, with their sources.'],
