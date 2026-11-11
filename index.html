@@ -729,21 +729,23 @@
     #paperView .pbtn .nxa { width: 30px; height: 30px; font-size: 16px; }
     #paperView .plink { flex: none; font-size: 13px; padding: 6px 4px; white-space: nowrap; }
   }
-  /* The right panel's estimate under the catastrophe so far. */
-  .survival .est { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--muted); }
+  /* The right panel's projection: its average date under the big number. */
+  .survival .est { margin-top: 2px; font-size: 11.5px; color: var(--muted); }
+  .survival .est:empty { display: none; }
+  #survival { color: var(--bad); }
   .survival .est b { font-family: var(--mono); color: var(--bad); font-weight: 600; font-size: 13px; }
   .survival .est .lbl { margin-top: 2px; font-size: 10.5px; line-height: 1.3; }
   #ending .endwu { margin: 14px 0 0; font-size: 13.5px; color: var(--muted); }
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261111153258"></script>
-<script src="events.js?v=20261111153258"></script>
-<script src="policies.js?v=20261111153258"></script>
-<script src="news.js?v=20261111153258"></script>
-<script src="landmask.js?v=20261111153258"></script>
-<script src="presets.js?v=20261111153258"></script>
-<script src="trees.js?v=20261111153258"></script>
+<script src="model.js?v=20261111154219"></script>
+<script src="events.js?v=20261111154219"></script>
+<script src="policies.js?v=20261111154219"></script>
+<script src="news.js?v=20261111154219"></script>
+<script src="landmask.js?v=20261111154219"></script>
+<script src="presets.js?v=20261111154219"></script>
+<script src="trees.js?v=20261111154219"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -796,9 +798,10 @@
     <div class="sub" id="riskSub">Hover a choice to preview its effect.</div>
     <div id="risks"></div>
     <div class="survival">
-      <div class="big" id="survival">100%</div>
-      <div class="lbl">expected chance of catastrophe so far</div>
-      <div class="est" id="estLine" title="The share of simulated futures from where you are now, under your current levers, that end in catastrophe by 2040, plus the catastrophe so far. Each future draws its own secret facts from the default ranges, so it uses only what you can see.">…</div>
+      <div title="The share of simulated futures from where you are now, under your current levers, that end in catastrophe by 2040, counting the risk already run. Each future draws its own secret facts from the default ranges, so it uses only what you can see.">
+      <div class="big" id="survival">…</div>
+      <div class="lbl">projected chance of catastrophe by 2040</div>
+      <div class="est" id="estLine"></div></div>
     </div>
     <button class="iconbtn secbtn" id="secretsBtn" aria-pressed="false">Show secret facts</button>
     <div class="world-reveal secrets" id="secrets" hidden></div>
@@ -1116,7 +1119,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261111153258';
+const ASSET_VERSION = '20261111154219';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -2373,9 +2376,9 @@ function paperHTML(d, i) {
   if (r.note) lines.push(r.note);
   lines.push(final ? (r.stage === 'end' && !M.CATASTROPHES.includes(r.event) ? `2040 arrives: ${M.OUTCOMES[r.event].title}.` : `The story ends: ${M.OUTCOMES[r.event].title}.`) : 'No catastrophe struck.');
   const summary = `<section class="summary"><h4>${final ? 'The final tally' : 'News Summary'}</h4><div class="copy">${lines.map((t) => `<p>${escHTML(t)}</p>`).join('')}</div></section>`;
-  const index = `<div class="box cat"><div class="ttl">The Catastrophe Index</div><div class="big">${pct(r.cat, 1)}</div>
-    <div class="lbl">expected chance of catastrophe so far</div>
-    ${final ? '' : `<div class="pest"><span id="paperEst">${r.est ? estText(r.est) : '…'}</span><div class="lbl">${EST_LABEL}</div></div>`}
+  const index = `<div class="box cat"><div class="ttl">The Catastrophe Index</div>${final
+    ? `<div class="big" style="font-size:22px">${escHTML(M.OUTCOMES[r.event].title)}</div><div class="lbl">how the story ended</div>`
+    : `<div id="paperEst">${paperEstHTML(r.est)}</div>`}
     ${rows ? `<table aria-label="Changes this year">${rows}</table>` : ''}</div>`;
   const side = second ? `<article class="side"><div class="kicker">${escHTML(deskKicker(second.desk))}</div><h3>${escHTML(second.text)}</h3><div class="rl"></div>
     <p class="deck">${escHTML(second.deck)}</p>${paperCopy(second)}</article>` : '';
@@ -2462,9 +2465,9 @@ function outlookTotal(s, L) {
   const acc = outlookCache.get(outlookKey(s, L));
   return acc ? M.outlookTotal(s, acc, pastCatYears(s)) : null;
 }
-// "78% · avg. around Oct 2030"; EST_LABEL says what it is, just below it.
-const estText = (t) => `<b>${pct(t.byEnd, t.byEnd < 0.1 ? 1 : 0)}</b>${t.meanYears != null ? ` · <span class="when">avg. ${avgDate(t.meanYears)}</span>` : ''}`;
-const EST_LABEL = 'estimated chance of catastrophe by 2040, and its average date';
+// The front page's index: the projection by 2040 and its average date ("…" until computed).
+const paperEstHTML = (t) => `<div class="big">${t ? estPct(t.byEnd) : '…'}</div><div class="lbl">projected chance of catastrophe by 2040</div>
+  ${t?.meanYears != null ? `<div class="pest"><span class="when">avg. ${avgDate(t.meanYears)}</span></div>` : ''}`;
 function requestOutlook() {
   if (!game || game.s.outcome) { renderOutlook(); return; }
   const key = outlookKey(game.s, game.L);
@@ -2511,7 +2514,8 @@ function renderOutlook() {
   if (game.phase === 'rolling') return; // keeps the last figure until the year resolves
   el.hidden = false;
   const t = outlookTotal(game.s, game.L);
-  el.innerHTML = `<div class="estv">${t ? estText(t) : '…'}</div><div class="lbl">${EST_LABEL}</div>`;
+  $('survival').textContent = t ? estPct(t.byEnd) : '…';
+  el.innerHTML = t?.meanYears != null ? `avg. ${avgDate(t.meanYears)}` : '';
   if (game.phase === 'choose' && $('tagEst')) $('tagEst').innerHTML = tagEstInner();
   if (game.phase === 'result' && $('cardEst')) $('cardEst').innerHTML = cardEstInner();
   if (!t) return;
@@ -2519,7 +2523,7 @@ function renderOutlook() {
   const d = game.decisions[game.decisions.length - 1];
   if (d?.result && !d.result.event && !d.result.est && d.result.st.year === game.s.year) {
     d.result.est = t;
-    const pe = $('paperEst'); if (pe && game.paperOpen) pe.innerHTML = estText(t);
+    const pe = $('paperEst'); if (pe && game.paperOpen) pe.innerHTML = paperEstHTML(t);
   }
 }
 
@@ -2645,13 +2649,13 @@ function chartPoints() {
   }
   return pts;
 }
-// Two small year-by-year panels. First, the headline: the expected chance of catastrophe so far,
-// 1 - s.survival, as it stood each year (the number shown in the right panel, like the Lab's).
+// Two small year-by-year panels. First, the headline: the projected chance of catastrophe by
+// 2040 as it stood each year (the number shown in the right panel, the card and the paper).
 // Second, AI capability for each bloc against the Automated Coder (70), top-expert (78) and
 // superintelligence (100) lines, with alignment as tests measure it (and the real value when
 // the secret facts are shown).
-// Catastrophe risk is always shown in red, like the Futures Lab's headline.
-const riskColor = () => 'var(--bad)';
+// Catastrophe risk is always shown in red, like the Futures Lab's headline. The expected
+// catastrophe so far (1 - survival) is not shown; it still dates the projection (pastCatYears).
 const catSoFar = (s) => 1 - s.survival;
 function renderChart() {
   const pts = chartPoints(), SI = M.STAT_INFO;
@@ -2668,30 +2672,24 @@ function renderChart() {
   const ticks = (y) => tickYears.map((yr) => `<text x="${X(yr) - (yr === y0 ? 3 : 0)}" y="${y}" text-anchor="${yr === y0 ? 'start' : X(yr) > x1 - 14 ? 'end' : 'middle'}">${yr}</text>`).join('');
   const path = (xy) => xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join('');
 
-  // Panel 1: chance of catastrophe so far, 0–100%.
+  // Panel 1: the projected chance of catastrophe by 2040 from each year (once computed), 0–100%.
   const aTop = 8, aBot = 78, A = (p) => aBot - (aBot - aTop) * Math.max(0, Math.min(1, p));
   const grid = [[1, '100%'], [0.5, '50%'], [0, '0%']].map(([p, t]) =>
     `<line class="grid" x1="${X(y0) - 4}" x2="${x1}" y1="${A(p)}" y2="${A(p)}"/><text x="${X(y0) - 8}" y="${A(p) + 4}" text-anchor="end">${t}</text>`).join('');
-  let surv = '', hasEst = false;
-  if (pts.length) {
-    const xy = pts.map((p) => [X(p.s.year), A(catSoFar(p.s))]);
-    const segs = xy.slice(1).map(([x, y], i) => `<path d="${path([xy[i], [x, y]])}" stroke="${riskColor(catSoFar(pts[i + 1].s))}" stroke-width="2.4" stroke-linecap="round" fill="none"/>`).join('');
-    const dots = xy.map(([x, y], i) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${i === xy.length - 1 ? 3.6 : 2.4}" fill="${riskColor(catSoFar(pts[i].s))}"><title>${pts[i].s.year}: ${pct(catSoFar(pts[i].s), 1)}</title></circle>`).join('');
-    const p = catSoFar(pts[pts.length - 1].s), [lx, ly] = xy[xy.length - 1];
+  let surv = '';
+  const est = pts.map((p) => (p.s.outcome ? null : outlookTotal(p.s, p.L))).map((t, i) => (t ? [X(pts[i].s.year), A(t.byEnd), t.byEnd, pts[i].s.year] : null)).filter(Boolean);
+  if (est.length) {
+    const segs = est.slice(1).map((e, i) => `<path d="${path([est[i], e])}" stroke="var(--bad)" stroke-width="2.4" stroke-linecap="round" fill="none"/>`).join('');
+    const dots = est.map((e, i) => `<circle cx="${e[0].toFixed(1)}" cy="${e[1].toFixed(1)}" r="${i === est.length - 1 ? 3.6 : 2.4}" fill="var(--bad)"><title>${e[3]}: ${pct(e[2], 0)} by 2040</title></circle>`).join('');
+    const [lx, ly, p] = est[est.length - 1];
     // The current value sits in the open space under the line (over it once the line is low),
     // to the right of the last point when there is room, else ending just past it.
     const right = lx + 56 < x1, ty = p > 0.5 ? ly + 19 : ly - 9;
-    // The estimate by 2040 at each point (once computed), as a lighter dashed line.
-    const est = pts.map((p) => (p.s.outcome ? null : outlookTotal(p.s, p.L))).map((t, i) => (t ? [xy[i][0], A(t.byEnd), t.byEnd] : null));
-    let estPath = '', estDots = '';
-    for (let i = 1; i < est.length; i++) if (est[i] && est[i - 1]) estPath += `<path d="${path([est[i - 1], est[i]])}" stroke="var(--bad)" stroke-opacity=".5" stroke-width="1.6" stroke-dasharray="3 2.5" fill="none"/>`;
-    est.forEach((e, i) => { if (e) estDots += `<circle cx="${e[0].toFixed(1)}" cy="${e[1].toFixed(1)}" r="1.8" fill="var(--bad)" fill-opacity=".55"><title>${pts[i].s.year}: est. by 2040 ${pct(e[2], 0)}</title></circle>`; });
-    hasEst = est.some(Boolean);
-    surv = `${estPath}${estDots}${segs}${dots}<text class="now halo" x="${(lx + (right ? 6 : 4)).toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="${right ? 'start' : 'end'}" style="fill:${riskColor(p)}">${pct(p, 1)}</text>`;
+    surv = `${segs}${dots}<text class="now halo" x="${(lx + (right ? 6 : 4)).toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="${right ? 'start' : 'end'}" style="fill:var(--bad)">${estPct(p)}</text>`;
   }
-  const p1 = `<div class="ct">Chance of catastrophe so far</div>
-    <svg viewBox="0 0 ${W} ${aBot + 16}" role="img" aria-label="Expected chance of catastrophe so far, by year">
-    ${grid}${surv}${ticks(aBot + 14)}</svg>${hasEst ? `<div class="lg"><span><i style="background:var(--bad)"></i>So far</span><span><i class="dash" style="border-color:var(--bad);opacity:.6"></i>Est. by 2040 (from each year)</span></div>` : ''}`;
+  const p1 = `<div class="ct">Projected catastrophe by 2040</div>
+    <svg viewBox="0 0 ${W} ${aBot + 16}" role="img" aria-label="Projected chance of catastrophe by 2040, as it stood each year">
+    ${grid}${surv}${ticks(aBot + 14)}</svg>`;
 
   // Panel 2: capability vs alignment.
   const yTop = 14, yBot = 120, Y = (v) => yBot - (yBot - yTop) * Math.max(0, Math.min(100, v)) / 100;
@@ -2759,8 +2757,6 @@ function renderRisks(prev) {
     $('secrets').innerHTML = `<div class="realrisk">If AI became superintelligent now, the real chance the handoff goes well: <b>${chance(q)}</b>. Your best guess without the secret facts: ${chance(qe)}.</div>${secretList(s, game.L)}${SECRETS_NOTE}`;
   }
   $('riskSub').textContent = prev ? 'Estimated risk next year with this choice (▲▼ vs. changing nothing).' : 'Hover a choice to preview where it leads.';
-  $('survival').textContent = pct(catSoFar(s), 1);
-  $('survival').style.color = riskColor(catSoFar(s));
   renderOutlook();
 }
 
@@ -3061,8 +3057,7 @@ function campaignText() {
     if (d.result) {
       lines.push(`- **What happened:** ${d.result.event ? `${M.OUTCOMES[d.result.event].title}. ${M.OUTCOMES[d.result.event].text}` : d.result.stage === 'end' ? '2040 arrived.' : `${d.year} passed without catastrophe.`}${d.result.note ? ' ' + d.result.note : ''}`);
       lines.push(`- **State at the end of the year:** ${statLine(d.result.st)}`);
-      lines.push(`- **Chance of catastrophe so far:** ${pct(d.result.cat, 1)}`);
-      if (d.result.est) lines.push(`- **Est. chance of catastrophe by 2040** (share of ${OUTLOOK_N.toLocaleString('en-US')} simulated futures from this visible state under these levers, each with fresh secret facts from the default ranges, plus the catastrophe so far): ${pct(d.result.est.byEnd, 1)}${d.result.est.meanYears != null ? `, on average ${avgDate(d.result.est.meanYears)}` : ''}`);
+      if (d.result.est) lines.push(`- **Projected chance of catastrophe by 2040** (share of ${OUTLOOK_N.toLocaleString('en-US')} simulated futures from this visible state under these levers, each with fresh secret facts from the default ranges, counting the risk already run): ${pct(d.result.est.byEnd, 1)}${d.result.est.meanYears != null ? `, on average ${avgDate(d.result.est.meanYears)}` : ''}`);
       if (d.result.news?.length) lines.push(`- **Headlines (fictional, written from what the player could see):** ${NEWS.plain(d.result.news).join('; ')}`);
       if (d.result.econ) lines.push(`- **Economy on the paper (illustrative flavour derived from the visible state, not model outputs):** unemployment ${d.result.econ.unemp.toFixed(1)}%, GDP growth ${d.result.econ.gdp.toFixed(1)}%, AI capex $${Math.round(d.result.econ.capex)}B a year`);
     } else lines.push('- **What happened:** the dice are still rolling.');
@@ -3074,8 +3069,7 @@ function campaignText() {
       ...game.card.choices.map((ch, i) => `${i + 1}. ${ch.label}${ch.note ? ': ' + ch.note : ''}`), '',
       `- **Levers now:** ${leverLine(game.L)}`, `- **State now (0–100):** ${statLine(s)}`,
       `- **Risks shown this year before choosing:** engineered pandemic ${pct(r.bio)}, AI escapes control ${pct(r.misalign)}, great-power war ${pct(r.war)}`,
-      `- **Chance of catastrophe so far:** ${pct(catSoFar(s), 1)}`,
-      ...(() => { const t = outlookTotal(s, game.L); return t ? [`- **Est. chance of catastrophe by 2040 under the current levers:** ${pct(t.byEnd, 1)}${t.meanYears != null ? `, on average ${avgDate(t.meanYears)}` : ''}`] : []; })()].join('\n'));
+      ...(() => { const t = outlookTotal(s, game.L); return t ? [`- **Projected chance of catastrophe by 2040 under the current levers:** ${pct(t.byEnd, 1)}${t.meanYears != null ? `, on average ${avgDate(t.meanYears)}` : ''}`] : []; })()].join('\n'));
   }
   const secretsTxt = (L) => M.secretRows(s, L, { pct, over }).map(([k, v]) => `- **${k}:** ${plainText(v)}`).join('\n');
   const hidden = showSecrets
@@ -3551,8 +3545,8 @@ const TOURS = {
   campaign: [
     ['#card', 'One decision a year', 'Each year brings a new situation. Read it, then pick one of the options.'],
     ['#choices', 'What each option does', 'The tags under each option show what it changes: green makes things safer, red riskier. Hover or tap an option to preview next year\'s risk. You can also press 1, 2 or 3.'],
-    ['#left', 'Watch AI climb', 'The top chart tracks your chance of catastrophe so far, year by year. Below it, each side\'s AI capability: past the Automated Coder line (70), AI does most of its own research and control can start to slip; alignment (green) has to keep up. Further down: the rest of the world\'s state and your past decisions.'],
-    ['#right', 'This year\'s risk', 'Your estimate of each catastrophe this year. After you choose, a die is rolled for each one. When AI becomes superintelligent, there is one more test: whether its alignment is good enough to keep it on our side. The big number is your chance of having made it this far without catastrophe. Copy for AI copies your game so far as a prompt, so you can ask an AI why it went the way it did.'],
+    ['#left', 'Watch AI climb', 'The top chart tracks the projected chance of catastrophe by 2040, as it stood each year. Below it, each side\'s AI capability: past the Automated Coder line (70), AI does most of its own research and control can start to slip; alignment (green) has to keep up. Further down: the rest of the world\'s state and your past decisions.'],
+    ['#right', 'This year\'s risk', 'Your estimate of each catastrophe this year. After you choose, a die is rolled for each one. When AI becomes superintelligent, there is one more test: whether its alignment is good enough to keep it on our side. The big number is the projected chance of catastrophe by 2040 from where you are, under your current policies. Copy for AI copies your game so far as a prompt, so you can ask an AI why it went the way it did.'],
     ['#timeline', 'Go back in time', 'Click any earlier year to rewind and choose differently, or use ‹ › on the card (← → keys). Each year keeps its luck, so only your choice changes, and you can go forward again until you choose differently.'],
     ['#statsToggle', 'World state and risk', 'Tap Stats to watch AI capability climb year by year toward the line where control can be lost, with this year\'s risk and your past decisions. Tap it again to return to the decision.'],
     ['#modelBtn', 'Curious how it works?', 'Every number comes from formulas you can read here, with their sources.'],
