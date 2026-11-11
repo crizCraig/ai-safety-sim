@@ -264,6 +264,14 @@
   #card.resolved .vtext .changes { justify-content: flex-start; }
   /* Continue with "Change my choice" under it. */
   #card.resolved .nxcol { flex: 0 1 42%; max-width: 42%; display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
+  /* The projected chance of catastrophe by 2040, in the card (the panel's figure; phones hide the panel).
+     Its height is fixed, so the figure arriving never moves Continue. */
+  .cest { font-size: 12px; line-height: 1.35; min-height: 2.7em; color: var(--muted); text-align: center; margin-bottom: 4px; }
+  .cest b { font-family: var(--mono); color: var(--bad); font-weight: 600; font-size: 12.5px; }
+  .cest .up { color: var(--bad); } .cest .dn { color: var(--good); }
+  .cest .cshort { display: none; }
+  #card .tag .tagest { color: var(--muted); }
+  #card .tag .tagest b { color: var(--bad); font-weight: 600; }
   #card .roll .rechoose { align-self: center; font: 400 12.5px/1.2 var(--sans); color: var(--muted); background: none; border: 0; padding: 2px 8px; margin: 0; cursor: pointer; }
   #card .roll .rechoose:hover, #card .roll .rechoose:focus-visible { color: var(--text); }
   #card.resolved .roll .next { width: 100%; margin: 0; padding: 14px 16px 14px 20px; }
@@ -560,6 +568,10 @@
     .yrnav #navTxt { display: none; }
     .yrnav button { padding: 0 7px; }
     #card .tag { padding-right: 150px; } /* clear of the Back / Forward control */
+    #card .tag .tagest { display: block; margin: 2px -150px 0 0; } /* its own line, so the figure arriving never rewraps the tag */
+    #card .tag .tagest .sep, .cest .cpre, .cest .cfrom { display: none; }
+    .cest .cshort { display: inline; }
+    .cest { min-height: 1.35em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0 0 6px; }
     .cardart { width: calc(100% + 32px); margin: -16px -16px 10px; height: 64px; }
     /* No room for a strip while choosing: the picture becomes a faded backdrop behind the
        card's text and choices (z-index -1 keeps it above the card's own background, since
@@ -712,13 +724,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261111151914"></script>
-<script src="events.js?v=20261111151914"></script>
-<script src="policies.js?v=20261111151914"></script>
-<script src="news.js?v=20261111151914"></script>
-<script src="landmask.js?v=20261111151914"></script>
-<script src="presets.js?v=20261111151914"></script>
-<script src="trees.js?v=20261111151914"></script>
+<script src="model.js?v=20261111153030"></script>
+<script src="events.js?v=20261111153030"></script>
+<script src="policies.js?v=20261111153030"></script>
+<script src="news.js?v=20261111153030"></script>
+<script src="landmask.js?v=20261111153030"></script>
+<script src="presets.js?v=20261111153030"></script>
+<script src="trees.js?v=20261111153030"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -1095,7 +1107,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261111151914';
+const ASSET_VERSION = '20261111153030';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -2069,7 +2081,7 @@ function showCard(c) {
   morphCard(() => fillCard(c), cardParts(), !phoneLayout());
 }
 function fillCard(c) {
-  $('cardTag').textContent = `${game.s.year} · ${c.tag}`;
+  $('cardTag').innerHTML = `${game.s.year} · ${escHTML(c.tag)}<span class="tagest" id="tagEst">${tagEstInner()}</span>`;
   $('cardTitle').textContent = c.title;
   showCardArt(c);
   $('cardText').textContent = c.text;
@@ -2254,7 +2266,7 @@ function rollYear() {
       // The outcome sits on the left and Continue on the right on desktop; on phones Continue
       // grows to fill the space, so the card keeps the size it had while choosing.
       $('verdict').innerHTML = `<div class="vtext">${verdict}${youChoseHTML(rec)}${cueHTML}${yearChanges(game.before, s)}</div>
-        <div class="nxcol"><button class="btn next" id="nextBtn"><span class="nxl"><small>${res.event ? 'The story ends' : 'Next year'}</small>${res.event ? 'See the ending' : `Continue to ${s.year}`}</span><span class="nxa" aria-hidden="true">→</span></button>
+        <div class="nxcol">${res.event ? '' : `<div class="cest" id="cardEst">${cardEstInner()}</div>`}<button class="btn next" id="nextBtn"><span class="nxl"><small>${res.event ? 'The story ends' : 'Next year'}</small>${res.event ? 'See the ending' : `Continue to ${s.year}`}</span><span class="nxa" aria-hidden="true">→</span></button>
         <button class="linkbtn rechoose" data-rewind="${game.decisions.length - 1}">↺ Change my choice</button></div>`;
       const short = h0 - card.getBoundingClientRect().height;
       if (short > 1) roll.style.minHeight = (roll.getBoundingClientRect().height + short) + 'px';
@@ -2428,6 +2440,27 @@ function requestOutlook() {
   idle(run, { timeout: 250 });
   renderOutlook();
 }
+// The same figure inside the card, so phones (which hide the panel) see it too. While choosing:
+// a short note in the kicker row. In a result: the figure, its change since the year began
+// (before your choice) and its average date.
+const estPct = (x) => pct(x, x < 0.1 ? 1 : 0);
+function tagEstInner() {
+  const t = game && !game.s.outcome && outlookTotal(game.s, game.L);
+  return `<span class="sep"> · </span>Projected by 2040: <b>${t ? estPct(t.byEnd) : '…'}</b>`;
+}
+function cardEstInner() {
+  const t = outlookTotal(game.s, game.L), h = game.history[game.history.length - 1];
+  const t0 = h && outlookTotal(h.s, h.L);
+  const lbl = '<span class="cpre">Projected catastrophe</span><span class="cshort">Catastrophe</span> by 2040:';
+  if (!t) return `${lbl} <b>…</b>`;
+  let delta = '';
+  if (t0) {
+    const d = (t.byEnd - t0.byEnd) * 100, a = Math.abs(d);
+    delta = a < 0.05 ? ' <span>(no change)</span>'
+      : ` <span class="${d > 0 ? 'up' : 'dn'}">(${d > 0 ? '▲' : '▼'}${a.toFixed(a < 1 ? 1 : 0)}<span class="cfrom"> from ${estPct(t0.byEnd)}</span>)</span>`;
+  }
+  return `${lbl} <b>${estPct(t.byEnd)}</b>${delta}${t.meanYears != null ? ` · avg. ${avgDate(t.meanYears).replace(/^around /, '<span class="cpre">around </span>')}` : ''}`;
+}
 function renderOutlook() {
   const el = $('estLine');
   if (!game || !el) return;
@@ -2436,6 +2469,8 @@ function renderOutlook() {
   el.hidden = false;
   const t = outlookTotal(game.s, game.L);
   el.innerHTML = `<div class="estv">${t ? estText(t) : '…'}</div><div class="lbl">${EST_LABEL}</div>`;
+  if (game.phase === 'choose' && $('tagEst')) $('tagEst').innerHTML = tagEstInner();
+  if (game.phase === 'result' && $('cardEst')) $('cardEst').innerHTML = cardEstInner();
   if (!t) return;
   // The year's record keeps the figure for its paper and Copy for AI.
   const d = game.decisions[game.decisions.length - 1];
