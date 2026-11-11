@@ -564,51 +564,19 @@
     .yrnav { top: 8px; right: 8px; }
     .yrnav #navTxt { display: none; }
     .yrnav button { padding: 0 7px; }
-    #card .tag { padding-right: 150px; } /* clear of the Back / Forward control */
-    /* A new card opens with its picture in the foreground, then it fades into the backdrop
-       (playCardIntro). It covers the card, so nothing under it can be tapped meanwhile. */
-    .cintro { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; justify-content: center; gap: 12px;
-      padding: 16px; border-radius: 16px; background: var(--panel-solid); cursor: pointer; }
-    .cintro .pic { position: relative; overflow: hidden; margin: 0 -16px; aspect-ratio: 12 / 5; }
-    .cintro .pic.half { aspect-ratio: 6 / 5; margin: 0 8%; border-radius: 10px; }
-    .cintro .pic img { display: block; width: 100%; height: 100%; object-fit: cover; }
-    .cintro .pic img { animation: cizoom 1.8s ease-out both; }
-    @keyframes cizoom { from { transform: scale(1.1); } to { transform: scale(1); } }
-    @media (prefers-reduced-motion: reduce) { .cintro .pic img { animation: none; } }
-    .cintro .pic.half img { width: 200%; max-width: none; }
-    .cintro .pic.half.r img { margin-left: -100%; }
-    .cintro .tag { padding-right: 0 !important; }
-    .cintro h2 { margin: 0; font-size: 24px; }
-    .cintro.out { transition: opacity var(--fade, .6s) ease-in, background-color var(--fade, .6s); opacity: 0; background-color: transparent; pointer-events: none; }
-    .cintro.out .pic { transition: transform var(--fade, .6s) ease-in; transform: translateY(18%) scale(.88); }
-    #card .tag .tagest { display: block; margin: 2px -150px 0 0; } /* its own line, so the figure arriving never rewraps the tag */
+    #card .tag .tagest { display: block; margin-top: 2px; } /* its own line, so the figure arriving never rewraps the tag */
     #card .tag .tagest .sep, .cest .cpre, .cest .cfrom { display: none; }
     .cest .cshort { display: inline; }
     .cest { min-height: 1.35em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0 0 6px; }
-    .cardart { width: calc(100% + 32px); margin: -16px -16px 10px; height: 64px; }
-    /* No room for a strip while choosing: the picture becomes a faded backdrop behind the
-       card's text and choices (z-index -1 keeps it above the card's own background, since
-       the card's backdrop-filter makes it a stacking context), and stays there for the result. */
-    #card > .cardart { position: absolute; inset: auto 0 0 0; width: auto; height: 64%; margin: 0; border: 0;
-      border-radius: 0 0 16px 16px; pointer-events: none; z-index: -1; }
-    #card > .cardart img { opacity: .2; filter: brightness(.8) sepia(.2);
-      -webkit-mask-image: linear-gradient(to bottom, transparent, #000 40%);
-      mask-image: linear-gradient(to bottom, transparent, #000 40%); }
-    /* A split picture (Vance | Democrat) would lose one president to the backdrop's centre
-       crop, so it is shown whole, as a strip in the backdrop's visible part. */
-    #card > .cardart img.split { object-fit: contain; object-position: 50% 55% !important; }
-    #card > .cardart img.half { object-fit: cover; }
-    /* Darker choice buttons over the picture keep their small grey text at the plain card's contrast. */
-    #card:not(.resolved) .choice { background: rgba(8,13,26,.62); }
-    /* Ending on phones: like the cards, the picture is a faint backdrop behind the top of the
-       panel (it scrolls with the panel; isolation keeps z-index -1 above the box's background). */
-    #ending .box { position: relative; isolation: isolate; }
-    .cardart.endart { position: absolute; inset: 0 0 auto 0; width: auto; height: 300px; margin: 0; border: 0;
-      border-radius: 18px 18px 0 0; pointer-events: none; z-index: -1; }
-    .cardart.endart img { opacity: .2; filter: brightness(.8) sepia(.2);
-      -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent);
-      mask-image: linear-gradient(to bottom, #000 45%, transparent); }
-    .cardart.endart img.split { object-fit: contain; object-position: 50% 0 !important; }
+    /* Phones: the picture sits at the top of the card at its full 12:5 width (a chosen party's
+       half of a split president picture at 6:5), and the card scrolls to its text and choices. */
+    #card { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+    .cardart { width: calc(100% + 32px); margin: -16px -16px 10px; height: auto; aspect-ratio: 12 / 5; cursor: default; }
+    .cardart.halfart { aspect-ratio: 6 / 5; }
+    .cardart img, .cardart:hover img { opacity: .85; filter: brightness(.95) sepia(.1); -webkit-mask-image: none; mask-image: none; }
+    .cardart.halfart img.half { height: 100%; }
+    /* The ending: the same picture strip at the top of its panel, which scrolls. */
+    .cardart.endart { width: calc(100% + 36px); margin: -20px -18px 14px; height: auto; border-radius: 18px 18px 0 0; }
     #card h2 { font-size: 18px; }
     .modal .box { padding: 20px 18px; }
     .doc p, .doc li { font-size: 13.5px; }
@@ -739,13 +707,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261111154219"></script>
-<script src="events.js?v=20261111154219"></script>
-<script src="policies.js?v=20261111154219"></script>
-<script src="news.js?v=20261111154219"></script>
-<script src="landmask.js?v=20261111154219"></script>
-<script src="presets.js?v=20261111154219"></script>
-<script src="trees.js?v=20261111154219"></script>
+<script src="model.js?v=20261111155937"></script>
+<script src="events.js?v=20261111155937"></script>
+<script src="policies.js?v=20261111155937"></script>
+<script src="news.js?v=20261111155937"></script>
+<script src="landmask.js?v=20261111155937"></script>
+<script src="presets.js?v=20261111155937"></script>
+<script src="trees.js?v=20261111155937"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -1119,7 +1087,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261111154219';
+const ASSET_VERSION = '20261111155937';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1975,7 +1943,7 @@ const focusPos = (id) => `50% ${ART_FOCUS[id] ?? 50}%`;
 function setArt(art, img, src, focusId, fallback) {
   art.hidden = false; art.classList.remove('expanded'); art.setAttribute('aria-expanded', 'false');
   img.classList.add('pending');
-  img.onload = () => { img.classList.remove('pending'); loadedArt.add(img.src); };
+  img.onload = () => img.classList.remove('pending');
   img.onerror = () => {
     if (fallback && img.src !== new URL(fallback, location.href).href) { img.style.objectPosition = ''; img.classList.remove('split', 'half', 'r'); img.src = fallback; } else art.hidden = true;
   };
@@ -1983,6 +1951,7 @@ function setArt(art, img, src, focusId, fallback) {
   const half = presidentHalf(focusId);
   img.classList.toggle('split', PRESIDENT_ART.has(focusId) && !half);
   img.classList.toggle('half', !!half); img.classList.toggle('r', half === 'r');
+  art.classList.toggle('halfart', !!half);
   img.src = src;
 }
 // Once the player has picked who won the 2028 election, a split picture after 2028 shows only
@@ -2007,11 +1976,10 @@ for (const id of ['cardArt', 'endArt']) $(id).onclick = () => {
 // all), unless the visitor asked to save data or is on a 2G connection. The .pending gate in
 // setArt keeps the old picture off a new card even when a file isn't cached yet.
 const preloaded = new Map();
-const loadedArt = new Set(); // picture URLs known to be loaded, so the card intro never shows an empty frame
 function preloadImg(url) {
   if (!preloaded.has(url)) {
     const im = new Image();
-    preloaded.set(url, new Promise((done) => { im.onload = () => { loadedArt.add(im.src); done(); }; im.onerror = done; im.src = url; }));
+    preloaded.set(url, new Promise((done) => { im.onload = im.onerror = done; im.src = url; }));
   }
   return preloaded.get(url);
 }
@@ -2044,10 +2012,11 @@ function finishMorph() {
   morph.anims.forEach((a) => a.cancel()); morph.anims = [];
   $('card').classList.remove('morphing');
 }
-function morphCard(change, fadeEls, artInFlowAfter) {
+// scrollEl (phones): after the change, scroll the card so that element is at the top of its view.
+function morphCard(change, fadeEls, artInFlowAfter, scrollEl) {
   finishMorph();
   const card = $('card'), art = $('cardArt');
-  if (card.classList.contains('hidden') || !card.offsetHeight) { change(); return; }
+  if (card.classList.contains('hidden') || !card.offsetHeight) { change(); card.scrollTop = 0; return; }
   const reduce = prefersReducedMotion();
   const inFlow = !art.hidden && getComputedStyle(art).position !== 'absolute';
   const growArt = !reduce && inFlow && artInFlowAfter;
@@ -2058,6 +2027,8 @@ function morphCard(change, fadeEls, artInFlowAfter) {
     const h0 = card.getBoundingClientRect().height, a0 = art.getBoundingClientRect().height;
     change();
     card.scrollTop = 0;
+    const se = typeof scrollEl === 'function' ? scrollEl() : scrollEl;
+    if (se && phoneLayout()) card.scrollTop = Math.max(0, se.getBoundingClientRect().top - card.getBoundingClientRect().top - 12);
     const h1 = card.getBoundingClientRect().height, a1 = art.hidden ? 0 : art.getBoundingClientRect().height;
     outs.forEach((a) => a.cancel());
     morph.anims = fadeEls.map((el) => el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: reduce ? 0 : 110, easing: 'ease-out', fill: 'backwards' }));
@@ -2114,38 +2085,6 @@ function fillCard(c) {
   });
   wrap.insertAdjacentHTML('beforeend', ffRowHTML()); wireFF();
   $('card').classList.remove('hidden');
-  // Under the world-roll screen the intro waits for Begin (rollWorld's callback plays it).
-  if ($('worldRoll').classList.contains('hidden')) playCardIntro();
-}
-
-// Phones: a new card opens with its picture full strength in the foreground, with the year,
-// kind and title, for about 1.5 s, then it fades and shrinks into the card's faint backdrop as
-// the card shows through. A tap skips it. Not while Washington decides (skipping years), not
-// on a result, not when the picture hasn't loaded yet; reduced motion gets a quick crossfade.
-let cardIntro = null;
-function endCardIntro(fast) {
-  const ci = cardIntro; if (!ci) return;
-  cardIntro = null; clearTimeout(ci.timer);
-  const el = ci.el, fade = fast || prefersReducedMotion() ? 0.2 : 0.6;
-  el.style.setProperty('--fade', fade + 's');
-  el.classList.add('out');
-  setTimeout(() => el.remove(), fade * 1000 + 50);
-  if (ci.then) ci.then();
-}
-function playCardIntro(then) {
-  endCardIntro(true);
-  const c = game?.card, img = $('cardImg');
-  const ok = c && phoneLayout() && !game.auto && game.phase === 'choose' && !tour && !$('cardArt').hidden
-    && loadedArt.has(img.src) && !document.body.classList.contains('compact-open');
-  if (!ok) { if (then) then(); return; }
-  const half = img.classList.contains('half'), el = document.createElement('div');
-  el.className = 'cintro';
-  el.innerHTML = `<div class="pic${half ? ' half' : ''}${img.classList.contains('r') ? ' r' : ''}"><img alt="" src="${img.src}"
-    style="object-position:${img.classList.contains('split') || half ? '50% 50%' : img.style.objectPosition}"></div>
-    <div><div class="tag">${game.s.year} · ${escHTML(c.tag)}</div><h2>${escHTML(c.title)}</h2></div>`;
-  el.onclick = (e) => { e.stopPropagation(); endCardIntro(true); };
-  $('card').append(el);
-  cardIntro = { el, then, timer: setTimeout(() => endCardIntro(false), prefersReducedMotion() ? 250 : 1500) };
 }
 
 // Chip names and colours come from LEVER_INFO and STAT_INFO (`short`, `up`); the export-controls
@@ -2186,7 +2125,6 @@ function preview(ch) { return { now: project(ch), base: project(null) }; }
 
 function choose(ch, by = null) {
   if (game.phase !== 'choose') return;
-  if (cardIntro && !by) { endCardIntro(true); return; }
   // A choice of your own ends any skipping.
   if (!by && game.auto) stopAuto();
   clearTimeout(game.autoTimer);
@@ -2267,7 +2205,7 @@ function rollYear() {
     t0 = performance.now(); wiggle();
     // Stage 2, a beat after the needles settle: the outcome.
     setTimeout(showOutcome, reduce ? (game.auto ? 300 : 700) : SETTLE + 300);
-  }, [$('choices'), roll], true);
+  }, [$('choices'), roll], true, roll);
   function showOutcome() {
     syncTarget(s, L);
     renderAll();
@@ -2322,7 +2260,7 @@ function rollYear() {
       if (game.auto && !res.event && s.year <= game.auto.until) game.autoTimer = setTimeout(() => { if (game.auto && game.phase === 'result') { game.paperOpen = true; advance(); } }, prefersReducedMotion() ? 300 : 900);
       else if (game.auto) stopAuto();
     // The picture, tag, title and description stay put; only the parts below them change.
-    }, cardParts().filter((el) => !['cardArt', 'cardTag', 'cardTitle', 'cardText'].includes(el.id)), true);
+    }, cardParts().filter((el) => !['cardArt', 'cardTag', 'cardTitle', 'cardText'].includes(el.id)), true, roll);
   }
 }
 
@@ -3260,7 +3198,7 @@ function setMode(m) {
   }
 }
 // The Campaign starts playing right away; the first-time tutorial explains the screen.
-function startCampaign() { closeSplash(); setMode('campaign'); newGame(); rollWorld(() => playCardIntro(() => maybeTour('campaign'))); }
+function startCampaign() { closeSplash(); setMode('campaign'); newGame(); rollWorld(() => maybeTour('campaign')); }
 // The headline unknowns the roll screen shows, with a sample value to flash while "rolling".
 // The world itself is drawn by newGame(); this screen only shows it happening.
 const ROLL_SHOWN = ['ease', 'speed', 'benevolent', 'evalGap'];
@@ -3470,7 +3408,7 @@ document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('cli
   setMode(m);
   if (m === 'lab') maybeTour('lab');
 }));
-$('againBtn').onclick = () => { setMode('campaign'); newGame(); rollWorld(() => playCardIntro()); };
+$('againBtn').onclick = () => { setMode('campaign'); newGame(); rollWorld(); };
 // After a campaign ends, the Lab opens on the levers that game ended with (once; later
 // Lab changes are kept).
 function campaignToLab() {
@@ -3563,7 +3501,6 @@ const TOURS = {
 let tour = null;
 const visible = (el) => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 4 && r.height > 4 && getComputedStyle(el).visibility !== 'hidden'; };
 function startTour(m) {
-  endCardIntro(true);
   const steps = TOURS[m].filter(([sel]) => visible(document.querySelector(sel)));
   if (!steps.length) return;
   tour = { steps, i: 0, mode: m };
