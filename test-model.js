@@ -722,6 +722,17 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('AI Futures (Nov 2026): superintelligence labelled 2029 (reached 2028, the authors\' TED-AI medians)', af.asiMedian === 2029, af.asiMedian);
   const afUp = M.uplift(A.capNow.mean);
   check('AI Futures (Nov 2026): starting capability speeds progress 1.67-1.74x, METR\'s estimate', afUp >= 1.67 && afUp <= 1.74, afUp.toFixed(3));
+  // Their spread is wide (35-65% TED-AI by the end of 2027), so the preset widens the speed spread:
+  // about a third of futures reach top-expert level (78) in 2027, against 28% at the default spread.
+  {
+    const rng = M.mulberry32(7); let early = 0; const n = 4000;
+    for (let i = 0; i < n; i++) {
+      const s = M.initialState(M.sampleWorld(A, rng)); s.fast = true;
+      while (s.year < 2028 && !M.step(s, PR.PRESETS['Status quo'], rng, true).event) {}
+      if (M.maxCap(s) >= M.TOP_EXPERT) early++;
+    }
+    check('AI Futures (Nov 2026): 30-45% of futures reach top-expert AI during 2027', early / n >= 0.3 && early / n <= 0.45, (early / n).toFixed(3));
+  }
   check('AI Futures note cites the Q3.5 timelines update', AFP.html.includes('blog.aifutures.org/p/q35-timelines-update-looks-like-the'));
   const words = AFP.html.replace(/<[^>]+>/g, '').split(/\s+/).length;
   check('AI Futures note is at most 60 words', words <= 60, String(words));

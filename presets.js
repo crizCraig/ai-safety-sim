@@ -82,10 +82,12 @@
     // by end of 2027) 35-65%. The start is anchored to METR's estimate instead of to a date: at 60
     // AI speeds the pace of progress uplift(60) = 1.73x, METR's ~1.7x AI-attributable acceleration.
     // The Lab labels a milestone with the year after it is reached: Automated Coders in 2027 (label
-    // 2028, before every author's SAR median), superintelligence in 2028 (label 2029). The game's
-    // spread is narrower than theirs: under 5% of its futures reach TED-AI in 2027.
-    'AI Futures (Nov 2026)': { set: { capNow: { mean: 60, sd: 0 } },
-      html: `The AI Futures Project's <a href="${AIFP_UPDATE}" target="_blank" rel="noopener">November 2026 update</a>, after <a href="${METR_RD}" target="_blank" rel="noopener">METR</a> estimated AI now speeds Anthropic's progress about 1.7×: all six authors put a Superhuman AI Researcher in 2027 (Daniel Kokotajlo May, Eli Lifland August) and top-expert AI around 2028. Much of METR's evidence was redacted. Starts 2027 at capability 60, where AI speeds progress 1.7×.` },
+    // 2028, before every author's SAR median), superintelligence in 2028 (label 2029). Their spread
+    // is wide (35-65% TED-AI by end of 2027), so the speed spread widens from ln-sd 0.35 to 0.6 at
+    // the same 1x median: about 37% of futures reach top-expert level (78) in 2027 instead of 28%.
+    // Wider barely helps (speed is capped at 2.5x); ~50% would need a faster median (about 1.25x).
+    'AI Futures (Nov 2026)': { set: { capNow: { mean: 60, sd: 0 }, speed: { mean: 0, sd: 0.6 / Math.LN10 } },
+      html: `The AI Futures Project's <a href="${AIFP_UPDATE}" target="_blank" rel="noopener">November 2026 update</a>, after <a href="${METR_RD}" target="_blank" rel="noopener">METR</a> estimated AI speeds Anthropic's progress about 1.7×: all six authors expect a Superhuman AI Researcher in 2027 and top-expert AI around 2028. Much of METR's evidence was redacted. Starts at capability 60 (a 1.7× speed-up), with a wider speed spread: about a third of futures reach top-expert AI in 2027.` },
   };
 
   root.SimPresets = { AI2040_PLANS, PRESET_INFO, PLAN_INFO, PRESETS, UNKNOWN_PRESETS, TIME_RSI, GLADSTONE_RSI };
