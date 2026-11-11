@@ -407,28 +407,50 @@
   /* Opening screen: the globe stays clear behind a short title and a Play button. */
   #splash { background: radial-gradient(ellipse at center, rgba(2,4,10,0.15) 0%, rgba(2,4,10,0.7) 75%); backdrop-filter: none; z-index: 12; }
   .splash-box { text-align: center; max-width: 560px; }
-  /* World roll: each unknown shuffles, then locks as hidden. */
-  .roll-box h2 { margin: 4px 0 8px; font-size: 24px; }
+  /* World roll: a three-second screen. Two dice tumble while four of the headline unknowns
+     shuffle and lock as hidden, then the game carries on by itself (a tap or a key skips it). */
+  #worldRoll { cursor: pointer; }
+  .roll-box { width: min(460px, 100%); text-align: center; }
+  .roll-box h2 { margin: 4px 0 2px; font-size: 24px; }
   .roll-box p { color: #c3cee0; font-size: 14px; line-height: 1.5; }
-  .unk-list { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 6px; }
-  .unk-list li { display: flex; justify-content: space-between; gap: 12px; align-items: center; font-size: 13.5px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,0.02); }
+  .dice { display: flex; justify-content: center; gap: 30px; height: 92px; margin: 8px 0 6px; perspective: 520px; }
+  .die-hop { position: relative; width: 46px; height: 46px; margin-top: 18px; animation: diehop 2.3s cubic-bezier(.3,.6,.4,1) both; }
+  .die-hop::after { content: ''; position: absolute; left: 4px; right: 4px; bottom: -22px; height: 7px; border-radius: 50%; background: radial-gradient(rgba(127,227,255,.28), transparent 70%); animation: dieshadow 2.3s cubic-bezier(.3,.6,.4,1) both; }
+  .die { position: absolute; inset: 0; transform-style: preserve-3d; animation: dietumble 2.3s cubic-bezier(.2,.7,.25,1) both; transform: rotateX(var(--rx)) rotateY(var(--ry)); }
+  .die-hop:nth-child(2), .die-hop:nth-child(2) .die, .die-hop:nth-child(2)::after { animation-delay: .12s; }
+  .die .f { position: absolute; inset: 0; display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); padding: 7px; border: 1.5px solid var(--accent); border-radius: 9px; background: #0c1b2c; box-shadow: inset 0 0 12px rgba(127,227,255,.18); }
+  .die .f i { width: 7px; height: 7px; margin: auto; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px rgba(127,227,255,.7); }
+  .die .f1 { transform: translateZ(23px); } .die .f6 { transform: rotateY(180deg) translateZ(23px); }
+  .die .f2 { transform: rotateY(90deg) translateZ(23px); } .die .f5 { transform: rotateY(-90deg) translateZ(23px); }
+  .die .f3 { transform: rotateX(90deg) translateZ(23px); } .die .f4 { transform: rotateX(-90deg) translateZ(23px); }
+  @keyframes dietumble { from { transform: rotateX(calc(var(--rx) - 900deg)) rotateY(calc(var(--ry) + 630deg)) rotateZ(160deg); } to { transform: rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(0); } }
+  @keyframes diehop { 0% { transform: translateY(-34px); } 22% { transform: translateY(0); } 38% { transform: translateY(-16px); } 54% { transform: translateY(0); } 66% { transform: translateY(-5px); } 76%, 100% { transform: translateY(0); } }
+  @keyframes dieshadow { 0% { opacity: .2; transform: translateY(34px) scaleX(.6); } 22%, 54%, 76%, 100% { opacity: 1; transform: translateY(0) scaleX(1); } 38% { opacity: .5; transform: translateY(16px) scaleX(.75); } 66% { opacity: .8; transform: translateY(5px) scaleX(.9); } }
+  .unk-list { list-style: none; padding: 0; margin: 10px 0 12px; display: grid; gap: 6px; text-align: left; }
+  .unk-list li { display: flex; justify-content: space-between; gap: 12px; align-items: center; font-size: 13.5px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,0.02); opacity: 0; transform: translateY(6px); transition: opacity .25s, transform .25s, border-color .3s; }
+  .unk-list li.on { opacity: 1; transform: none; border-color: rgba(127,227,255,.45); }
+  .unk-list li.locked { border-color: var(--line); }
   .unk-list .uv { font-family: var(--mono); font-size: 12.5px; color: var(--accent); white-space: nowrap; }
   .unk-list li.locked .uv { color: var(--muted); }
-  .roll-job { border-left: 2px solid var(--accent); padding-left: 10px; opacity: 0; transition: opacity .5s; }
-  .roll-job.on { opacity: 1; }
-  /* Begin stays in view: it sticks to the bottom of the box while the list scrolls under it.
-     On phones the rows tighten up so most screens need no scrolling at all. */
-  /* A solid, full-width footer so the list scrolls cleanly underneath it. */
-  .roll-foot { position: sticky; bottom: -1px; margin: 4px -4px -4px; padding: 10px 4px 4px; background: linear-gradient(to bottom, transparent, var(--panel-solid) 14px); }
-  @supports (height: 100dvh) { .modal .box { max-height: calc(100dvh - 32px); } }
-  .roll-foot #rollGo { width: 100%; padding: 13px 16px; font-size: 16px; background: #13304a; }
+  .roll-note { border-top: 1px solid var(--line); padding-top: 10px; }
+  .roll-quote { margin: 8px 0 0; font-style: italic; color: #dbe5f5; font-size: 14.5px; }
+  .roll-quote cite { display: block; margin-top: 3px; font-style: normal; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .roll-bar { height: 2px; margin: 12px 0 6px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .roll-bar i { display: block; height: 100%; width: 100%; background: var(--accent); transform-origin: left; animation: rollbar var(--roll-ms, 3000ms) linear both; }
+  @keyframes rollbar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .roll-skip { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .04em; }
+  #worldRoll.still .die, #worldRoll.still .die-hop, #worldRoll.still .die-hop::after { animation: none; }
+  #worldRoll.still .unk-list li { transition: none; }
   @media (max-width: 640px) {
-    .roll-box h2 { font-size: 21px; margin: 2px 0 4px; }
+    .roll-box h2 { font-size: 21px; }
     .roll-box p { font-size: 13px; line-height: 1.4; margin: 6px 0; }
-    .unk-list { margin: 8px 0; gap: 4px; }
-    .unk-list li { font-size: 12.5px; padding: 5px 9px; line-height: 1.25; }
+    .dice { height: 80px; margin: 4px 0 2px; }
+    .unk-list { margin: 8px 0 10px; gap: 4px; }
+    .unk-list li { font-size: 12.5px; padding: 6px 9px; line-height: 1.25; }
     .unk-list .uv { font-size: 11px; }
+    .roll-quote { font-size: 13.5px; }
   }
+  @supports (height: 100dvh) { .modal .box { max-height: calc(100dvh - 32px); } }
   .world-reveal.difficulty { margin-bottom: 10px; }
   .diff-tier { font-family: var(--mono); font-weight: 600; letter-spacing: .06em; }
   .splash-box h1 { margin: 10px 0 8px; font-size: clamp(34px, 7vw, 60px); line-height: 1.05; letter-spacing: .01em; text-shadow: 0 4px 30px rgba(0,0,0,.7); }
@@ -666,12 +688,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261110104741"></script>
-<script src="events.js?v=20261110104741"></script>
-<script src="news.js?v=20261110104741"></script>
-<script src="landmask.js?v=20261110104741"></script>
-<script src="presets.js?v=20261110104741"></script>
-<script src="trees.js?v=20261110104741"></script>
+<script src="model.js?v=20261111142819"></script>
+<script src="events.js?v=20261111142819"></script>
+<script src="policies.js?v=20261111142819"></script>
+<script src="news.js?v=20261111142819"></script>
+<script src="landmask.js?v=20261111142819"></script>
+<script src="presets.js?v=20261111142819"></script>
+<script src="trees.js?v=20261111142819"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -806,15 +829,22 @@
   </div>
 </div>
 
-<!-- Before 2027: the game secretly rolls this world's unknowns -->
-<div class="modal hidden" id="worldRoll">
-  <div class="box roll-box">
+<!-- Before 2027: the game secretly rolls this world's unknowns (about 3 s, then it plays on) -->
+<div class="modal hidden" id="worldRoll" role="dialog" aria-labelledby="rollTitle">
+  <div class="box roll-box" tabindex="-1">
     <div class="kicker">Before 2027 begins</div>
-    <h2>Rolling a hidden world</h2>
-    <p>Nobody knows these facts about the future yet, so the game draws them at random for this playthrough and keeps them secret.</p>
+    <h2 id="rollTitle">Rolling a hidden world</h2>
+    <div class="dice" id="rollDice" aria-hidden="true"></div>
     <ul class="unk-list" id="unkList"></ul>
-    <p class="roll-job" id="rollJob"><b>Your job:</b> steer the world through 2040 without knowing any of these, just as real leaders must. When it's over, you'll see what they were and how hard your world turned out to be.</p>
-    <div class="roll-foot"><button class="btn" id="rollGo">Begin 2027</button></div>
+    <div class="roll-note">
+      <p>Real leaders must decide without knowing these facts. Neither will you: you'll learn them only when your world ends.</p>
+      <!-- Dwight D. Eisenhower, remarks at the National Defense Executive Reserve Conference,
+           Washington, 14 November 1957 (Public Papers of the Presidents, 1957, no. 230):
+           "Plans are worthless, but planning is everything." -->
+      <p class="roll-quote">“Plans are worthless, but planning is everything.”<cite>Dwight D. Eisenhower, 1957</cite></p>
+    </div>
+    <div class="roll-bar"><i></i></div>
+    <div class="roll-skip">Tap or press any key to skip</div>
   </div>
 </div>
 
@@ -1037,7 +1067,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261110104741';
+const ASSET_VERSION = '20261111142819';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -3049,30 +3079,63 @@ function setMode(m) {
 }
 // The Campaign starts playing right away; the first-time tutorial explains the screen.
 function startCampaign() { closeSplash(); setMode('campaign'); newGame(); rollWorld(() => maybeTour('campaign')); }
-// The unknowns each game draws, with a sample value to flash while "rolling".
-const UNKNOWNS = M.rollRows();
-// Show the unknowns shuffling and locking one by one, then hand over to the game.
-// Begin 2027 works at any time; pressing it early skips the rest of the roll.
+// The headline unknowns the roll screen shows, with a sample value to flash while "rolling".
+// The world itself is drawn by newGame(); this screen only shows it happening.
+const ROLL_SHOWN = ['ease', 'speed', 'benevolent', 'evalGap'];
+const UNKNOWNS = ROLL_SHOWN.map((k) => M.ASSUMPTION_INFO[k].roll);
+const ROLL_MS = 3000, ROLL_STILL_MS = 2000;
+// Each die lands on a random face: [rotateX, rotateY] that brings face 1..6 to the front.
+const DIE_FACES = [[0, 0], [0, -90], [-90, 0], [90, 0], [0, 90], [0, 180]];
+const PIPS = [[5], [1, 9], [1, 5, 9], [1, 3, 7, 9], [1, 3, 5, 7, 9], [1, 3, 4, 6, 7, 9]];
+const dieHTML = () => {
+  const [rx, ry] = DIE_FACES[Math.floor(Math.random() * 6)];
+  return `<div class="die-hop"><div class="die" style="--rx:${rx}deg;--ry:${ry}deg">${PIPS.map((p, f) =>
+    `<div class="f f${f + 1}">${p.map((c) => `<i style="grid-area:${Math.ceil(c / 3)}/${(c - 1) % 3 + 1}"></i>`).join('')}</div>`).join('')}</div></div>`;
+};
+let rollEnd = null;
+// About three seconds: the dice tumble while each unknown appears, shuffles and locks as
+// hidden, then the game moves on by itself. A tap, a click or any key skips straight to 2027.
+// With reduced motion it shows the settled screen for two seconds instead.
 function rollWorld(then) {
-  const list = $('unkList'), go = $('rollGo');
+  if (rollEnd) rollEnd(false);
+  const box = $('worldRoll'), list = $('unkList');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, total = reduce ? ROLL_STILL_MS : ROLL_MS;
+  $('rollDice').innerHTML = dieHTML() + dieHTML();
   list.innerHTML = UNKNOWNS.map(([n]) => `<li><span>${n}</span><span class="uv">?</span></li>`).join('');
-  $('rollJob').classList.remove('on');
-  $('worldRoll').classList.remove('hidden');
-  const rows = [...list.children], t0 = performance.now(), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let done = false;
+  box.classList.toggle('still', reduce);
+  box.style.setProperty('--roll-ms', total + 'ms');
+  const bar = box.querySelector('.roll-bar i'); bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = '';
+  box.classList.remove('hidden');
+  box.querySelector('.roll-box').focus({ preventScroll: true });
+  const rows = [...list.children], t0 = performance.now(), lock = (li) => {
+    li.classList.add('on', 'locked'); li.querySelector('.uv').textContent = 'hidden 🔒';
+  };
+  let timer = 0, done = false;
   const tick = () => {
-    if (done) return;
     const t = performance.now() - t0;
     rows.forEach((li, i) => {
       if (li.classList.contains('locked')) return;
-      if (reduce || t > 500 + i * 220) { li.classList.add('locked'); li.querySelector('.uv').textContent = phoneLayout() ? 'hidden 🔒' : 'drawn · hidden 🔒'; }
-      else li.querySelector('.uv').textContent = UNKNOWNS[i][1](Math.random());
+      if (t > 750 + i * 420) lock(li);
+      else if (t > 120 + i * 300) { li.classList.add('on'); li.querySelector('.uv').textContent = UNKNOWNS[i][1](Math.random()); }
     });
-    if (rows.every((li) => li.classList.contains('locked'))) { $('rollJob').classList.add('on'); go.focus({ preventScroll: true }); }
-    else setTimeout(tick, 70);
+    if (t >= total) end(true); else timer = setTimeout(tick, 70);
   };
-  tick();
-  go.onclick = () => { done = true; $('worldRoll').classList.add('hidden'); if (then) then(); };
+  // Swallow keys while the screen is up so Enter, Space or 1–3 can't also act on the card below.
+  const onKey = (e) => {
+    if (['Shift', 'Control', 'Alt', 'Meta', 'Tab'].includes(e.key)) return;
+    e.preventDefault(); e.stopImmediatePropagation(); end(true);
+  };
+  const onClick = (e) => { e.stopPropagation(); end(true); };
+  // go: carry on into the game; false when a new roll replaces this one.
+  const end = (go) => {
+    if (done) return; done = true; rollEnd = null;
+    clearTimeout(timer); removeEventListener('keydown', onKey, true); box.removeEventListener('click', onClick);
+    box.classList.add('hidden');
+    if (go && then) then();
+  };
+  rollEnd = end;
+  addEventListener('keydown', onKey, true); box.addEventListener('click', onClick);
+  if (reduce) { rows.forEach(lock); timer = setTimeout(() => end(true), total); } else tick();
 }
 
 // How hard a world is: the share of futures that end in catastrophe in it under a strong

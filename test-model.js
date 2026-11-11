@@ -666,6 +666,15 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Reference documents Current capability and README counts eleven assumptions', html.includes('Current capability: the US bloc') && Object.keys(M.ASSUMPTION_INFO).length === 11 && readme.includes('eleven uncertain'));
 }
 
+// --- The page loads every script the preview build copies ---
+{
+  const fs = require('fs'), html = fs.readFileSync(__dirname + '/index.html', 'utf8');
+  const build = fs.readFileSync(__dirname + '/scripts/build_artifact.py', 'utf8');
+  const names = (build.match(/for name in \(([^)]*)\)/) || [, ''])[1].match(/[\w-]+\.js/g) || [];
+  const missing = names.filter((n) => !new RegExp(`<script src="${n.replace('.', '\\.')}\\?v=[0-9a-z]+"></script>`).test(html));
+  check('index.html loads every script build_artifact.py copies', names.length >= 7 && missing.length === 0, 'missing: ' + missing.join(', '));
+}
+
 // --- Codex cycles 16 and 17 ---
 {
   const PR = globalThis.SimPresets;
