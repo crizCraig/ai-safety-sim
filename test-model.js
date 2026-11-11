@@ -710,13 +710,20 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const leverText = new Function('M', html.match(/const leverText = [^\n]*/)[0] + ' return leverText;')(M);
   check('Plan D safety displays as 2.5% (labels, slider, export)', leverText('safety', PR.PRESETS['Plan D: Race to ASI'].safety) === '2.5%' && leverText('safety', 0.35) === '35%'
     && /\$\('sl-' \+ k\)\.value = M\.leverPct\(labL\[k\]\)/.test(html) && /step="0\.5" id="sl-/.test(html) && /\$\{leverText\(k, L\[k\]\)\}/.test(html) && /leverTable\(labL\)/.test(html));
-  // AI Futures (Aug 2026): Automated Coder labelled 2028 (reached 2027) and superintelligence 2029.
+  // AI Futures (Nov 2026, the Q3.5 update): every author's Superhuman AI Researcher median is in 2027
+  // and the authors' top-expert AI medians centre on 2028, so Automated Coders come in 2027 (labelled
+  // 2028) and superintelligence in 2028 (labelled 2029). The start is METR's ~1.7x AI-attributable
+  // acceleration (1.67-1.74x depending on the reading of "80%").
+  const AFP = PR.UNKNOWN_PRESETS['AI Futures (Nov 2026)'];
   const A = M.defaultAssumptions();
-  for (const k in PR.UNKNOWN_PRESETS['AI Futures (Aug 2026)'].set) A[k] = { ...A[k], ...PR.UNKNOWN_PRESETS['AI Futures (Aug 2026)'].set[k] };
+  for (const k in AFP.set) A[k] = { ...A[k], ...AFP.set[k] };
   const af = M.summarize(PR.PRESETS['Status quo'], A, 4000, 7);
-  check('AI Futures (Aug 2026): Automated Coder labelled 2028', af.acMedian === 2028, af.acMedian);
-  check('AI Futures (Aug 2026): superintelligence labelled 2029', af.asiMedian === 2029, af.asiMedian);
-  const words = PR.UNKNOWN_PRESETS['AI Futures (Aug 2026)'].html.replace(/<[^>]+>/g, '').split(/\s+/).length;
+  check('AI Futures (Nov 2026): Automated Coder labelled 2028 (reached 2027, before the authors\' 2027 SAR medians)', af.acMedian === 2028, af.acMedian);
+  check('AI Futures (Nov 2026): superintelligence labelled 2029 (reached 2028, the authors\' TED-AI medians)', af.asiMedian === 2029, af.asiMedian);
+  const afUp = M.uplift(A.capNow.mean);
+  check('AI Futures (Nov 2026): starting capability speeds progress 1.67-1.74x, METR\'s estimate', afUp >= 1.67 && afUp <= 1.74, afUp.toFixed(3));
+  check('AI Futures note cites the Q3.5 timelines update', AFP.html.includes('blog.aifutures.org/p/q35-timelines-update-looks-like-the'));
+  const words = AFP.html.replace(/<[^>]+>/g, '').split(/\s+/).length;
   check('AI Futures note is at most 60 words', words <= 60, String(words));
   // Eli Lifland's adjusted p(alignment) sits beside the plain one; calibration uses the plain one.
   const adj = ['Plan A: Verified slowdown', 'Plan B: Fight China', 'Plan C: Burn the lead', 'Plan D: Race to ASI'].map((n) => PR.PLAN_INFO[n].align + '/' + PR.PLAN_INFO[n].alignAdj).join(' ');

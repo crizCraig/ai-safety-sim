@@ -86,7 +86,7 @@ function futuresCRN(M, L, n, A = M.defaultAssumptions()) {
 // the AI-research onset, so AI labor on safety past the knee (laborPause) never acts there, while
 // AI Futures starts above that onset and it does (Codex review 055, C28-2).
 const BACKGROUNDS = [['SQ', 'Status quo'], ['A', 'Plan A: Verified slowdown']];
-const INTERIOR_UNKNOWNS = 'AI Futures (Aug 2026)', INTERIOR_SAFETY = [0.35, 0.45, 0.6, 0.8];
+const INTERIOR_UNKNOWNS = 'AI Futures (Nov 2026)', INTERIOR_SAFETY = [0.35, 0.45, 0.6, 0.8];
 function margPolicies(M, P) {
   const out = Object.keys(P.PRESETS).map((k) => ({ id: 'preset:' + k, L: P.PRESETS[k] }));
   for (const [tag, bg] of BACKGROUNDS) for (const lv of Object.keys(M.LEVER_INFO)) for (const x of [0, 1]) {

@@ -66,9 +66,9 @@
   // only the unknowns it changes; the rest stay at their defaults.
   const TIME_RSI = 'https://time.com/article/2026/10/14/recursive-self-improvement-AI-report/';
   const GLADSTONE_RSI = 'https://aiendgame.com/p/what-rsi-looks-like';
-  const AIFP_UPDATE = 'https://blog.aifutures.org/p/q25-2026-timelines-update-uplift';
+  const AIFP_UPDATE = 'https://blog.aifutures.org/p/q35-timelines-update-looks-like-the';
   const S1 = 'https://www.sec.gov/Archives/edgar/data/2130357/000162828026067168/anthropicpbc-sx1.htm';
-  const METR_UPLIFT = 'https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/';
+  const METR_RD = 'https://metr.org/blog/2026-11-05-anthropic-ai-rd-acceleration-assessment/';
   const UNKNOWN_PRESETS = {
     'AI 2040 (default)': { set: {},
       text: 'The default unknowns, with timelines calibrated to AI 2040: an Automated Coder around 2030 and superintelligence around 2031 on today\'s path.' },
@@ -77,12 +77,15 @@
     'RSI 2027 (lab insiders)': { set: { capNow: { mean: 50, sd: 0 }, speed: { mean: Math.log10(1.3), sd: 0.35 / Math.LN10 } },
       legacy: { speed: '1.3:0.3' },
       html: `Most frontier-lab researchers interviewed for Gladstone AI's <a href="${GLADSTONE_RSI}" target="_blank" rel="noopener">report</a> (via <a href="${TIME_RSI}" target="_blank" rel="noopener">TIME</a>, Oct 2026) expect recursive self-improvement within 3 to 12 months, absent U.S. government intervention. This starts 2027 at capability 50, where AI speeds up its own research, at 1.3× AI 2040's pace. <a href="${S1}" target="_blank" rel="noopener">Anthropic's S-1</a> (Oct 2026) says Claude wrote "over 90%" of its code contributions in September 2026. Milestones come about a year earlier (Automated Coder ~2029, superintelligence ~2030), and Plan A's catastrophe share roughly doubles.` },
-    // Daniel Kokotajlo's all-things-considered Automated Coder median is Nov 2027; the Lab labels a
-    // milestone with the year after it is reached, so that is the Lab's 2028 (as RSI's 2028 shows
-    // as 2029). Only the starting point moves: 59 at AI 2040's pace puts about three quarters of
-    // Automated Coders in 2027 and superintelligence a year later (labels 2028 and 2029).
-    'AI Futures (Aug 2026)': { set: { capNow: { mean: 59, sd: 0 } },
-      html: `The AI Futures Project's <a href="${AIFP_UPDATE}" target="_blank" rel="noopener">August 2026 update</a>, following Daniel Kokotajlo's median: an Automated Coder by late 2027 if AI is developed as fast as technically feasible (Eli Lifland's median is 2030). Its main method relies on lab staff's self-reported speed-ups; <a href="${METR_UPLIFT}" target="_blank" rel="noopener">METR's controlled study</a> measured far less. Starts 2027 at capability 59.` },
+    // AI Futures Project, Nov 2026 (after METR's Anthropic assessment): SAR medians May-Nov 2027 for
+    // all six authors, TED-AI medians Sep 2027-Sep 2028 (median of the six about Apr 2028), p(TED-AI
+    // by end of 2027) 35-65%. The start is anchored to METR's estimate instead of to a date: at 60
+    // AI speeds the pace of progress uplift(60) = 1.73x, METR's ~1.7x AI-attributable acceleration.
+    // The Lab labels a milestone with the year after it is reached: Automated Coders in 2027 (label
+    // 2028, before every author's SAR median), superintelligence in 2028 (label 2029). The game's
+    // spread is narrower than theirs: under 5% of its futures reach TED-AI in 2027.
+    'AI Futures (Nov 2026)': { set: { capNow: { mean: 60, sd: 0 } },
+      html: `The AI Futures Project's <a href="${AIFP_UPDATE}" target="_blank" rel="noopener">November 2026 update</a>, after <a href="${METR_RD}" target="_blank" rel="noopener">METR</a> estimated AI now speeds Anthropic's progress about 1.7×: all six authors put a Superhuman AI Researcher in 2027 (Daniel Kokotajlo May, Eli Lifland August) and top-expert AI around 2028. Much of METR's evidence was redacted. Starts 2027 at capability 60, where AI speeds progress 1.7×.` },
   };
 
   root.SimPresets = { AI2040_PLANS, PRESET_INFO, PLAN_INFO, PRESETS, UNKNOWN_PRESETS, TIME_RSI, GLADSTONE_RSI };
