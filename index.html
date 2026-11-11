@@ -407,9 +407,8 @@
   /* Opening screen: the globe stays clear behind a short title and a Play button. */
   #splash { background: radial-gradient(ellipse at center, rgba(2,4,10,0.15) 0%, rgba(2,4,10,0.7) 75%); backdrop-filter: none; z-index: 12; }
   .splash-box { text-align: center; max-width: 560px; }
-  /* World roll: a three-second screen. Two dice tumble while four of the headline unknowns
-     shuffle and lock as hidden, then the game carries on by itself (a tap or a key skips it). */
-  #worldRoll { cursor: pointer; }
+  /* World roll: two dice tumble for about three seconds while four of the headline unknowns
+     shuffle and lock as hidden; then Begin 2027 appears (a tap or a key settles it at once). */
   .roll-box { width: min(460px, 100%); text-align: center; }
   .roll-box h2 { margin: 4px 0 2px; font-size: 24px; }
   .roll-box p { color: #c3cee0; font-size: 14px; line-height: 1.5; }
@@ -435,7 +434,13 @@
   .roll-note { border-top: 1px solid var(--line); padding-top: 10px; }
   .roll-quote { margin: 8px 0 0; font-style: italic; color: #dbe5f5; font-size: 14.5px; }
   .roll-quote cite { display: block; margin-top: 3px; font-style: normal; font-family: var(--mono); font-size: 11px; color: var(--muted); }
-  .roll-bar { height: 2px; margin: 12px 0 6px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  /* The footer keeps Begin's height from the start, so nothing moves when it appears, and
+     sticks to the bottom of the box if a short screen has to scroll. */
+  .roll-foot { position: sticky; bottom: -1px; height: 58px; margin: 6px -4px -4px; padding: 8px 4px 4px; background: linear-gradient(to bottom, transparent, var(--panel-solid) 10px); }
+  .roll-foot #rollGo { width: 100%; padding: 13px 16px; font-size: 16px; background: #13304a; }
+  #worldRoll:not(.settled) #rollGo, #worldRoll.settled .roll-wait { display: none; }
+  #worldRoll:not(.settled) .roll-box { cursor: pointer; }
+  .roll-bar { height: 2px; margin: 8px 0 8px; background: var(--line); border-radius: 2px; overflow: hidden; }
   .roll-bar i { display: block; height: 100%; width: 100%; background: var(--accent); transform-origin: left; animation: rollbar var(--roll-ms, 3000ms) linear both; }
   @keyframes rollbar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
   .roll-skip { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .04em; }
@@ -701,13 +706,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261111145807"></script>
-<script src="events.js?v=20261111145807"></script>
-<script src="policies.js?v=20261111145807"></script>
-<script src="news.js?v=20261111145807"></script>
-<script src="landmask.js?v=20261111145807"></script>
-<script src="presets.js?v=20261111145807"></script>
-<script src="trees.js?v=20261111145807"></script>
+<script src="model.js?v=20261111150631"></script>
+<script src="events.js?v=20261111150631"></script>
+<script src="policies.js?v=20261111150631"></script>
+<script src="news.js?v=20261111150631"></script>
+<script src="landmask.js?v=20261111150631"></script>
+<script src="presets.js?v=20261111150631"></script>
+<script src="trees.js?v=20261111150631"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -857,8 +862,10 @@
            "Plans are worthless, but planning is everything." -->
       <p class="roll-quote">“Plans are worthless, but planning is everything.”<cite>Dwight D. Eisenhower, 1957</cite></p>
     </div>
-    <div class="roll-bar"><i></i></div>
-    <div class="roll-skip">Tap or press any key to skip</div>
+    <div class="roll-foot">
+      <div class="roll-wait"><div class="roll-bar"><i></i></div><div class="roll-skip">Tap to finish the roll</div></div>
+      <button class="btn" id="rollGo">Begin 2027</button>
+    </div>
   </div>
 </div>
 
@@ -1081,7 +1088,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261111145807';
+const ASSET_VERSION = '20261111150631';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -3175,7 +3182,7 @@ function startCampaign() { closeSplash(); setMode('campaign'); newGame(); rollWo
 // The world itself is drawn by newGame(); this screen only shows it happening.
 const ROLL_SHOWN = ['ease', 'speed', 'benevolent', 'evalGap'];
 const UNKNOWNS = ROLL_SHOWN.map((k) => M.ASSUMPTION_INFO[k].roll);
-const ROLL_MS = 3000, ROLL_STILL_MS = 2000;
+const ROLL_MS = 3000;
 // Each die lands on a random face: [rotateX, rotateY] that brings face 1..6 to the front.
 const DIE_FACES = [[0, 0], [0, -90], [-90, 0], [90, 0], [0, 90], [0, 180]];
 const PIPS = [[5], [1, 9], [1, 5, 9], [1, 3, 7, 9], [1, 3, 5, 7, 9], [1, 3, 4, 6, 7, 9]];
@@ -3186,23 +3193,29 @@ const dieHTML = () => {
 };
 let rollEnd = null;
 // About three seconds: the dice tumble while each unknown appears, shuffles and locks as
-// hidden, then the game moves on by itself. A tap, a click or any key skips straight to 2027.
-// With reduced motion it shows the settled screen for two seconds instead.
+// hidden; then Begin 2027 appears and the player starts when ready. A tap, click, Enter or
+// Space during the roll settles it at once. With reduced motion it starts settled.
 function rollWorld(then) {
   if (rollEnd) rollEnd(false);
-  const box = $('worldRoll'), list = $('unkList');
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, total = reduce ? ROLL_STILL_MS : ROLL_MS;
+  const box = $('worldRoll'), list = $('unkList'), go = $('rollGo');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   $('rollDice').innerHTML = dieHTML() + dieHTML();
   list.innerHTML = UNKNOWNS.map(([n]) => `<li><span>${n}</span><span class="uv">?</span></li>`).join('');
-  box.classList.toggle('still', reduce);
-  box.style.setProperty('--roll-ms', total + 'ms');
+  box.classList.toggle('still', reduce); box.classList.remove('settled');
+  box.style.setProperty('--roll-ms', ROLL_MS + 'ms');
   const bar = box.querySelector('.roll-bar i'); bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = '';
   box.classList.remove('hidden');
   box.querySelector('.roll-box').focus({ preventScroll: true });
   const rows = [...list.children], t0 = performance.now(), lock = (li) => {
     li.classList.add('on', 'locked'); li.querySelector('.uv').textContent = 'hidden 🔒';
   };
-  let timer = 0, done = false;
+  let timer = 0, done = false, settled = false;
+  const settle = () => {
+    if (settled) return; settled = true;
+    clearTimeout(timer); rows.forEach(lock);
+    box.classList.add('still', 'settled');
+    go.focus({ preventScroll: true });
+  };
   const tick = () => {
     const t = performance.now() - t0;
     rows.forEach((li, i) => {
@@ -3210,24 +3223,33 @@ function rollWorld(then) {
       if (t > 750 + i * 420) lock(li);
       else if (t > 120 + i * 300) { li.classList.add('on'); li.querySelector('.uv').textContent = UNKNOWNS[i][1](Math.random()); }
     });
-    if (t >= total) end(true); else timer = setTimeout(tick, 70);
+    if (t >= ROLL_MS) settle(); else timer = setTimeout(tick, 70);
   };
-  // Swallow keys while the screen is up so Enter, Space or 1–3 can't also act on the card below.
+  // Keys stay on this screen while it is up, so Enter, Space or 1–3 can't act on the card below:
+  // Enter or Space settles the roll, then begins.
   const onKey = (e) => {
     if (['Shift', 'Control', 'Alt', 'Meta', 'Tab'].includes(e.key)) return;
-    e.preventDefault(); e.stopImmediatePropagation(); end(true);
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (!['Enter', ' '].includes(e.key)) return;
+    if (settled) end(true); else settle();
   };
-  const onClick = (e) => { e.stopPropagation(); end(true); };
+  // A tap during the roll settles it; once settled only Begin goes on (a backdrop tap does nothing).
+  const onClick = (e) => {
+    if (e.target.closest('#rollGo')) return;
+    e.stopImmediatePropagation();
+    settle();
+  };
   // go: carry on into the game; false when a new roll replaces this one.
   const end = (go) => {
     if (done) return; done = true; rollEnd = null;
-    clearTimeout(timer); removeEventListener('keydown', onKey, true); box.removeEventListener('click', onClick);
+    clearTimeout(timer); removeEventListener('keydown', onKey, true); box.removeEventListener('click', onClick, true);
     box.classList.add('hidden');
     if (go && then) then();
   };
   rollEnd = end;
-  addEventListener('keydown', onKey, true); box.addEventListener('click', onClick);
-  if (reduce) { rows.forEach(lock); timer = setTimeout(() => end(true), total); } else tick();
+  go.onclick = () => end(true);
+  addEventListener('keydown', onKey, true); box.addEventListener('click', onClick, true);
+  if (reduce) settle(); else tick();
 }
 
 // How hard a world is: the share of futures that end in catastrophe in it under a strong
