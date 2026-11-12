@@ -101,7 +101,7 @@
   // last year's stored figures (index.html keeps them in each year's record), so they are smooth
   // across years and never contradict last year's paper.
   const ECON_BASE = Object.freeze({ year: 2026, unemp: 4.2, gdp: 2.2, gap: 1.0, capex: 725, capexGrowth: 0.77, power: 45, newPower: 15,
-    orbit: 0, drugs: 0, newDrugs: 0, displaced: 0.3 });
+    orbit: 0, drugs: 0, newDrugs: 0, cured: 0, newCured: 0, displaced: 0.3 });
   const PLACES = ['West Texas', 'Ohio', 'Arizona', 'Wyoming', 'Quebec', 'northern Norway', 'Finland', 'Saudi Arabia', 'the United Arab Emirates',
     'Malaysia\'s Johor state', 'Inner Mongolia', 'Guizhou', 'Chile\'s Atacama desert', 'Kenya\'s Rift Valley', 'Tamil Nadu', 'northern Spain'];
   const clampN = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
@@ -133,10 +133,16 @@
     const newPower = capex / 40; // ~$40B of capex per gigawatt of AI data centre, chips included
     const orbit = p.orbit > 0 ? Math.min(0.2 * (p.power + newPower), p.orbit * (2 + 2 * ramp(c1, 78, 100)) * (capexGrowth > 0 ? 1 : 0.8)) : c1 >= 78 ? 1 : 0;
     const newDrugs = Math.round(14 * ramp(c1, 55, 100) ** 1.2);
+    // Diseases newly cured or brought under control (counted from 2027): about one for every three
+    // AI-designed drugs, plus broad advances once AI rivals top experts, a little faster with
+    // stronger biodefense (screening and response). Today a cure or a disease-modifying first-in-class
+    // treatment arrives a few times a year (e.g. hepatitis C, sickle-cell gene therapy), so a handful
+    // a year near superintelligence stays plausible.
+    const newCured = Math.round(newDrugs / 3 + 4 * ramp(c1, 80, 100) * (0.6 + 0.4 * ramp(b.bio ?? 0, 0, 100)));
     return {
       unemp: clampN(toward(p.unemp, t.unemp, 0.6, 3.5), 0, 60), gdp: clampN(toward(p.gdp, t.gdp, 0.7, 2.5), -3, 15),
       gap: clampN(toward(p.gap, t.gap, 0.6, 1.5), 0, 12), displaced: t.displaced, capex, capexGrowth, power: p.power + newPower, newPower, orbit,
-      drugs: p.drugs + newDrugs, newDrugs, place: PLACES[hash(`${b.year}|${Math.round(c1)}`) % PLACES.length],
+      drugs: p.drugs + newDrugs, newDrugs, cured: (p.cured || 0) + newCured, newCured, place: PLACES[hash(`${b.year}|${Math.round(c1)}`) % PLACES.length],
     };
   }
   // The year's figures from a headline input ({ before, after, L, econ0 }), visible fields only.

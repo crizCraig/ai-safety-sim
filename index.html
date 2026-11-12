@@ -263,6 +263,16 @@
   .vchose { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
   .vchose .youchose:first-child { margin-top: 0 !important; }
   #card.resolved .vtext .changes { justify-content: flex-start; margin-top: 6px; }
+  .vworld { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .vwh { font: 500 10.5px/1.2 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .vwh .ill { margin-left: 6px; padding: 1px 5px; border: 1px solid var(--line); border-radius: 4px; font-size: 9px; letter-spacing: .06em; }
+  .wtiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .wtile { padding: 7px 9px 5px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,0.025); min-width: 0; }
+  .wtile .wl { font-size: 11px; color: var(--muted); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wtile .wv { font: 600 15px/1.3 var(--mono); color: var(--text); }
+  .wtile .wv small { font-size: 10.5px; color: var(--good); font-weight: 500; }
+  .wtile .spark { display: block; width: 100%; height: 18px; }
+  @media (max-width: 640px) { .wtiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .wtile .wl { white-space: normal; } }
   .vact { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 14px; }
   .vact .next { flex: 0 1 340px; }
   .vlinks { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
@@ -2232,7 +2242,7 @@ function rollYear() {
       // The picture keeps its choosing size and tone in the result (tap still opens it whole).
       // The outcome sits on the left and Continue on the right on desktop; on phones Continue
       // grows to fill the space, so the card keeps the size it had while choosing.
-      $('verdict').innerHTML = `<div class="vtext">${verdict}${cueHTML}<div class="vchose">${youChoseHTML(rec)}${yearChanges(game.before, s)}</div></div>
+      $('verdict').innerHTML = `<div class="vtext">${verdict}${cueHTML}<div class="vchose">${youChoseHTML(rec)}${yearChanges(game.before, s)}</div>${res.event ? '' : worldTilesHTML()}</div>
         <div class="vact"><button class="btn next" id="nextBtn"><span class="nxl"><small>${res.event ? 'The story ends' : 'Next year'}</small>${res.event ? 'See the ending' : `Continue to ${s.year}`}</span><span class="nxa" aria-hidden="true">→</span></button>
         <div class="vlinks" id="vlinks"><button class="linkbtn rechoose" data-rewind="${game.decisions.length - 1}">↺ Change my choice</button></div></div>`;
       // "How the dice fell" sits with "Change my choice", under Continue.
@@ -2272,6 +2282,28 @@ function paperCopy(n) {
 }
 // Last year's illustrative economy, for the box's changes.
 const econArrow = (d, digits, unit = '') => (Math.abs(d) < 0.5 * 10 ** -digits ? '' : ` <span class="${d > 0 ? 'up' : 'dn'}">${d > 0 ? '▲' : '▼'}${Math.abs(d).toFixed(digits)}${unit}</span>`);
+// "The world this year": four of the paper's illustrative figures (news.js economyOf, from the
+// visible state only), each with a sparkline over the years played. Read from the years' records,
+// so back, forward and rewinds show the same figures as the front pages.
+function worldTilesHTML() {
+  const es = [NEWS.ECON_BASE, ...game.decisions.map((d) => d.result?.econ).filter(Boolean)];
+  const e = es[es.length - 1];
+  if (!e || es.length < 2) return '';
+  const spark = (key, good) => {
+    const v = es.map((x) => x[key] || 0), lo = Math.min(...v), hi = Math.max(...v), W = 64, H = 18;
+    const pts = v.map((y, i) => [2 + (W - 4) * i / Math.max(1, v.length - 1), H - 2 - (H - 4) * (hi > lo ? (y - lo) / (hi - lo) : 0.5)]);
+    const d = v[v.length - 1] - v[v.length - 2], col = Math.abs(d) < 1e-9 ? 'var(--muted)' : (d > 0) === good ? 'var(--good)' : 'var(--bad)';
+    const [lx, ly] = pts[pts.length - 1];
+    return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts.map((q) => q.map((n) => n.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="var(--accent)" stroke-opacity=".7" stroke-width="1.4" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2" fill="${col}"/></svg>`;
+  };
+  const tile = (label, value, key, good) => `<div class="wtile"><div class="wl">${label}</div><div class="wv">${value}</div>${spark(key, good)}</div>`;
+  return `<div class="vworld" title="Illustrative figures derived from the visible world state, the same as the newspaper's; not model outputs.">
+    <div class="vwh">The world this year <span class="ill">illustrative</span></div><div class="wtiles">
+    ${tile('AI-designed drugs', `${e.drugs}${e.newDrugs ? ` <small>+${e.newDrugs}</small>` : ''}`, 'drugs', true)}
+    ${tile('Diseases cured or controlled', `${e.cured || 0}${e.newCured ? ` <small>+${e.newCured}</small>` : ''}`, 'cured', true)}
+    ${tile('GDP growth', `${e.gdp.toFixed(1)}%`, 'gdp', true)}
+    ${tile('Unemployment', `${e.unemp.toFixed(1)}%`, 'unemp', false)}</div></div>`;
+}
 function econBox(e, e0) {
   if (!e) return '';
   const money = (b) => (b >= 1000 ? `$${(b / 1000).toFixed(1)}T` : `$${Math.round(b)}B`);
@@ -2281,6 +2313,7 @@ function econBox(e, e0) {
     ['AI capex, yearly', `${money(e.capex)}${econArrow(e.capexGrowth * 100, 0, '%')}`],
     e.orbit > 0 ? ['Compute in orbit', e.orbit >= 1000 ? `${(e.orbit / 1000).toFixed(1)} GW` : `${Math.round(e.orbit)} MW`] : ['AI data-centre power', `${Math.round(e.power).toLocaleString('en-US')} GW${econArrow(e.newPower, 0)}`],
     ['AI-designed drugs approved', `${e.drugs}`],
+    ['Diseases cured or controlled', `${e.cured || 0}`],
   ];
   return `<div class="box econ"><div class="ttl">Markets &amp; Economy</div><table aria-label="The economy this year">${rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
     <div class="fine">Illustrative figures derived from the world state, not model outputs.</div></div>`;
@@ -2978,7 +3011,7 @@ function campaignText() {
       lines.push(`- **State at the end of the year:** ${statLine(d.result.st)}`);
       if (d.result.est) lines.push(`- **Projected chance of catastrophe by 2040** (share of ${OUTLOOK_N.toLocaleString('en-US')} simulated futures from this visible state under these levers, each with fresh secret facts from the default ranges, counting the risk already run): ${pct(d.result.est.byEnd, 1)}${d.result.est.meanYears != null ? `, expected ${avgDate(d.result.est.meanYears)} (the mean date among the futures where it happens)` : ''}`);
       if (d.result.news?.length) lines.push(`- **Headlines (fictional, written from what the player could see):** ${NEWS.plain(d.result.news).join('; ')}`);
-      if (d.result.econ) lines.push(`- **Economy on the paper (illustrative flavour derived from the visible state, not model outputs):** unemployment ${d.result.econ.unemp.toFixed(1)}%, GDP growth ${d.result.econ.gdp.toFixed(1)}%, AI capex $${Math.round(d.result.econ.capex)}B a year`);
+      if (d.result.econ) lines.push(`- **Economy on the paper (illustrative flavour derived from the visible state, not model outputs):** unemployment ${d.result.econ.unemp.toFixed(1)}%, GDP growth ${d.result.econ.gdp.toFixed(1)}%, AI capex $${Math.round(d.result.econ.capex)}B a year, AI-designed drugs approved ${d.result.econ.drugs}, diseases cured or controlled ${d.result.econ.cured || 0}`);
     } else lines.push('- **What happened:** the dice are still rolling.');
     return lines.join('\n');
   });

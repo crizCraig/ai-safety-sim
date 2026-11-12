@@ -147,12 +147,13 @@ function run(check, report = false) {
       const g = playCampaign(6000 + i);
       g.forEach(({ input, news, econ }, k) => {
         const e0 = k ? g[k - 1].econ : N.ECON_BASE;
-        const nums = ['unemp', 'gdp', 'gap', 'capex', 'power', 'orbit', 'drugs', 'displaced', 'capexGrowth'].map((key) => econ[key]);
+        const nums = ['unemp', 'gdp', 'gap', 'capex', 'power', 'orbit', 'drugs', 'cured', 'displaced', 'capexGrowth'].map((key) => econ[key]);
         if (nums.some((x) => !Number.isFinite(x))) bad.push(`NaN ${JSON.stringify(econ)}`);
         if (econ.unemp < 0 || econ.unemp > 60) bad.push(`unemp ${econ.unemp}`);
         if (econ.gdp < -3 || econ.gdp > 15) bad.push(`gdp ${econ.gdp}`);
         if (Math.abs(econ.unemp - e0.unemp) > 3.5 + 1e-9 || Math.abs(econ.gdp - e0.gdp) > 2.5 + 1e-9) bad.push(`jump ${e0.unemp}->${econ.unemp}, ${e0.gdp}->${econ.gdp}`);
-        if (econ.power < e0.power || econ.drugs < e0.drugs || econ.orbit < 0) bad.push('a running total fell');
+        if (econ.power < e0.power || econ.drugs < e0.drugs || econ.cured < (e0.cured || 0) || econ.orbit < 0) bad.push('a running total fell');
+        if (econ.newCured > 10) bad.push(`cured ${econ.newCured} in a year`);
         if (!input.event) { notFinal++; if (news.some((n) => N.BRIGHT.includes(n.cat) || n.id === 'quietScience')) bright++; }
       });
     }
