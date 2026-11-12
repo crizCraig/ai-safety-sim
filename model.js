@@ -129,7 +129,7 @@
   const END_YEAR = 2040;
 
   // Policy levers, each 0..1. The player sets these through decisions
-  // (campaign) or sliders (Futures Lab). `short` and `up` work as in STAT_INFO (card chips).
+  // (campaign) or sliders (God Mode). `short` and `up` work as in STAT_INFO (card chips).
   const LEVER_INFO = {
     race:      { label: 'Race intensity',        low: 'Pause',        high: 'All-out sprint',  def: 0.7, short: 'racing', up: 'bad' },
     safety:    { label: 'Safety share of AI compute', low: '0%', high: '100% (a pause)', def: 0.05, pct: true, short: 'safety work', up: 'good' },

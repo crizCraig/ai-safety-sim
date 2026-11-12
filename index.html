@@ -465,7 +465,7 @@
   .splash-box h1 { margin: 10px 0 8px; font-size: clamp(34px, 7vw, 60px); line-height: 1.05; letter-spacing: .01em; text-shadow: 0 4px 30px rgba(0,0,0,.7); }
   .splash-save { margin: 4px 0 14px; font-size: clamp(20px, 3.6vw, 30px); font-weight: 500; line-height: 1.15; color: var(--accent); text-shadow: 0 0 16px rgba(127,227,255,.35), 0 3px 20px rgba(0,0,0,.7); }
   .splash-box p { margin: 0 0 26px; font-size: 18px; color: #c3cee0; text-shadow: 0 2px 12px rgba(0,0,0,.8); }
-  /* Two equal ways in: the campaign (one future at a time) and the Futures Lab ("God mode"). */
+  /* Two equal ways in: the campaign (one future at a time) and God Mode. */
   .splash-modes { display: flex; gap: 14px; justify-content: center; width: min(600px, 92vw); margin: 0 auto; position: relative; left: 50%; transform: translateX(-50%); }
   .splash-mode { flex: 1 1 0; max-width: 290px; display: grid; gap: 4px; justify-items: center; padding: 16px 18px; border-radius: 16px; cursor: pointer;
     color: var(--text); background: rgba(10,16,30,.72); border: 1px solid rgba(127,227,255,.4); backdrop-filter: blur(6px); transition: background .2s, border-color .2s, transform .2s; }
@@ -551,7 +551,7 @@
     #timeline .yr { font-size: 0; }
     #axisHelp { display: none !important; }
 
-    /* Futures Lab: the 3D view fills the top half; results and controls scroll below it. */
+    /* God Mode: the 3D view fills the top half; results and controls scroll below it. */
     body.mode-lab { overflow-y: auto; display: flex; flex-direction: column; }
     body.mode-lab .panel { position: static; width: auto; max-height: none; overflow: visible; flex-shrink: 0; margin: 0 16px 16px; }
     body.mode-lab #right { order: 1; margin-top: calc(var(--graph-bottom, 50vh) + 12px); }
@@ -713,13 +713,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261111172655"></script>
-<script src="events.js?v=20261111172655"></script>
-<script src="policies.js?v=20261111172655"></script>
-<script src="news.js?v=20261111172655"></script>
-<script src="landmask.js?v=20261111172655"></script>
-<script src="presets.js?v=20261111172655"></script>
-<script src="trees.js?v=20261111172655"></script>
+<script src="model.js?v=20261111173432"></script>
+<script src="events.js?v=20261111173432"></script>
+<script src="policies.js?v=20261111173432"></script>
+<script src="news.js?v=20261111173432"></script>
+<script src="landmask.js?v=20261111173432"></script>
+<script src="presets.js?v=20261111173432"></script>
+<script src="trees.js?v=20261111173432"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -729,7 +729,7 @@
   <a class="brand" id="brand" href="./" title="Go to the campaign">GAME OF AGI<small>an AI safety simulator</small></a>
   <div class="tabs">
     <button data-mode="campaign" class="on">Campaign</button>
-    <button data-mode="lab">Futures Lab</button>
+    <button data-mode="lab">God Mode</button>
   </div>
   <div id="timeline" class="campaign-only"></div>
   <button class="iconbtn" id="statsToggle" style="display:none">Stats</button>
@@ -852,7 +852,7 @@
     <p>Steer AI from 2027 to 2040.</p>
     <div class="splash-modes">
       <button class="splash-mode primary" id="playBtn"><span class="smt">Campaign</span><span class="sms">Play one future at a time</span></button>
-      <button class="splash-mode" id="splashLab"><span class="smt">God mode <span class="smk">· Futures Lab</span></span><span class="sms">Roll out all futures at once</span></button>
+      <button class="splash-mode" id="splashLab"><span class="smt">God Mode</span><span class="sms">Roll out all futures at once</span></button>
     </div>
   </div>
 </div>
@@ -890,7 +890,7 @@
     <div class="btnrow">
       <button class="btn" id="againBtn">Play again</button>
       <button class="btn ghost" id="endCopy" aria-label="Copy for AI: copy this playthrough and its ending as a prompt for an AI assistant">Copy for AI</button>
-      <button class="btn ghost" id="toLabBtn">Explore your policy in the Futures Lab</button>
+      <button class="btn ghost" id="toLabBtn">Explore your policy in God Mode</button>
       <button class="btn ghost" id="viewBtn">View the world</button>
     </div>
     <p class="endwu">Disagree with how your world played out? <a href="https://crizcraig.substack.com/p/game-of-agi-a-monte-carlo-sim-for" target="_blank" rel="noopener">Read the write-up and leave a comment ↗</a></p>
@@ -920,7 +920,7 @@
       <li>Otherwise apply the yearly updates (section 5), clamp every state variable to 0–100 and move to the next year. Every update reads the state as it stood at the start of the year, so the order of the updates does not matter. The one exception is a deal shock (section 5): when a deal dissolves or weakens, the cut to coordination <span class="mi">K</span> applies this year, before alignment's sharing term and coordination's own update read it.</li>
       <li>If frontier capability reaches 100, resolve the superintelligence handoff; in 2040, resolve the ending (section 4).</li>
     </ol>
-    <p>The Futures Lab runs 2,000 futures with the levers held fixed. In the campaign, each decision card also moves levers and state directly (<code>events.js</code>). <b>Let Washington decide</b> makes this year's choice for you, applying the choice the US government would most likely make (<code>policies.js</code>): for 2027–2028 the Trump administration's, from its stated and enacted AI policy (the July 2025 AI Action Plan, its executive orders, export-control and international stances); from 2029, a Republican or Democratic administration's, picked by the player or a coin flip, from each party's stated positions (platforms, leaders' statements, recent bills). Where a party has no stated position on a card's issue, the closest stated principle is used and flagged as a judgment call. Every default depends only on the card, the year and the party, never on the hidden facts, and each comes with a one-line reason and its sources.</p>
+    <p>God Mode runs 2,000 futures with the levers held fixed. In the campaign, each decision card also moves levers and state directly (<code>events.js</code>). <b>Let Washington decide</b> makes this year's choice for you, applying the choice the US government would most likely make (<code>policies.js</code>): for 2027–2028 the Trump administration's, from its stated and enacted AI policy (the July 2025 AI Action Plan, its executive orders, export-control and international stances); from 2029, a Republican or Democratic administration's, picked by the player or a coin flip, from each party's stated positions (platforms, leaders' statements, recent bills). Where a party has no stated position on a card's issue, the closest stated principle is used and flagged as a judgment call. Every default depends only on the card, the year and the party, never on the hidden facts, and each comes with a one-line reason and its sources.</p>
 
     <h3>2. Notation</h3>
     <p><b>State variables</b>, each on a 0–100 scale:</p>
@@ -978,11 +978,11 @@
     <p><b>Engineered pandemic</b> (100M+ deaths). This term counts only pandemics counterfactually enabled by open-weights AI. Natural outbreaks and closed-model misuse are outside its scope. State programs are left out because states are deterred from using bioweapons (c.f. <a href="https://www.nationalsecurity.ai/" target="_blank" rel="noopener">MAIM</a>).</p>
     <div class="math">P_{\text{bio}} = 1 - e^{-k\,g}, \qquad g = \sigma\big(\tfrac{O-⟦bioOpenMid⟧}{⟦bioOpenW⟧}\big)\Big(1-\tfrac{B}{100}\Big)^{⟦bioDefExp⟧}</div>
     <div class="math">k = \frac{-\ln\left(1-R_{\text{bio}}\right)}{G_{\text{ref}}}, \qquad G_{\text{ref}} = \mathbb{E}\Big[\sum_{t=2027}^{\min(2036,\ \text{end})} g_t\Big]_{\text{default path}} \approx {{GREF}}</div>
-    <p><span class="mi">g</span> scales exposure with open-model capability and missing biodefense. <span class="mi">G_{\text{ref}}</span> is the mean exposure default-path futures actually encounter from 2027 to 2036, summed until each future ends and averaged over 3,000 fixed-seed futures with the bio hazard switched off. Most end at the superintelligence handoff around 2031. This normalization transfers the source's decade estimate to the game's shorter, variable paths; it does not force every realized quantile or the share of pandemic endings to equal the prior. It does not estimate risk after the handoff. A separate time-trend multiplier is not added: capability growth already enters through <span class="mi">g</span>. On longer paths, exposure can be much higher: Plan A with fully open weights has about 8.7% pandemic endings, cut to 3.3% by full biodefense (80,000 futures). The reference remains under default assumptions when the Lab changes progress speed or alignment difficulty. The risk panel shows the expected probability over the unknown <span class="mi">R_{\text{bio}}</span>, <span class="mi">\mathbb{E}\big[1-e^{-k g}\big]</span>, not the risk at its median. <span class="src biodec">Bio decomposition</span> The exposure curve and its policy response are <span class="src own">Assumptions</span>.</p>
+    <p><span class="mi">g</span> scales exposure with open-model capability and missing biodefense. <span class="mi">G_{\text{ref}}</span> is the mean exposure default-path futures actually encounter from 2027 to 2036, summed until each future ends and averaged over 3,000 fixed-seed futures with the bio hazard switched off. Most end at the superintelligence handoff around 2031. This normalization transfers the source's decade estimate to the game's shorter, variable paths; it does not force every realized quantile or the share of pandemic endings to equal the prior. It does not estimate risk after the handoff. A separate time-trend multiplier is not added: capability growth already enters through <span class="mi">g</span>. On longer paths, exposure can be much higher: Plan A with fully open weights has about 8.7% pandemic endings, cut to 3.3% by full biodefense (80,000 futures). The reference remains under default assumptions when God Mode changes progress speed or alignment difficulty. The risk panel shows the expected probability over the unknown <span class="mi">R_{\text{bio}}</span>, <span class="mi">\mathbb{E}\big[1-e^{-k g}\big]</span>, not the risk at its median. <span class="src biodec">Bio decomposition</span> The exposure curve and its policy response are <span class="src own">Assumptions</span>.</p>
     <p><b>Two pathways, one attempt pool.</b> The earlier calculation applied the same low probability of sustained transmission to every attempt. It did not separately represent an already-transmissible starting point. The revised source calculation partitions the same attempt rate between uncertain-transmission and existing-transmission routes, then combines their conditional hazards before averaging:</p>
     <div class="math">R_{\text{source}} = 1-\exp\left\{-N\left[(1-\pi)q_{\text{uncertain}}+\pi q_{\text{existing}}\right]\right\}</div>
     <p>Here <span class="mi">N</span> is the expected number of attempts per decade, <span class="mi">\pi</span> the share on the existing-transmission route, and each <span class="mi">q</span> the conditional catastrophe probability per attempt on that route. The second route replaces the original transmission gate with a retention gate; both still face the physical, containment, 100M-death severity and open-weights attribution barriers. The split uses a Beta distribution with shape parameters 2 and 2 (about 14–86% in its central 90%); retention uses a logit-normal with a central 90% interval of 25–95%. Those new priors are judgments. The other factors retain the original priors, including the same severity assumption on both routes. The original shared-regime loading of 0.6 corresponds to latent pairwise correlation 0.36. Retention is independent in the central scenario; both correlation signs are sensitivity cases, not established biological laws. The game compresses the mixture into one decade-risk draw and assumes both routes share the same exposure curve above.</p>
-    <p><b>What changed in the estimate.</b> In 2 million source-model samples, the median rises from 0.0115% to 0.0655% per decade (about 5.7×), while the mean rises from 0.381% to 0.837% (about 2.2×). The source puts 12.7% probability on decade risk exceeding 1%, and 1.62% on it exceeding 10%; the game's lognormal approximation gives 11.9% and 1.46%. The result is sensitive to the new assumptions: reducing the added route's conditional severity probability by a factor of ten gives a median of 0.0131% and a mean of 0.273%. An existing transmission property does not establish a high chance of a 100M-death catastrophe. These are sensitivity results under chosen priors, not an empirical forecast or a claim about COVID's origin. Shift or widen the aggregate prior in the Futures Lab. <span class="src biodec">Bio decomposition</span></p>
+    <p><b>What changed in the estimate.</b> In 2 million source-model samples, the median rises from 0.0115% to 0.0655% per decade (about 5.7×), while the mean rises from 0.381% to 0.837% (about 2.2×). The source puts 12.7% probability on decade risk exceeding 1%, and 1.62% on it exceeding 10%; the game's lognormal approximation gives 11.9% and 1.46%. The result is sensitive to the new assumptions: reducing the added route's conditional severity probability by a factor of ten gives a median of 0.0131% and a mean of 0.273%. An existing transmission property does not establish a high chance of a 100M-death catastrophe. These are sensitivity results under chosen priors, not an empirical forecast or a claim about COVID's origin. Shift or widen the aggregate prior in God Mode. <span class="src biodec">Bio decomposition</span></p>
     <p><b>Loss of control:</b></p>
     <div class="math">P_{\text{loc}} = h(\delta)\cdot ⟦locScale⟧\,\sigma\big(\tfrac{C-\hat{A}-⟦locOffset⟧}{⟦locWidth⟧}\big)\,\sigma\Big(\tfrac{1-1/U(C)-⟦rdShareMid⟧}{⟦rdShareW⟧}\Big)\Big(1+⟦intSlope⟧\,\tfrac{H}{100}\Big)\Big(1+⟦delegHaz⟧\,\tfrac{\Lambda-⟦deleg0⟧}{100}\Big), \qquad h(\delta) = \operatorname{clamp}\Big(\tfrac{\delta-⟦diffSafe⟧}{⟦diffRamp⟧}\Big)</div>
     <div class="math">\hat{A} = A\,(1 - e\,h)\,\Big[1 - \sigma\big(\tfrac{C_{\text{CN}}-C_{\text{US}}}{⟦leadW⟧}\big)\,(1-\chi)(1-a_{\text{CN}})\Big], \qquad \chi = \min\big(1,\ ⟦shareBase⟧+⟦shareCoord⟧\,\tfrac{K}{100}+⟦shareTransp⟧\,\tau\big)</div>
@@ -1010,7 +1010,7 @@
     <div class="math">r_{\text{CN}} = \operatorname{clip}_{[0.05,1]}\Big(r_0\,(1-\eta)\Big), \qquad r_0 = \operatorname{clip}_{[0.05,1]}\Big(⟦cnRaceBase⟧ + ⟦cnRaceResp⟧\big(r(1-⟦usPushSafety⟧\,s)-0.5\big) - ⟦cnRaceCoord⟧\,\tfrac{K}{100}\Big)</div>
     <div class="math">\eta = \min\Big(⟦cnSlowMax⟧,\ q_{\text{CN}}\,\sigma\big(\tfrac{C-⟦cnWarnCap⟧}{⟦cnWarnW⟧}\big)\,\sigma\big(\tfrac{C-A-⟦cnWarnGap⟧}{⟦cnWarnW⟧}\big)\cdot ⟦cnRecip⟧\,\big(1+\max(u,\ D)\big)\Big), \qquad u = \operatorname{clamp}\Big(1-\tfrac{r(1-⟦usPushSafety⟧\,s)}{⟦cnSlowRace⟧}\Big)</div>
     <p>China slows (<span class="mi">\eta</span>) only on warning signs of losing control: capability near the top while alignment lags. It notices later than the US would, because bad news travels up a personalist system slowly (Susan Shirk, <i>Overreach</i>), and slows more when the US slows (<span class="mi">u</span>) or a verified deal is in force (<span class="mi">D = 1</span>). It never slows for fear of concentrated power: an AI that obeys the Party counts as aligned in Beijing. Experts on Chinese AI policy (Concordia AI's <i>State of AI Safety in China</i>, Matt Sheehan at Carnegie, SemiAnalysis's "Beijing will not pace the frontier") find real, growing safety research and official "human control" language, but no case of Beijing slowing frontier AI for safety <span class="src china long">Informed by official statements and current racing</span>.</p>
-    <p><span class="mi">U</span> is the AI R&amp;D speed-up from AI labor: 3× at Automated Coder and about 40× near top-expert-dominating AI <span class="src a2040">AI 2040</span>. The compute exponent 0.74 encodes "10× less compute makes the intelligence explosion 5.5× slower" <span class="src a2040">AI 2040</span>; the normalization 0.52 is fixed so race 0.55 buys 1× compute (the default race 0.7 about 1.2×), and the base rate 7 puts the default path at Automated Coder around 2030 and superintelligence about a year later <span class="src a2040">AI 2040</span>. Safety spending and oversight take compute away from capabilities. China's race intensity responds to the US posture and falls with coordination; publishing research helps China close the gap <span class="src own">Assumption</span>. Here <span class="mi">\varepsilon \sim U(-1,1)</span>, <span class="mi">m</span> is the export-control multiplier set by campaign choices (1 in the Lab), and each year a surprise breakthrough adds 3–8 points to the US and 2–6 to China with probability 0.15, scaled by <span class="mi">\min(1.5,\ c)</span>. Because noise and breakthroughs scale with the compute each side spends on capabilities, a pause holds capability still. Yearly gains are floored at 0. Milestone years in the results are the first year a future starts at or above the milestone, so "Automated Coder 2030" means it was reached during 2029, matching AI 2040's January 2030.</p>
+    <p><span class="mi">U</span> is the AI R&amp;D speed-up from AI labor: 3× at Automated Coder and about 40× near top-expert-dominating AI <span class="src a2040">AI 2040</span>. The compute exponent 0.74 encodes "10× less compute makes the intelligence explosion 5.5× slower" <span class="src a2040">AI 2040</span>; the normalization 0.52 is fixed so race 0.55 buys 1× compute (the default race 0.7 about 1.2×), and the base rate 7 puts the default path at Automated Coder around 2030 and superintelligence about a year later <span class="src a2040">AI 2040</span>. Safety spending and oversight take compute away from capabilities. China's race intensity responds to the US posture and falls with coordination; publishing research helps China close the gap <span class="src own">Assumption</span>. Here <span class="mi">\varepsilon \sim U(-1,1)</span>, <span class="mi">m</span> is the export-control multiplier set by campaign choices (1 in God Mode), and each year a surprise breakthrough adds 3–8 points to the US and 2–6 to China with probability 0.15, scaled by <span class="mi">\min(1.5,\ c)</span>. Because noise and breakthroughs scale with the compute each side spends on capabilities, a pause holds capability still. Yearly gains are floored at 0. Milestone years in the results are the first year a future starts at or above the milestone, so "Automated Coder 2030" means it was reached during 2029, matching AI 2040's January 2030.</p>
     <p><b>The deal.</b> A verified US–China deal is in force when <span class="mi">K \ge ⟦dealCoord⟧</span> and <span class="mi">d \ge ⟦dealDip⟧</span> and no deal has collapsed. It holds both blocs at 78, top-human-expert level, like Plan A's 2035 pause (a bloc already above 78 is frozen where it is). Campaign choices made while it holds cannot push capability past that cap. Deals decline in two ways, following AI 2040's Deal Decline supplement, each with the same yearly hazard by deal age (counted from the first year the deal is in force): 6% in its first two years, 3.5% in years 2–5 and 2% after that. <b>Dissolution</b> cuts <span class="mi">K</span> by 40 and the deal never returns: about 28% of deals dissolve within ten years. <b>Impairment</b> happens at most once: it cuts <span class="mi">K</span> by 20 and raises the ceiling from 78 to 84, and the deal stays in force as long as <span class="mi">K \ge ⟦dealCoord⟧</span>. Together about 48% of deals dissolve or weaken within ten years <span class="src a2040">AI 2040</span>. The deal still holds through the year it dissolves or weakens, so the change bites the following year. The size of the impairment's effects is an <span class="src own">Assumption</span>; the model has no separate verification variable to weaken.</p>
     <p><b>Alignment</b>:</p>
     <div class="math">\Delta A = \frac{⟦alRate⟧\,\big(1 + ⟦alSafety:f⟧\,e(s) + ⟦alOversight:f⟧\,v\big)\,\big(1 + (U(C_{\text{US}})-1)\,\ell(s) + (U(C_{\text{CN}})-1)\,\ell(0.3)\,a_{\text{CN}}\big)\,\big(1 + ⟦alShCoord⟧\,\tfrac{K}{100} + ⟦alShTransp⟧\,\tau\big)\,\big(1 + ⟦alBci⟧\,\tfrac{N}{100}\big)}{\delta}</div>
@@ -1068,7 +1068,7 @@
     <p>None of the other 150 moves any headline number by more than 5.8 points, and 136 of the 160 move none by more than 3. No constant moves the status quo's catastrophe rate by more than 6 points. Fitted constants trade off against the target they were fitted to, so their swings show how much that target matters. <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/constant-sensitivity.md" target="_blank" rel="noopener">Which numbers matter</a> goes through every constant by topic (how fast AI improves, alignment research, loss of control, war, pandemic, deals, China, lock-in and delegation), saying what each does, where it comes from (a source, fitted to a target, a 2027 baseline or a judgment call) and what it moves; the <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/constant-sensitivity-full.md" target="_blank" rel="noopener">full table</a> has every number. <code>scripts/sweep_constants.js</code> reproduces both. Moving no headline number does not make a constant removable: these presets barely use the wealth fund, oversight or transparency, so <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/simplification-2.md" target="_blank" rel="noopener">Simplifying the model</a> also checks every lever's effect before cutting one.</p>
 
     <h3>8. What it leaves out</h3>
-    <p>Covert projects and cheating on the deal (beyond the age-based dissolution and impairment rates), cyberattacks, countries other than the two blocs, natural pandemics, closed-model and state-program bio risk, misuse beyond bio, conflict between AGIs, events after a terminal ending or after 2040, plans that change over time in the Futures Lab, and whether capability can really be put on one axis at all. Treat it as an argument you can poke at, not an oracle.</p>
+    <p>Covert projects and cheating on the deal (beyond the age-based dissolution and impairment rates), cyberattacks, countries other than the two blocs, natural pandemics, closed-model and state-program bio risk, misuse beyond bio, conflict between AGIs, events after a terminal ending or after 2040, plans that change over time in God Mode, and whether capability can really be put on one axis at all. Treat it as an argument you can poke at, not an oracle.</p>
 
     <p class="disclaimer">All parameters are illustrative. The lab, company and leaders in this game are fictional composites.</p>
     <div class="btnrow"><button class="btn" data-close="modelInfo">Close</button></div>
@@ -1094,7 +1094,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261111172655';
+const ASSET_VERSION = '20261111173432';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1344,7 +1344,7 @@ for (let i = 0; i < 18; i++) {
   world.add(m); flashes.push({ m, t: Math.random() * 3 });
 }
 
-/* ---------- Futures Lab fan chart ---------- */
+/* ---------- God Mode fan chart ---------- */
 const AXIS_TAGS = [];
 const camRight = new THREE.Vector3();
 // Keep each axis arrow just right of its camera-facing label.
@@ -2573,7 +2573,7 @@ function chartPoints() {
 // Second, AI capability for each bloc against the Automated Coder (70), top-expert (78) and
 // superintelligence (100) lines, with alignment as tests measure it (and the real value when
 // the secret facts are shown).
-// Catastrophe risk is always shown in red, like the Futures Lab's headline. The expected
+// Catastrophe risk is always shown in red, like God Mode's headline. The expected
 // catastrophe so far (1 - survival) is not shown; it still dates the projection (pastCatYears).
 const catSoFar = (s) => 1 - s.survival;
 function renderChart() {
@@ -2641,7 +2641,7 @@ function secretList(s, L) {
 }
 
 // How a game's secret facts are set (shown with them).
-const SECRETS_NOTE = '<div class="secnote">These were rolled at random before 2027 began, from the same ranges as the Futures Lab\'s unknowns at their defaults, so every campaign is a different world. Your job is to decide well without knowing them. Your choices can\'t change them, though oversight and openness change how much of the test gap stays hidden.</div>';
+const SECRETS_NOTE = '<div class="secnote">These were rolled at random before 2027 began, from the same ranges as God Mode\'s unknowns at their defaults, so every campaign is a different world. Your job is to decide well without knowing them. Your choices can\'t change them, though oversight and openness change how much of the test gap stays hidden.</div>';
 // Campaign option: reveal this game's hidden facts and real risks while playing.
 let secretsOn = false;
 try { secretsOn = localStorage.getItem('goagi-secrets') === '1'; } catch (e) {}
@@ -2686,7 +2686,7 @@ function renderLevers() {
 }
 
 /* =====================================================================
- * Futures Lab
+ * God Mode
  * ===================================================================== */
 const { AI2040_PLANS, PRESET_INFO, PLAN_INFO, PRESETS, UNKNOWN_PRESETS, TIME_RSI, GLADSTONE_RSI } = window.SimPresets;
 const labL = M.defaultLevers();
@@ -2917,7 +2917,7 @@ function scenarioText() {
   const start = Object.entries(M.STAT_INFO).map(([k, i]) => `${i.label} ${s0[k]}`).join(', ') + (labA.capNow.sd > 0 ? ` (frontier capabilities shown at the Current capability center; each future draws its own, ± ${labA.capNow.sd})` : '');
   const outcomes = Object.entries(M.OUTCOMES).sort((a, b) => r.counts[b[0]] - r.counts[a[0]])
     .map(([k, o]) => `| ${o.title} | ${p1(r.counts[k] / r.n)} | ${o.text} |`).join('\n');
-  return `# Game of AGI: Futures Lab scenario
+  return `# Game of AGI: God Mode scenario
 
 Below is a scenario from Game of AGI, a toy Monte Carlo simulator of AI-safety policy from 2027 to 2040 (${SITE}, code: ${REPO}). It is meant to make trade-offs tangible, not to forecast. These exact settings: ${shareURL()} Please help me understand and critique it:
 
@@ -2994,7 +2994,7 @@ function campaignText() {
   const hidden = showSecrets
     ? `## The hidden unknowns (secret facts)
 
-${over ? 'The game is over, so these are revealed as the ending screen shows them.' : 'The player turned on "Show secret facts", so these are visible.'} They were drawn at random before 2027 from the Futures Lab's default distributions, and the player's choices can't change them.
+${over ? 'The game is over, so these are revealed as the ending screen shows them.' : 'The player turned on "Show secret facts", so these are visible.'} They were drawn at random before 2027 from God Mode's default distributions, and the player's choices can't change them.
 
 ${secretsTxt(game.L)}${over ? '' : `\n- **If AI became superintelligent now:** the real chance the handoff goes well is ${chance(M.transitionOdds(s, true, game.L))}; the best guess without the secret facts is ${chance(M.transitionOdds(s, false, game.L))}.`}`
     : `## The hidden unknowns
@@ -3053,7 +3053,7 @@ function copyFallback(text) {
   $('copyText').focus(); $('copyText').select();
 }
 // Shareable link: levers as percentages (up to one decimal) in LEVER_INFO order, plus any unknowns changed
-// from their defaults (key:mean:sd). Opening it loads those settings in the Futures Lab.
+// from their defaults (key:mean:sd). Opening it loads those settings in God Mode.
 function shareURL() {
   const base = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin + location.pathname : SITE.replace(/\/?$/, '/');
   return base + '?' + shareQuery();
@@ -3125,7 +3125,7 @@ $('shareLink').onclick = () => {
   if (navigator.share && matchMedia('(pointer: coarse)').matches) {
     try { navigator.share({ title: 'Game of AGI', text: 'My settings in the Game of AGI. Can you save humanity?', url }).catch(() => {}); return; } catch (e) {}
   }
-  const ok = () => toast('Link copied. Anyone who opens it sees these settings in the Futures Lab.');
+  const ok = () => toast('Link copied. Anyone who opens it sees these settings in God Mode.');
   writeClip(url, ok);
 };
 function copyForAI(text, msg) {

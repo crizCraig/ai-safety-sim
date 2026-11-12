@@ -1043,10 +1043,10 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const acc = { n: 0, cat: 0, catYears: 0 };
   for (let i = 0; i < 300; i += 70) M.outlook(a.s, a.L, 300, M.OUTLOOK_SEED, i, i + 70, acc);
   check('Outlook: computing it in slices gives the same result', JSON.stringify(acc) === JSON.stringify(oa));
-  // From 2027 under the status quo it matches the Futures Lab's status quo (within sampling noise).
+  // From 2027 under the status quo it matches God Mode's status quo (within sampling noise).
   const start = M.outlook(M.initialState(M.sampleWorld(M.defaultAssumptions(), M.mulberry32(3))), M.defaultLevers(), 2000);
   const mc = M.monteCarlo(M.defaultLevers(), 2000, 0, 42), lab = M.CATASTROPHES.reduce((x, k) => x + mc.counts[k], 0) / mc.n;
-  check('Outlook: from 2027 under the status quo it matches the Futures Lab (±4 points)', Math.abs(start.cat / start.n - lab) < 0.04, `${(100 * start.cat / start.n).toFixed(1)}% vs ${(100 * lab).toFixed(1)}%`);
+  check('Outlook: from 2027 under the status quo it matches God Mode (±4 points)', Math.abs(start.cat / start.n - lab) < 0.04, `${(100 * start.cat / start.n).toFixed(1)}% vs ${(100 * lab).toFixed(1)}%`);
   // By 2040 is at least the catastrophe so far, and equals it when nothing is still running.
   const t = M.outlookTotal(a.s, oa), so = 1 - a.s.survival;
   check('Outlook: the by-2040 figure is at least the catastrophe so far', t.byEnd >= so && t.byEnd <= 1, `${t.byEnd} vs ${so}`);

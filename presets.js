@@ -1,5 +1,5 @@
 /*
- * Game of AGI — Futures Lab presets, shared by index.html and test-model.js.
+ * Game of AGI — God Mode presets, shared by index.html and test-model.js.
  * Loaded as a classic script after model.js.
  */
 (function (root) {

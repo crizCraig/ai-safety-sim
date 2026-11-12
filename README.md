@@ -22,7 +22,7 @@ It extends the original [Game of AGI](https://gist.github.com/crizCraig/f4c583f0
 a Monte Carlo of AGI risk. That version's ideas carry over: safe-by-default odds,
 oversight, whistleblowers, and takeoff speed vs. how fast rivals replicate AGI. This
 version adds time, geopolitics, open weights, bio risk, and a 3D world, and
-calibrates its timelines and plan outcomes to [AI 2040: Plan A](https://ai-2040.com/). The Futures Lab
+calibrates its timelines and plan outcomes to [AI 2040: Plan A](https://ai-2040.com/). God Mode
 has presets for all five plans in AI 2040's [plan comparison](https://ai-2040.com/supplements/comparing-possible-plans).
 Locked-In Power (a catastrophe) and the public wealth fund follow
 [National Security Response](https://nationalsecurityresponse.ai/): automation can leave most
@@ -39,7 +39,7 @@ explains the assumptions, sensitivity and exposure calibration.
 
 ## Two modes
 
-- **Futures Lab**. Set ten policy levers and eleven uncertain
+- **God Mode**. Set ten policy levers and eleven uncertain
   assumptions (mean ± spread, as in the original; the seven probabilities are Beta
   distributions on 0–100% (0–60% for how much tests overstate alignment) with that mean and
   standard deviation, the spread in percentage points,
@@ -67,7 +67,7 @@ explains the assumptions, sensitivity and exposure calibration.
 | `landmask.js` | Land/sea bitmap for the globe, rasterized from Natural Earth 1:50m coastlines (public domain) |
 | `trees.js` | Memtree links for the sessions that built the game |
 | `scripts/build_artifact.py` | Builds a copy for a claude.ai Artifact |
-| `index.html` | Three.js scene, HUD, campaign loop, Futures Lab |
+| `index.html` | Three.js scene, HUD, campaign loop, God Mode |
 | `test-model.js` | `node test-model.js` prints outcome distributions for policy presets |
 | `scripts/sweep_constants.js` | Moves each named constant on its own and writes `docs/constant-sensitivity.md` (by topic) and `docs/constant-sensitivity-full.md` (every number); `--marginals` screens candidate cuts against every preset and every lever's effect (`docs/simplification-2.md`) |
 
