@@ -544,7 +544,14 @@
   .declist li b { font-family: var(--mono); font-weight: 400; color: var(--muted); margin-right: 6px; }
   .eq { font-family: var(--mono); font-size: 12px; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px 12px; color: #c3cee0; white-space: pre-wrap; line-height: 1.55; }
   .mcline { font-size: 13px; color: var(--muted); }
-  .mcbars { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin: 6px 0 4px; }
+  .mcbars { display: flex; height: 16px; border-radius: 6px; overflow: hidden; margin: 6px 0 4px; }
+  .mcseg { border: 0; padding: 0; margin: 0; height: 100%; cursor: pointer; transition: filter .15s, opacity .15s; }
+  .mcbars:hover .mcseg:not(:hover), .mcbars.has-on .mcseg:not(.on) { opacity: .55; }
+  .mcseg:hover, .mcseg.on, .mcseg:focus-visible { filter: brightness(1.25); outline: none; }
+  .mcread { font-size: 13px; color: var(--muted); min-height: 1.4em; margin-top: 6px; }
+  .mcread b { color: var(--text); font-weight: 600; }
+  .mclegend .mcleg { background: none; border: 0; padding: 2px 4px; margin: 0 2px 0 0; font: inherit; cursor: pointer; border-radius: 5px; }
+  .mclegend .mcleg:hover, .mclegend .mcleg.on, .mclegend .mcleg:focus-visible { background: rgba(255,255,255,.07); outline: none; }
 
   .mode-lab .campaign-only, .mode-campaign .lab-only { display: none !important; }
 
@@ -743,13 +750,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261111184608"></script>
-<script src="events.js?v=20261111184608"></script>
-<script src="policies.js?v=20261111184608"></script>
-<script src="news.js?v=20261111184608"></script>
-<script src="landmask.js?v=20261111184608"></script>
-<script src="presets.js?v=20261111184608"></script>
-<script src="trees.js?v=20261111184608"></script>
+<script src="model.js?v=20261111213830"></script>
+<script src="events.js?v=20261111213830"></script>
+<script src="policies.js?v=20261111213830"></script>
+<script src="news.js?v=20261111213830"></script>
+<script src="landmask.js?v=20261111213830"></script>
+<script src="presets.js?v=20261111213830"></script>
+<script src="trees.js?v=20261111213830"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -1125,7 +1132,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261111184608';
+const ASSET_VERSION = '20261111213830';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -2554,10 +2561,24 @@ function endingInfo() {
 
 function mcBar(mc) {
   const order = Object.keys(M.OUTCOMES).sort((a, b) => mc.counts[b] - mc.counts[a]);
-  const segs = order.filter((k) => mc.counts[k]).map((k) => `<div title="${M.OUTCOMES[k].title}" style="width:${mc.counts[k] / mc.n * 100}%;background:${M.OUTCOMES[k].color}"></div>`).join('');
-  const legend = order.filter((k) => mc.counts[k] / mc.n >= 0.005).map((k) => `<span style="color:${M.OUTCOMES[k].color}">● ${M.OUTCOMES[k].title} ${pct(mc.counts[k] / mc.n, 0)}</span>`).join(' &nbsp; ');
-  return `<div class="mcbars">${segs}</div><div class="note">${legend}</div>`;
+  const lab = (k) => `${M.OUTCOMES[k].title} · ${pct(mc.counts[k] / mc.n, 1)}`;
+  // Each segment and legend item can be hovered, focused or tapped to show its outcome and share.
+  const segs = order.filter((k) => mc.counts[k]).map((k) => `<button type="button" class="mcseg" data-k="${k}" data-lab="${lab(k)}" aria-label="${lab(k)}" style="width:${mc.counts[k] / mc.n * 100}%;background:${M.OUTCOMES[k].color}"></button>`).join('');
+  const legend = order.filter((k) => mc.counts[k] / mc.n >= 0.005).map((k) => `<button type="button" class="mcleg" data-k="${k}" data-lab="${lab(k)}" style="color:${M.OUTCOMES[k].color}">● ${M.OUTCOMES[k].title} ${pct(mc.counts[k] / mc.n, 0)}</button>`).join(' ');
+  return `<div class="mcread" aria-live="polite">Hover or tap the bar to see each outcome.</div><div class="mcbars">${segs}</div><div class="note mclegend">${legend}</div>`;
 }
+// Ending bar: show the hovered or tapped outcome's name and share above the bar.
+(() => {
+  const show = (t) => {
+    const b = t && t.closest && t.closest('.mcseg, .mcleg'); if (!b) return;
+    const box = b.closest('#endMC') || b.parentElement.parentElement; const r = box.querySelector('.mcread'); if (!r) return;
+    const c = M.OUTCOMES[b.dataset.k]?.color || 'var(--text)';
+    r.innerHTML = `<span style="color:${c}">●</span> <b>${b.dataset.lab.replace(' · ', '</b> · ')}`;
+    box.querySelectorAll('.mcseg, .mcleg').forEach((x) => x.classList.toggle('on', x.dataset.k === b.dataset.k));
+    box.querySelector('.mcbars')?.classList.add('has-on');
+  };
+  for (const ev of ['mouseover', 'focusin', 'click']) document.addEventListener(ev, (e) => show(e.target));
+})();
 
 /* ---------- campaign HUD ---------- */
 function renderAll() { renderTimeline(); renderChart(); renderStats(); renderRisks(); renderLevers(); renderHistory(); }
