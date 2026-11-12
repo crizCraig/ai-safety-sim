@@ -743,13 +743,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261111184608"></script>
-<script src="events.js?v=20261111184608"></script>
-<script src="policies.js?v=20261111184608"></script>
-<script src="news.js?v=20261111184608"></script>
-<script src="landmask.js?v=20261111184608"></script>
-<script src="presets.js?v=20261111184608"></script>
-<script src="trees.js?v=20261111184608"></script>
+<script src="model.js?v=20261111214028"></script>
+<script src="events.js?v=20261111214028"></script>
+<script src="policies.js?v=20261111214028"></script>
+<script src="news.js?v=20261111214028"></script>
+<script src="landmask.js?v=20261111214028"></script>
+<script src="presets.js?v=20261111214028"></script>
+<script src="trees.js?v=20261111214028"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -1125,7 +1125,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261111184608';
+const ASSET_VERSION = '20261111214028';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -2317,10 +2317,10 @@ function worldTilesHTML() {
     const [lx, ly] = pts[pts.length - 1];
     return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts.map((q) => q.map((n) => n.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="var(--accent)" stroke-opacity=".7" stroke-width="1.4" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2" fill="${col}"/></svg>`;
   };
-  const tile = (label, value, key, good) => `<div class="wtile"><div class="wl">${label}</div><div class="wv">${value}</div>${spark(key, good)}</div>`;
+  const tile = (label, value, key, good, tip = '') => `<div class="wtile"${tip ? ` title="${tip}"` : ''}><div class="wl">${label}</div><div class="wv">${value}</div>${spark(key, good)}</div>`;
   return `<div class="vworld" title="Illustrative figures derived from the visible world state, the same as the newspaper's; not model outputs.">
     <div class="vwh">The world this year <span class="ill">illustrative</span></div><div class="wtiles">
-    ${tile('AI-designed drugs', `${e.drugs}${e.newDrugs ? ` <small>+${e.newDrugs}</small>` : ''}`, 'drugs', true)}
+    ${tile('AI-designed drugs approved', `${e.drugs}${e.newDrugs ? ` <small>+${e.newDrugs}</small>` : ''}`, 'drugs', true, `${e.late ?? 0} more in late-stage trials`)}
     ${tile('Diseases cured or controlled', `${e.cured || 0}${e.newCured ? ` <small>+${e.newCured}</small>` : ''}`, 'cured', true)}
     ${tile('GDP growth', `${e.gdp.toFixed(1)}%`, 'gdp', true)}
     ${tile('Unemployment', `${e.unemp.toFixed(1)}%`, 'unemp', false)}</div></div>`;
@@ -2334,6 +2334,7 @@ function econBox(e, e0) {
     ['AI capex, yearly', `${money(e.capex)}${econArrow(e.capexGrowth * 100, 0, '%')}`],
     e.orbit > 0 ? ['Compute in orbit', e.orbit >= 1000 ? `${(e.orbit / 1000).toFixed(1)} GW` : `${Math.round(e.orbit)} MW`] : ['AI data-centre power', `${Math.round(e.power).toLocaleString('en-US')} GW${econArrow(e.newPower, 0)}`],
     ['AI-designed drugs approved', `${e.drugs}`],
+    ['AI drugs in late-stage trials', `${e.late ?? 0}`],
     ['Diseases cured or controlled', `${e.cured || 0}`],
   ];
   return `<div class="box econ"><div class="ttl">Markets &amp; Economy</div><table aria-label="The economy this year">${rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
@@ -3034,7 +3035,7 @@ function campaignText() {
       lines.push(`- **State at the end of the year:** ${statLine(d.result.st)}`);
       if (d.result.est) lines.push(`- **Projected chance of catastrophe by 2040** (share of ${OUTLOOK_N.toLocaleString('en-US')} simulated futures from this visible state under these levers, each with fresh secret facts from the default ranges, counting the risk already run): ${pct(d.result.est.byEnd, 1)}${d.result.est.meanYears != null ? `, expected ${avgDate(d.result.est.meanYears)} (the mean date among the futures where it happens)` : ''}`);
       if (d.result.news?.length) lines.push(`- **Headlines (fictional, written from what the player could see):** ${NEWS.plain(d.result.news).join('; ')}`);
-      if (d.result.econ) lines.push(`- **Economy on the paper (illustrative flavour derived from the visible state, not model outputs):** unemployment ${d.result.econ.unemp.toFixed(1)}%, GDP growth ${d.result.econ.gdp.toFixed(1)}%, AI capex $${Math.round(d.result.econ.capex)}B a year, AI-designed drugs approved ${d.result.econ.drugs}, diseases cured or controlled ${d.result.econ.cured || 0}`);
+      if (d.result.econ) lines.push(`- **Economy on the paper (illustrative flavour derived from the visible state, not model outputs):** unemployment ${d.result.econ.unemp.toFixed(1)}%, GDP growth ${d.result.econ.gdp.toFixed(1)}%, AI capex $${Math.round(d.result.econ.capex)}B a year, AI-designed drugs approved ${d.result.econ.drugs} (${d.result.econ.late ?? 0} more in late-stage trials), diseases cured or controlled ${d.result.econ.cured || 0}`);
     } else lines.push('- **What happened:** the dice are still rolling.');
     return lines.join('\n');
   });

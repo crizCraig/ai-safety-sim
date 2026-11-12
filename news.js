@@ -48,6 +48,8 @@
   // The lever chOther's story is about: the one the choice raised most, or null.
   const otherKey = (c) => { const k = ['transparency', 'biodef', 'fund', 'bci'].sort((x, y) => c.cl[y] - c.cl[x])[0]; return c.cl[k] > 0 ? k : null; };
   // The paper's story pictures (assets/news/<key>.webp); an ending's story uses its ending picture ('ending:<outcome>').
+  // AI-designed drugs as a share of the year's new medicines (the FDA approves about 50 novel drugs a year).
+  const aiShare = (c) => Math.round(100 * c.e.newDrugs / (50 + c.e.newDrugs / 2));
   const IMAGES = ['research', 'expert', 'superintelligence', 'datacentre', 'idle', 'safetylab', 'testscare', 'talks', 'inspectors',
     'collapse', 'warroom', 'chinalab', 'uslab', 'markets', 'jobs', 'delegation', 'hearing', 'protest', 'townhall', 'fund',
     'openmodel', 'biolab', 'discovery', 'classroom', 'everyday', 'jobcentre', 'powerplant', 'orbit', 'lagging', 'materials',
@@ -101,7 +103,7 @@
   // last year's stored figures (index.html keeps them in each year's record), so they are smooth
   // across years and never contradict last year's paper.
   const ECON_BASE = Object.freeze({ year: 2026, unemp: 4.2, gdp: 2.2, gap: 1.0, capex: 725, capexGrowth: 0.77, power: 45, newPower: 15,
-    orbit: 0, drugs: 0, newDrugs: 0, cured: 0, newCured: 0, displaced: 0.3 });
+    orbit: 0, drugs: 0, newDrugs: 0, late: 6, cured: 0, newCured: 0, displaced: 0.3 });
   const PLACES = ['West Texas', 'Ohio', 'Arizona', 'Wyoming', 'Quebec', 'northern Norway', 'Finland', 'Saudi Arabia', 'the United Arab Emirates',
     'Malaysia\'s Johor state', 'Inner Mongolia', 'Guizhou', 'Chile\'s Atacama desert', 'Kenya\'s Rift Valley', 'Tamil Nadu', 'northern Spain'];
   const clampN = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
@@ -132,7 +134,18 @@
     const capex = Math.min(25000, p.capex * (1 + capexGrowth));
     const newPower = capex / 40; // ~$40B of capex per gigawatt of AI data centre, chips included
     const orbit = p.orbit > 0 ? Math.min(0.2 * (p.power + newPower), p.orbit * (2 + 2 * ramp(c1, 78, 100)) * (capexGrowth > 0 ? 1 : 0.8)) : c1 >= 78 ? 1 : 0;
-    const newDrugs = Math.round(14 * ramp(c1, 55, 100) ** 1.2);
+    // AI-designed drugs, anchored to late 2026 (illustrative; sources checked Nov 2026):
+    // - No AI-discovered drug had full FDA approval as of Aug 2026 (industry trackers, e.g.
+    //   ai2.work "$8.9B into AI drug design and still not one full FDA approval"; medium confidence).
+    // - Late-stage: Insilico's rentosertib (TNIK inhibitor, IPF) published Phase IIa results in Nature
+    //   Medicine (June 2025; high) and entered Phase III in mid-2026 (medium); Takeda's computationally
+    //   designed zasocitinib had positive Phase 3 results with a filing planned for FY2026 (medium);
+    //   trackers count ~170 AI-discovered programs in the clinic in early 2026, with 15-20 expected to
+    //   enter pivotal trials that year (low-medium). So the 2026 baseline is about six AI-designed drugs
+    //   in late-stage trials or filed, none approved, and the first approvals come in 2027.
+    // Each year more enter late-stage trials (faster with capability) and some of them win approval.
+    const newDrugs = Math.min(p.late, Math.round(1 + 13 * ramp(c1, 50, 100) ** 1.2));
+    const newLate = Math.round(4 + 16 * ramp(c1, 44, 100));
     // Diseases newly cured or brought under control (counted from 2027): about one for every three
     // AI-designed drugs, plus broad advances once AI rivals top experts, a little faster with
     // stronger biodefense (screening and response). Today a cure or a disease-modifying first-in-class
@@ -142,7 +155,7 @@
     return {
       unemp: clampN(toward(p.unemp, t.unemp, 0.6, 3.5), 0, 60), gdp: clampN(toward(p.gdp, t.gdp, 0.7, 2.5), -3, 15),
       gap: clampN(toward(p.gap, t.gap, 0.6, 1.5), 0, 12), displaced: t.displaced, capex, capexGrowth, power: p.power + newPower, newPower, orbit,
-      drugs: p.drugs + newDrugs, newDrugs, cured: (p.cured || 0) + newCured, newCured, place: PLACES[hash(`${b.year}|${Math.round(c1)}`) % PLACES.length],
+      drugs: p.drugs + newDrugs, newDrugs, late: (p.late ?? 6) - newDrugs + newLate, cured: (p.cured || 0) + newCured, newCured, place: PLACES[hash(`${b.year}|${Math.round(c1)}`) % PLACES.length],
     };
   }
   // The year's figures from a headline input ({ before, after, L, econ0 }), visible fields only.
@@ -186,7 +199,7 @@
     capex: (c) => `Spending on AI chips and data centres ${c.e.capexGrowth >= 0 ? 'rose' : 'fell'} ${R(Math.abs(c.e.capexGrowth) * 100)}% to ${money(c.e.capex)} this year.`,
     power: (c) => `New AI data centres added about ${gwTxt(c.e.newPower)} of demand this year, the largest in ${c.e.place}, for ${gwTxt(c.e.power)} in all.`,
     orbit: (c) => `Data centres in orbit now supply ${orbitTxt(c.e.orbit)} of computing power, all of it solar.`,
-    drugs: (c) => (c.e.drugs ? `Regulators have now approved ${c.e.drugs} AI-designed drug${c.e.drugs === 1 ? '' : 's'}, ${c.e.newDrugs} of them this year.` : null),
+    drugs: (c) => (c.e.drugs ? `Regulators have now approved ${c.e.drugs} AI-designed drug${c.e.drugs === 1 ? '' : 's'}, ${c.e.newDrugs} of them this year, and ${c.e.late} more are in late-stage trials.` : `${c.e.late} AI-designed drugs are now in late-stage trials, none yet approved.`),
     cushion: (c) => (c.b.fundStake >= 5 ? `Dividends from the public wealth fund, which owns ${R(c.b.fundStake)}% of frontier AI, softened the blow for many households.` : null),
   };
   // Each template's body: a bespoke sentence or two and the facts it rests on (2–4 sentences).
@@ -245,6 +258,7 @@
     econJobsUp: [F.jobs, F.cushion, F.gdp],
     econJobsDown: [F.jobs, F.gdp, 'Retraining courses for skilled trades are full in many cities.'],
     econBoom: [F.gdp, F.capex, F.jobs],
+    econBiotech: ['Fund managers said AI-designed candidates now fill a growing share of late-stage pipelines.', F.drugs, F.gdp],
     econSlow: [F.gdp, F.capex, F.jobs],
     econGap: [F.gap, F.gdp, 'Development economists say poorer countries lack the chips, power and skilled staff to keep up.'],
     econGapNarrows: [F.gap, F.open, F.gdp],
@@ -554,6 +568,10 @@
         : [`AI lifts economic growth to ${f1(c.e.gdp)}% this year`, `Economy speeds up to ${f1(c.e.gdp)}% growth on AI investment`],
       deck: (c) => `Output grew ${f1(c.e.gdp)}% as AI raised productivity, economists estimate, up from ${f1(c.e0.gdp)}% the year before.`,
       caption: 'Traders watch the markets climb.', img: 'markets' },
+    { id: 'econBiotech', cat: 'economy', desk: 'markets', tone: 'good', prio: 33, when: (c) => c.e.late >= 20 && c.d.capUS + c.d.capCN > 0 && c.e.gdp >= 2,
+      text: (c) => [`Biotech stocks surge as ${c.e.late} AI-designed drugs reach late-stage trials`, 'Investors pile into biotech as AI fills drug pipelines'],
+      deck: (c) => `Biotech shares climbed as ${c.e.late} AI-designed drugs sat in late-stage trials or awaited approval, analysts said.`,
+      caption: 'Traders watch biotech shares climb.', img: 'markets' },
     { id: 'econSlow', cat: 'economy', desk: 'markets', tone: 'neutral', prio: 47, when: (c) => c.e.gdp <= c.e0.gdp - 0.3,
       text: (c) => [`Growth slows to ${f1(c.e.gdp)}% as AI spending cools`, `Economy cools to ${f1(c.e.gdp)}% growth as the AI boom pauses`],
       deck: 'Growth slowed this year as investment in AI data centres and chips eased off.',
@@ -610,10 +628,13 @@
       deck: 'Hospitals using AI to read scans caught more cancers early, a large study reports.',
       caption: 'A doctor shows a patient her scan.', img: 'clinic' },
     { id: 'medDrugs', cat: 'medicine', desk: 'health', tone: 'good', prio: 30, when: (c) => c.e.newDrugs >= 1,
-      text: (c) => c.e.drugs === c.e.newDrugs ? ['Regulators approve the first drug designed by AI from scratch', 'First AI-designed medicine wins regulatory approval']
-        : [`Regulators approve ${c.e.newDrugs} more drugs designed with AI`, `${c.e.newDrugs} more AI-designed medicines win approval this year`],
-      deck: (c) => (c.e.drugs === c.e.newDrugs ? 'The first AI-designed drug won approval this year, for a disease with few treatments.'
-        : `${c.e.newDrugs} AI-designed drugs won approval this year, ${c.e.drugs} in all, many for neglected diseases.`),
+      text: (c) => c.e.drugs === c.e.newDrugs
+        ? ['AI-designed drugs move from late-stage trials to pharmacy shelves', 'Regulators clear AI-designed medicines after years of trials']
+        : c.e.newDrugs >= 6 ? [`AI-designed drugs now ${aiShare(c)}% of new medicines approved`, `${c.e.newDrugs} more AI-designed medicines win approval this year`]
+          : [`Regulators approve ${c.e.newDrugs} more drugs designed with AI`, `${c.e.newDrugs} more AI-designed medicines win approval this year`],
+      deck: (c) => (c.e.drugs === c.e.newDrugs
+        ? `${c.e.newDrugs} AI-designed drug${c.e.newDrugs === 1 ? '' : 's'} won approval this year, with ${c.e.late} more in late-stage trials.`
+        : `${c.e.newDrugs} AI-designed drugs won approval this year, ${c.e.drugs} in all, with ${c.e.late} more in late-stage trials.`),
       caption: 'Researchers study an AI-designed molecule.', img: 'discovery' },
     { id: 'medTrial', cat: 'medicine', desk: 'health', tone: 'good', prio: 29, when: (c) => c.cap1 >= 66,
       text: ['AI-designed therapy clears tumours in a late-stage trial', 'AI-designed antibiotic beats drug-resistant infections in trial'],
