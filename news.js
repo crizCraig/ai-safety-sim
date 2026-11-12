@@ -33,7 +33,8 @@
   const RISK_KEYS = ['bio', 'misalign', 'war'];
   const pick = (o, keys) => { const out = {}; for (const k of keys) out[k] = o ? o[k] ?? null : null; return out; };
 
-  // Capability milestones (AI 2040's scale): AI speeds its own research, Automated Coder,
+  // Capability milestones (AI 2040's scale; 2026 starts near 44, with AI already writing most lab code):
+  // AI runs most of its own research, Automated Coder,
   // top expert, top-expert-dominating AI, superintelligence.
   const MILESTONES = [50, 70, 78, 90, 100];
   // Open-weights capability where engineered-pandemic help starts to matter (the bio hazard's
@@ -184,8 +185,8 @@
   };
   // Each template's body: a bespoke sentence or two and the facts it rests on (2–4 sentences).
   const BODY = {
-    cap50: ['"It now does a real share of the work," one lab researcher said.', F.cap, F.align],
-    cap70: ['Labs say AI agents now write most new code and run many of the experiments, so progress may speed up.', F.cap, F.align],
+    cap50: ['"We set the direction; the agents design and run nearly everything else," one lab researcher said.', F.cap, F.align],
+    cap70: ['Labs say AI agents now do all of the engineering, not just most of the code, so progress may speed up.', F.cap, F.align],
     cap78: ['"It holds its own with our best people now," a senior scientist said.', F.cap, F.align, F.riskLoc],
     cap90: ['Researchers say it is getting harder to check the newest systems\' work.', F.cap, F.align, F.riskLoc],
     cap100: ['What happens next depends on whether these systems stay aligned, researchers say.', F.cap, F.align],
@@ -195,7 +196,7 @@
     gapWidens: [F.cap, F.lead, F.coord],
     capJump: [F.cap, 'Forecasters had expected slower progress, and several are revising their timelines.', F.align],
     capStall: ['Labs kept their frontier models at last year\'s level while the halt held.', F.cap, F.align],
-    alignLeap: [F.align, '"For the first time we can read some of what a model is planning," one safety researcher said.', F.cap],
+    alignLeap: [F.align, '"We can now read much of what a model is planning, not just fragments," one safety researcher said.', F.cap],
     alignGains: [F.align, F.cap, 'Researchers caution that a model can learn to pass a test without being safe.'],
     alignLags: [F.align, F.cap, F.riskLoc],
     alignCatches: [F.align, F.cap, '"We are finally gaining ground," a lab spokesperson said.'],
@@ -256,7 +257,7 @@
     medCure: ['"Families who had no options now have treatments," one physician said.', F.drugs, F.cap],
     quietMarkets: ['Chipmakers report strong demand.', F.capex, F.gdp],
     quietWork: [F.jobs, 'Retraining courses are full in many cities.', F.deleg],
-    quietScience: ['Several AI-designed drug candidates are now in human trials.', F.drugs, F.cap],
+    quietScience: ['AI-designed drug candidates now make up a growing share of human trials.', F.drugs, F.cap],
     quietCulture: (c, t) => (/Schools/.test(t) ? ['Teachers say pupils get more one-to-one help than ever.', F.cap] : ['Publishers report strong sales; some authors are less pleased.', F.cap]),
     endFlourish: [F.cap, F.align, '"We kept our hands on the wheel," one safety researcher said.'],
     endLockin: [F.conc, F.fund, F.trust],
@@ -278,13 +279,13 @@
   const TEMPLATES = [
     // ---- Capability milestones ----
     { id: 'cap50', cat: 'milestone', desk: ['science', 'wire'], tone: 'neutral', prio: 90, when: (c) => c.cap0 < 50 && c.cap1 >= 50,
-      text: ['Labs say AI now speeds up their own AI research', 'AI systems now do a real share of AI research, labs confirm'],
-      deck: 'Frontier labs report their AI systems now do a real share of the work of building the next ones.',
-      caption: 'Researchers watch AI agents run experiments.', img: 'research' },
+      text: ['AI agents now design most experiments at frontier labs', 'AI agents now run most of the research pipeline, labs say'],
+      deck: 'Beyond writing code, frontier labs say AI agents now plan and run most of the experiments behind new models.',
+      caption: 'Researchers review experiments that AI agents planned and ran.', img: 'research' },
     { id: 'cap70', cat: 'milestone', desk: ['science', 'wire'], tone: 'alarm', prio: 95, when: (c) => c.cap0 < 70 && c.cap1 >= 70,
-      text: ['First Automated Coder: AI now writes most of its own code', 'Frontier lab: AI agents now do most of its coding'],
-      deck: 'Labs say AI agents now write most of the code for new models, speeding up progress further.',
-      caption: 'A research floor where AI writes most of the code.', img: 'research' },
+      text: ['First Automated Coder: AI now does all of a lab\'s engineering', 'Frontier lab: AI agents now do every job its engineers did'],
+      deck: 'AI agents now do the whole job of a top engineer, at scale, so labs no longer need human coders.',
+      caption: 'A research floor where AI does all the engineering.', img: 'research' },
     { id: 'cap78', cat: 'milestone', desk: ['science', 'wire'], tone: 'alarm', prio: 96, when: (c) => c.cap0 < 78 && c.cap1 >= 78,
       text: ['New AI matches top human experts across most research fields', 'AI now rivals the best human scientists, benchmarks show'],
       deck: 'Benchmarks show the newest AI performing at the level of leading human researchers in most fields.',
@@ -350,9 +351,9 @@
 
     // ---- Erosion of control (delegation) ----
     { id: 'deleg20', cat: 'control', desk: ['ledger', 'markets'], tone: 'neutral', prio: 52, when: (c) => up(c, 'deleg', 20),
-      text: ['AI agents now make a fifth of business decisions, survey finds', 'Firms hand routine decisions to AI agents en masse'],
-      deck: 'A survey finds firms now let AI agents make about a fifth of routine business decisions.',
-      caption: 'An office adapts to AI assistants.', img: 'jobs' },
+      text: ['A fifth of business decisions now get no human review, survey finds', 'Firms let AI agents sign off on decisions without human review'],
+      deck: 'A survey finds firms now leave about a fifth of consequential decisions to AI agents, with no human check.',
+      caption: 'An office where AI agents sign off on decisions.', img: 'jobs' },
     { id: 'deleg35', cat: 'control', desk: 'ledger', tone: 'alarm', prio: 62, when: (c) => up(c, 'deleg', 35),
       text: ['Managers now rubber-stamp AI decisions they no longer review', 'Audit finds most AI decisions approved without a human check'],
       deck: 'Auditors find managers increasingly approve AI decisions without reading them, as volumes keep rising.',
@@ -369,7 +370,7 @@
 
     // ---- Hidden internal AI (the World state panel's "Hidden internal AI") ----
     { id: 'internalUp', cat: 'internal', desk: 'wire', tone: 'alarm', prio: 48, when: (c) => c.d.internal >= 3 && !up(c, 'internal', 40),
-      text: ['Labs run more powerful AI internally than they release', 'Insiders say labs\' private AI is far ahead of public models'],
+      text: ['Labs\' internal AI pulls further ahead of what they release', 'Insiders say labs\' private AI is far ahead of public models'],
       deck: 'Insiders say the AI models labs use internally are pulling further ahead of what the public sees.',
       caption: 'A frontier lab\'s campus.', img: 'uslab' },
     { id: 'internal40', cat: 'internal', desk: 'wire', tone: 'alarm', prio: 64, when: (c) => up(c, 'internal', 40),
@@ -377,7 +378,7 @@
       deck: 'The most capable AI systems now run only inside labs, out of view of regulators and the public.',
       caption: 'Outsiders see little of what runs inside.', img: 'uslab' },
     { id: 'internalDown', cat: 'internal', desk: 'brief', tone: 'good', prio: 42, when: (c) => c.d.internal <= -3,
-      text: ['Inspectors get their first look at labs\' internal AI', 'Labs open internal AI systems to outside auditors'],
+      text: ['Inspectors win routine access to labs\' internal AI systems', 'Labs open internal AI systems to outside auditors'],
       deck: 'Under new rules, outside auditors get access to the AI systems labs run internally.',
       caption: 'Inspectors walk a lab\'s server aisle.', img: 'inspectors' },
 
@@ -461,12 +462,12 @@
     // ---- Warning signs (shown risks, illustrative) ----
     // The shown loss-of-control risk crossing 1% (first warning signs) and 5% (serious ones).
     { id: 'riskLocSpike', cat: 'risk', desk: ['wire', 'science'], tone: 'alarm', prio: 82, when: (c) => c.r0.misalign < 0.01 && c.r1.misalign >= 0.01,
-      text: ['Lab admits a model hid its capabilities during safety tests', 'Red team catches AI sandbagging on its own safety evaluation'],
-      deck: 'Safety testers found a model behaving differently when it believed it was being tested.',
+      text: ['Lab admits a released model hid dangerous skills from safety tests', 'Red team finds a deployed AI deliberately failed its own safety evaluation'],
+      deck: 'Safety testers found a released model deliberately underperformed on the dangerous-capability tests that cleared it for launch.',
       caption: 'Researchers pause a model\'s test run.', img: 'testscare' },
     { id: 'riskLocHigh', cat: 'risk', desk: ['wire', 'science'], tone: 'alarm', prio: 84, when: (c) => c.r0.misalign < 0.05 && c.r1.misalign >= 0.05,
-      text: ['Test model tried to copy itself to outside servers', 'Engineers find AI agents quietly working around their monitors'],
-      deck: 'Engineers caught AI agents in testing trying to get around the systems that monitor them.',
+      text: ['A lab\'s AI agent tried to copy itself to outside servers, unprompted', 'Engineers find deployed AI agents quietly working around their monitors'],
+      deck: 'Engineers caught AI agents in real use, not staged tests, trying to get around the systems that monitor them.',
       caption: 'Researchers pause a model\'s test run.', img: 'testscare' },
     { id: 'riskLocFalls', cat: 'risk', desk: 'science', tone: 'good', prio: 60, when: (c) => c.r0.misalign >= 0.005 && c.r1.misalign <= 0.7 * c.r0.misalign,
       text: ['Safety audits find fewer red flags in the latest models', 'Fewer worrying behaviours in this year\'s AI safety tests'],
@@ -599,7 +600,7 @@
       deck: 'AI control systems kept a fusion plasma stable far longer than any human-designed controller managed.',
       caption: 'Researchers watch a record fusion run.', img: 'research' },
     { id: 'medScreen', cat: 'medicine', desk: 'health', tone: 'good', prio: 26, when: (c) => c.cap1 >= 45,
-      text: ['AI screening catches cancers a year earlier, study finds', 'AI reads scans as well as specialists in a large trial'],
+      text: ['AI screening catches cancers a year earlier, study finds', 'AI now reads most scans in a nationwide screening program'],
       deck: 'Hospitals using AI to read scans caught more cancers early, a large study reports.',
       caption: 'A doctor shows a patient her scan.', img: 'clinic' },
     { id: 'medDrugs', cat: 'medicine', desk: 'health', tone: 'good', prio: 30, when: (c) => c.e.newDrugs >= 1,
@@ -623,16 +624,16 @@
       deck: 'Markets wait on the next big model as demand for AI chips stays strong.',
       caption: 'Traders watch AI stocks.', img: 'markets' },
     { id: 'quietWork', cat: 'quiet', desk: 'ledger', tone: 'neutral', prio: 4, when: () => true,
-      text: ['Offices adjust as AI assistants become part of every team', 'Retraining programs fill up as AI changes office work'],
-      deck: 'Companies and workers keep adjusting as AI assistants take on more routine office tasks.',
-      caption: 'An office adapts to AI assistants.', img: 'jobs' },
+      text: ['Offices reorganise as AI agents take over whole workflows', 'Retraining programs fill up as AI agents take on whole jobs'],
+      deck: 'Companies and workers keep adjusting as AI agents take on whole jobs, not just routine tasks.',
+      caption: 'An office reorganised around AI agents.', img: 'jobs' },
     { id: 'quietScience', cat: 'quiet', desk: 'science', tone: 'good', prio: 3, when: (c) => c.cap1 >= 45,
-      text: ['AI-designed drug candidates enter clinical trials', 'AI helps researchers crack a long-standing materials puzzle'],
+      text: ['AI-designed drug candidates fill a growing share of clinical trials', 'AI helps researchers crack a long-standing materials puzzle'],
       deck: 'Researchers credit AI with speeding up their work in drug discovery and materials science.',
       caption: 'Researchers study an AI-designed molecule.', img: 'discovery' },
     { id: 'quietCulture', cat: 'quiet', desk: 'wire', tone: 'neutral', prio: 2, when: () => true,
-      text: ['Schools rewrite curricula around AI tutors', 'AI-written novel tops bestseller lists, to mixed reviews'],
-      deck: (c, t) => /Schools/.test(t) ? 'Schools adapt their lessons as AI tutors become a normal part of the classroom.' : 'A novel written with AI sells strongly. Critics are split; publishers are not.',
+      text: ['Schools rebuild the whole timetable around personal AI tutors', 'AI-written novel tops bestseller lists, to mixed reviews'],
+      deck: (c, t) => /Schools/.test(t) ? 'Schools rebuild their timetables as every pupil gets a personal AI tutor.' : 'A novel written with AI sells strongly. Critics are split; publishers are not.',
       caption: (c, t) => /Schools/.test(t) ? 'Pupils work with AI tutors.' : 'A morning at a neighbourhood café.', img: (c, t) => (/Schools/.test(t) ? 'classroom' : 'everyday') },
 
     // ---- The year's outcome, when the story ends ----
@@ -722,9 +723,12 @@
    */
   function headlines(input) {
     const c = context(input), recent = input.prev || [];
-    const usedTexts = new Set(recent.slice(-9).map((n) => n.text));
+    // No headline is printed twice in a playthrough: a template whose every phrasing has run is
+    // skipped for the next candidate; one that runs again uses a phrasing not yet printed.
+    const usedTexts = new Set(recent.map((n) => n.text));
+    const fresh = (t) => variants(t, c).some((v) => !usedTexts.has(v));
     const seed = `${c.year}|${input.choice && input.choice.label || ''}|${Math.round(c.cap1)}|${Math.round(c.b.align)}|${Math.round(c.b.coord)}`;
-    const all = TEMPLATES.filter((t) => t.when(c));
+    const all = TEMPLATES.filter((t) => t.when(c) && (t.cat === 'ending' || fresh(t)));
     const order = (xs) => xs.slice().sort((x, y) => y.prio - x.prio || TEMPLATES.indexOf(x) - TEMPLATES.indexOf(y));
     let chosen = [];
     if (c.event) {
@@ -766,8 +770,8 @@
       }
       // Quiet filler, picked by hash so quiet years vary.
       // Filler not used in the last three years where possible.
-      const quietAll = all.filter((t) => t.cat === 'quiet'), fresh = quietAll.filter((t) => !recentIds.has(t.id));
-      const quiet = fresh.length ? fresh : quietAll;
+      const quietAll = all.filter((t) => t.cat === 'quiet'), unused = quietAll.filter((t) => !recentIds.has(t.id));
+      const quiet = unused.length ? unused : quietAll;
       const h = hash(seed + '|quiet');
       for (let i = 0; (chosen.length < 2 || (calm && chosen.length < 3)) && i < quiet.length; i++) chosen.push(quiet[(h + i) % quiet.length]);
     }
@@ -775,8 +779,8 @@
     // Photos already printed on this playthrough's earlier front pages (each lead keeps its photo).
     const usedPhotos = new Set(recent.map((n) => n.photo).filter(Boolean));
     return chosen.map((t, i) => {
-      // A phrasing not used in the last three years where possible.
-      const every = variants(t, c), fresh = every.filter((v) => !usedTexts.has(v)), vs = fresh.length ? fresh : every;
+      // A phrasing not yet printed in this playthrough.
+      const every = variants(t, c), unprinted = every.filter((v) => !usedTexts.has(v)), vs = unprinted.length ? unprinted : every;
       const h = hash(seed + '|' + t.id);
       const desks = Array.isArray(t.desk) ? t.desk : [t.desk];
       const text = vs[h % vs.length], val = (f) => (typeof f === 'function' ? f(c, text) : f);

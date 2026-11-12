@@ -666,6 +666,15 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Reference documents Current capability and README counts eleven assumptions', html.includes('Current capability: the US bloc') && Object.keys(M.ASSUMPTION_INFO).length === 11 && readme.includes('eleven uncertain'));
 }
 
+// --- The page loads every script the preview build copies ---
+{
+  const fs = require('fs'), html = fs.readFileSync(__dirname + '/index.html', 'utf8');
+  const build = fs.readFileSync(__dirname + '/scripts/build_artifact.py', 'utf8');
+  const names = (build.match(/for name in \(([^)]*)\)/) || [, ''])[1].match(/[\w-]+\.js/g) || [];
+  const missing = names.filter((n) => !new RegExp(`<script src="${n.replace('.', '\\.')}\\?v=[0-9a-z]+"></script>`).test(html));
+  check('index.html loads every script build_artifact.py copies', names.length >= 7 && missing.length === 0, 'missing: ' + missing.join(', '));
+}
+
 // --- Codex cycles 16 and 17 ---
 {
   const PR = globalThis.SimPresets;
@@ -1042,6 +1051,43 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const t = M.outlookTotal(a.s, oa), so = 1 - a.s.survival;
   check('Outlook: the by-2040 figure is at least the catastrophe so far', t.byEnd >= so && t.byEnd <= 1, `${t.byEnd} vs ${so}`);
   check('Outlook: with no future still running, by 2040 equals the catastrophe so far', Math.abs(M.outlookTotal({ ...a.s, alive: 0 }, oa).byEnd - so) < 1e-12);
+}
+
+// --- Let Washington decide (policies.js): every card has a valid default for each administration ---
+{
+  const E = globalThis.SimEvents, POL = (require('./policies.js'), globalThis.SimPolicies);
+  const cards = [...E.CARDS, E.QUIET], admins = Object.keys(POL.ADMINS), bad = [];
+  for (const c of cards) for (const a of admins) {
+    const p = POL.POLICIES[c.id]?.[a];
+    if (!p) { bad.push(`${c.id}/${a}: missing`); continue; }
+    if (!c.choices.some((ch) => ch.label === p.choice)) bad.push(`${c.id}/${a}: no choice "${p.choice}"`);
+    if (typeof p.why !== 'string' || p.why.length < 20) bad.push(`${c.id}/${a}: no reason`);
+    if (!p.src.length || p.src.some((k) => !POL.SOURCES[k])) bad.push(`${c.id}/${a}: bad source ${p.src}`);
+    if (/["“”]/.test(p.why)) bad.push(`${c.id}/${a}: quotes in the reason (paraphrase only)`);
+  }
+  for (const id of Object.keys(POL.POLICIES)) if (!cards.some((c) => c.id === id)) bad.push(`${id}: no such card`);
+  check('Policies: every card has an existing choice, a reason and sources for Trump, Republican and Democratic administrations', !bad.length, bad.slice(0, 5).join('; '));
+  const okSrc = Object.values(POL.SOURCES).every(([t, u]) => t && /^https:\/\/[^\s]+$/.test(u));
+  check('Policies: every source has a title and an https link', okSrc);
+  // 2027–2028 is the Trump administration whatever the party; from 2029 the party decides, and
+  // without one there is no default. A default reads only the card, year and party.
+  const c = E.CARDS.find((x) => x.id === 'export');
+  const t27 = POL.defaultChoice(c, 2027, 'dem'), t28 = POL.defaultChoice(c, 2028, null), r = POL.defaultChoice(c, 2029, 'rep'), d = POL.defaultChoice(c, 2033, 'dem');
+  check('Policies: Trump decides through 2028, the chosen party from 2029, none without a party',
+    t27.admin === 'trump' && t28.admin === 'trump' && r.admin === 'rep' && d.admin === 'dem' && POL.defaultChoice(c, 2029, null) === null);
+  check('Policies: defaults take only the card, year and party (no game state)', POL.defaultChoice.length === 3);
+  // Playing every year with Washington's choices runs to an end for each party.
+  for (const party of ['rep', 'dem']) {
+    const s = M.initialState(M.sampleWorld(M.defaultAssumptions(), M.mulberry32(5))), L = M.defaultLevers(), used = new Set(), rng = M.mulberry32(9);
+    let years = 0, ok = true;
+    while (!s.outcome && years < 20) {
+      const card = E.pickCard(s, L, used, rng) || E.QUIET; used.add(card.id);
+      const dc = POL.defaultChoice(card, s.year, party);
+      if (!dc) { ok = false; break; }
+      E.applyChoice(s, L, dc.choice); M.step(s, L, rng, true); years++;
+    }
+    check(`Policies: a campaign left entirely to Washington (${party} from 2029) plays to an ending`, ok && !!s.outcome, `${years} years, outcome ${s.outcome}`);
+  }
 }
 
 // --- News clips (news.js): see test-news.js ---

@@ -58,13 +58,16 @@ function run(check, report = false) {
   const RUNS = 500, fired = {}, perCat = {}, counts = { 1: 0, 2: 0, 3: 0, other: 0 };
   for (const t of N.TEMPLATES) { fired[t.id] = 0; perCat[t.cat] = (perCat[t.cat] || 0) + 1; }
   let bad = [], badWords = [], badStory = [], imgsUsed = new Set(), calmDoom = 0, years = 0, endingYears = 0, sample = null;
-  let leads = 0, photoRepeats = [], noPhoto = 0, maxPapers = 0;
+  let leads = 0, photoRepeats = [], noPhoto = 0, maxPapers = 0, textRepeats = [];
   const photoUse = {};
   for (let i = 0; i < RUNS; i++) {
     const game = playCampaign(1000 + i);
     if (i === 3) sample = game;
     // The lead photo: never one an earlier front page of this game printed.
     const printed = new Set();
+    // No headline text is printed twice in one playthrough.
+    const texts = new Set();
+    for (const { input, news } of game) for (const h of news) { if (texts.has(h.text)) textRepeats.push(`${1000 + i}/${input.year}: ${h.text}`); texts.add(h.text); }
     maxPapers = Math.max(maxPapers, game.length);
     for (const { input, news } of game) {
       const lead = news[0];
@@ -108,6 +111,7 @@ function run(check, report = false) {
     check(`News: every one of the ${N.IMAGES.length} story pictures appears in ${RUNS} random campaigns`, !unused.length, unused.join(', '));
   }
   check('News: only the lead story carries a photo, and every lead has one', noPhoto === 0, `${noPhoto} bad pages`);
+  check(`News: no headline repeats within a game (${RUNS} campaigns)`, !textRepeats.length, `${textRepeats.length}: ${textRepeats.slice(0, 3).join(' | ')}`);
   check(`News: no lead photo repeats within a game (${leads} front pages in ${RUNS} campaigns, up to ${maxPapers} a game)`, !photoRepeats.length, photoRepeats.slice(0, 3).join(', '));
   {
     const stories = N.IMAGES.filter((k) => !k.startsWith('end_') && N.PHOTOS[k]);

@@ -33,7 +33,7 @@ FOCUS = {
     "sabotage": 0.27, "deal": 0.30, "gap": 0.40, "covert": 0.45, "collapse": 0.40,
     "fund": 0.47, "pledge": 0.42, "cern": 0.45, "agents": 0.45, "threshold": 0.46,
     # endings
-    "flourish": 0.45, "pause": 0.40, "muddle": 0.55, "benevolent": 0.50,
+    "flourish": 0.45, "pause": 0.55, "muddle": 0.55, "benevolent": 0.50,
     "lockin": 0.66, "war": 0.45, "bio": 0.32, "misalign": 0.50,
 }
 
@@ -54,7 +54,7 @@ def trim_bands(im):
     return im.crop((0, top, w, bot)), top / h, (bot - top) / h
 
 
-SPLIT_IDS = {"sabotage", "deal", "threshold", "pause"}
+SPLIT_IDS = {"sabotage", "deal", "threshold"}
 positions = {}
 for src, out in zip(srcs, outs):
     out.mkdir(parents=True, exist_ok=True)
