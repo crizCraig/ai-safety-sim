@@ -409,8 +409,8 @@
   .splash-box { text-align: center; max-width: 560px; }
   /* The title fades in with the globe's glow (body.lit, set when the bloom starts or after
      2.5 s at most), so it never shows at full brightness over a still-dark scene. */
-  #splash .splash-box { opacity: 0; transition: opacity 1.2s ease-out; }
-  #splash .splash-box { animation: splash-safety 1s 4s forwards; } /* shown even if a script failed */
+  #splash .splash-box { opacity: 0; transition: opacity .45s ease-out; }
+  #splash .splash-box { animation: splash-safety .4s 1.5s forwards; } /* shown even if a script failed */
   @keyframes splash-safety { to { opacity: 1; } }
   body.lit #splash .splash-box { opacity: 1; }
   @media (prefers-reduced-motion: reduce) { #splash .splash-box { transition-duration: .3s; } }
@@ -713,13 +713,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261111170413"></script>
-<script src="events.js?v=20261111170413"></script>
-<script src="policies.js?v=20261111170413"></script>
-<script src="news.js?v=20261111170413"></script>
-<script src="landmask.js?v=20261111170413"></script>
-<script src="presets.js?v=20261111170413"></script>
-<script src="trees.js?v=20261111170413"></script>
+<script src="model.js?v=20261111172655"></script>
+<script src="events.js?v=20261111172655"></script>
+<script src="policies.js?v=20261111172655"></script>
+<script src="news.js?v=20261111172655"></script>
+<script src="landmask.js?v=20261111172655"></script>
+<script src="presets.js?v=20261111172655"></script>
+<script src="trees.js?v=20261111172655"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -1094,7 +1094,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261111170413';
+const ASSET_VERSION = '20261111172655';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1151,7 +1151,7 @@ if (gl3d) {
 // ramps up over a second. bloomGoal is the strength the current mode wants.
 let bloomGoal = 0.95, bloomFade = 0;
 const lightUp = () => document.body.classList.add('lit');
-setTimeout(lightUp, 2500); // the splash text never waits longer than this for the glow
+setTimeout(lightUp, 600); // the splash text never waits longer than this for the glow
 function enableBloom() {
   if (!gl3d || !bloom || !renderer) { lightUp(); return; }
   try {
