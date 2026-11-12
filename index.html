@@ -713,13 +713,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261111165419"></script>
-<script src="events.js?v=20261111165419"></script>
-<script src="policies.js?v=20261111165419"></script>
-<script src="news.js?v=20261111165419"></script>
-<script src="landmask.js?v=20261111165419"></script>
-<script src="presets.js?v=20261111165419"></script>
-<script src="trees.js?v=20261111165419"></script>
+<script src="model.js?v=20261111170346"></script>
+<script src="events.js?v=20261111170346"></script>
+<script src="policies.js?v=20261111170346"></script>
+<script src="news.js?v=20261111170346"></script>
+<script src="landmask.js?v=20261111170346"></script>
+<script src="presets.js?v=20261111170346"></script>
+<script src="trees.js?v=20261111170346"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -1094,7 +1094,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261111165419';
+const ASSET_VERSION = '20261111170346';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1745,7 +1745,7 @@ let game = null;
 // Gavin Newsom or Alexandria Ocasio-Cortez, picked at random for each campaign and kept through
 // rewinds. ?president=newsom|aoc forces one (for testing).
 const PRESIDENTS = ['newsom', 'aoc'];
-const PRESIDENT_ART = new Set(['sabotage', 'deal', 'threshold', 'pause']);
+const PRESIDENT_ART = new Set(['sabotage', 'deal', 'threshold']);
 // Read once at load: the campaign clears the address bar's query.
 const FORCED_PRESIDENT = (() => { try { return new URLSearchParams(location.search).get('president'); } catch (e) { return null; } })();
 const pickPresident = () => (PRESIDENTS.includes(FORCED_PRESIDENT) ? FORCED_PRESIDENT

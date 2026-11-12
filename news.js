@@ -723,9 +723,12 @@
    */
   function headlines(input) {
     const c = context(input), recent = input.prev || [];
-    const usedTexts = new Set(recent.slice(-9).map((n) => n.text));
+    // No headline is printed twice in a playthrough: a template whose every phrasing has run is
+    // skipped for the next candidate; one that runs again uses a phrasing not yet printed.
+    const usedTexts = new Set(recent.map((n) => n.text));
+    const fresh = (t) => variants(t, c).some((v) => !usedTexts.has(v));
     const seed = `${c.year}|${input.choice && input.choice.label || ''}|${Math.round(c.cap1)}|${Math.round(c.b.align)}|${Math.round(c.b.coord)}`;
-    const all = TEMPLATES.filter((t) => t.when(c));
+    const all = TEMPLATES.filter((t) => t.when(c) && (t.cat === 'ending' || fresh(t)));
     const order = (xs) => xs.slice().sort((x, y) => y.prio - x.prio || TEMPLATES.indexOf(x) - TEMPLATES.indexOf(y));
     let chosen = [];
     if (c.event) {
@@ -767,8 +770,8 @@
       }
       // Quiet filler, picked by hash so quiet years vary.
       // Filler not used in the last three years where possible.
-      const quietAll = all.filter((t) => t.cat === 'quiet'), fresh = quietAll.filter((t) => !recentIds.has(t.id));
-      const quiet = fresh.length ? fresh : quietAll;
+      const quietAll = all.filter((t) => t.cat === 'quiet'), unused = quietAll.filter((t) => !recentIds.has(t.id));
+      const quiet = unused.length ? unused : quietAll;
       const h = hash(seed + '|quiet');
       for (let i = 0; (chosen.length < 2 || (calm && chosen.length < 3)) && i < quiet.length; i++) chosen.push(quiet[(h + i) % quiet.length]);
     }
@@ -776,8 +779,8 @@
     // Photos already printed on this playthrough's earlier front pages (each lead keeps its photo).
     const usedPhotos = new Set(recent.map((n) => n.photo).filter(Boolean));
     return chosen.map((t, i) => {
-      // A phrasing not used in the last three years where possible.
-      const every = variants(t, c), fresh = every.filter((v) => !usedTexts.has(v)), vs = fresh.length ? fresh : every;
+      // A phrasing not yet printed in this playthrough.
+      const every = variants(t, c), unprinted = every.filter((v) => !usedTexts.has(v)), vs = unprinted.length ? unprinted : every;
       const h = hash(seed + '|' + t.id);
       const desks = Array.isArray(t.desk) ? t.desk : [t.desk];
       const text = vs[h % vs.length], val = (f) => (typeof f === 'function' ? f(c, text) : f);

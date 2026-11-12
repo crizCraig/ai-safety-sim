@@ -9,7 +9,7 @@ Usage: python3 scripts/gen_card_art.py [card_or_ending_id ... | endings]
 With CARD_ART_REDRAW_FROM=<dir> (holding cards/<id>.png and endings/<key>.png), each image is
 redrawn from that earlier version in the current style, keeping its composition.
 With CARD_ART_SPLIT=newsom|aoc, redraws the images that show the post-2028 president (sabotage,
-deal, threshold, pause) as <id>-vance-<key>.png: split down the middle, JD Vance on the left and
+deal, threshold) as <id>-vance-<key>.png: split down the middle, JD Vance on the left and
 the Democrat on the right in the same moment. (CARD_ART_PRESIDENT=newsom|aoc made the older
 single-president variants, no longer used in the game.)
 Several reference photos per call need openai>=1.99.
@@ -221,7 +221,7 @@ ENDINGS = {
         TRIUMPH),
     "pause": ("Ending: The Careful Path", "The Careful Path",
         "A verified international regime kept frontier capability inside what alignment could handle. Superintelligence has not arrived yet — but when it does, the tools and the trust to handle it will be there.",
-        "President JD Vance and Xi Jinping standing side by side at the United Nations in New York, smiling as international inspectors in blue jackets and scientists from many nations report that the shared safety checks are holding, with a calm, carefully monitored data center at sunrise through the window should be depicted.",
+        "A calm, hopeful verification site at sunrise: international inspectors in blue jackets and scientists from many nations, working together at a long table of instruments beside a quiet, carefully monitored data center, one checking a sealed rack while another smiles over a tablet, and families walking in a green park in the foreground under an open sky should be depicted. No politicians or famous people.",
         TRIUMPH),
     "muddle": ("Ending: Muddling Through", "Muddling Through",
         "2040 arrives with no catastrophe — and no resolution. The race continues, the risks compound, and the hardest decisions still lie ahead.",
@@ -263,7 +263,6 @@ PRESIDENT_SPOT = {
     "sabotage": "the bearded man in a dark suit seated at the centre of the briefing table, chin resting on his hand",
     "deal": "the bearded man in a dark suit on the left, shaking hands with Xi Jinping",
     "threshold": "the bearded man in a dark suit seated behind the desk on the left, hands clasped",
-    "pause": "the bearded man in a dark suit on the left, standing beside Xi Jinping",
 }
 # The president's expression, matching the scene (the default suits the warm ones).
 PRESIDENT_MOOD = {"sabotage": "a serious, thoughtful listening expression, lips closed, not smiling"}
@@ -303,10 +302,6 @@ SPLIT_SCENE = {
                   " stands beside the desk holding an open folder, a vast data center glowing through the"
                   " window and a map of China on the wall",
                   ["Dario Amodei"]),
-    "pause": ("standing side by side with Xi Jinping at the United Nations in New York, both smiling, with"
-              " international inspectors in blue jackets and scientists from many nations around them and a"
-              " calm data center at sunrise through the window",
-              ["Xi Jinping"]),
 }
 SPLIT = ("Draw a new image as {pencil}. Use image 1 only as the reference for the drawing style, the setting"
          " and the mood. The image is one continuous scene split down the exact middle into two equal halves,"
