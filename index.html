@@ -318,6 +318,7 @@
   .world-reveal .wk { color: var(--muted); }
   .world-reveal { font-size: 13px !important; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
   .presets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+  .presets button[hidden] { display: none; }
   .presets button { background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 7px; font-size: 11px; padding: 4px 8px; color: var(--muted); }
   .pgroup { flex-basis: 100%; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 4px 0 1px; }
   .pgroup a, .plannote a { color: var(--accent); text-decoration: none; }
@@ -750,13 +751,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261111214545"></script>
-<script src="events.js?v=20261111214545"></script>
-<script src="policies.js?v=20261111214545"></script>
-<script src="news.js?v=20261111214545"></script>
-<script src="landmask.js?v=20261111214545"></script>
-<script src="presets.js?v=20261111214545"></script>
-<script src="trees.js?v=20261111214545"></script>
+<script src="model.js?v=20261111215508"></script>
+<script src="events.js?v=20261111215508"></script>
+<script src="policies.js?v=20261111215508"></script>
+<script src="news.js?v=20261111215508"></script>
+<script src="landmask.js?v=20261111215508"></script>
+<script src="presets.js?v=20261111215508"></script>
+<script src="trees.js?v=20261111215508"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -1132,7 +1133,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261111214545';
+const ASSET_VERSION = '20261111215508';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -2907,8 +2908,29 @@ function applyFocus() {
 }
 
 let labCat = 0;
+// "Safest mix" and "Under 2% risk" were found under the default unknowns. Hide each when the
+// current unknowns no longer fit it: Safest mix whenever the unknowns differ from the defaults
+// (it is only known to be safest there), Under 2% whenever it reaches 2% here (same 2,000
+// seeded futures as the headline). Checked after the sliders settle, and cached per unknowns.
+let fitKey = null, fitTimer = null;
+function fitOptimizedPresets() {
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(() => {
+    const key = JSON.stringify(labA); if (key === fitKey) return; fitKey = key;
+    const def = defaultUnknowns();
+    let underOk = true;
+    if (!def) { const mc = M.monteCarlo(PRESETS['Under 2% risk'], 2000, 0, 42, labA); underOk = M.CATASTROPHES.reduce((a, k) => a + mc.counts[k], 0) / mc.n < 0.02; }
+    const show = { 'Safest mix': def, 'Under 2% risk': underOk };
+    for (const [n, ok] of Object.entries(show)) {
+      const b = $('presets').querySelector(`[data-p="${n}"]`); if (!b) continue;
+      b.hidden = !ok;
+      if (!ok && b.classList.contains('on')) { b.classList.remove('on'); $('planInfo').hidden = true; }
+    }
+  }, 250);
+}
 function runLab() {
   syncURL();
+  fitOptimizedPresets();
   const mc = M.monteCarlo(labL, 2000, 260, 42, labA);
   lastMC = mc;
   renderOutcomeRows(mc);
