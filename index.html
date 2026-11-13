@@ -375,6 +375,14 @@
   .jumpflash { animation: jumpflash 1.2s ease-out; }
   @keyframes jumpflash { 0% { box-shadow: 0 0 0 2px rgba(127,227,255,.8); } 100% { box-shadow: 0 0 0 2px rgba(127,227,255,0); } }
   h3.jumpflash { border-radius: 4px; }
+  .sechead { display: flex; align-items: center; gap: 8px; }
+  .sechead .ji { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; color: var(--accent); }
+  .sechead .ji .f { fill: currentColor; stroke: none; }
+  h3.sechead.jumpflash { animation: headflash 1.8s ease-out; }
+  @keyframes headflash { 0%, 35% { color: var(--accent); background: rgba(127,227,255,.16); box-shadow: 0 0 0 6px rgba(127,227,255,.16), 0 0 22px rgba(127,227,255,.45); text-shadow: 0 0 12px rgba(127,227,255,.7); }
+    100% { background: rgba(127,227,255,0); box-shadow: 0 0 0 6px rgba(127,227,255,0); text-shadow: none; } }
+  .uhelp { margin: 2px 0 0; }
+  .uhelp summary { font-size: 11px; }
   #fanTip { position: fixed; z-index: 6; pointer-events: none; min-width: 200px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
   #fanTip .tip-year { font-family: var(--mono); font-size: 15px; font-weight: 600; margin-bottom: 4px; }
   #fanTip .tip-row { display: flex; justify-content: space-between; gap: 14px; color: var(--muted); line-height: 1.6; }
@@ -751,13 +759,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261112214612"></script>
-<script src="events.js?v=20261112214612"></script>
-<script src="policies.js?v=20261112214612"></script>
-<script src="news.js?v=20261112214612"></script>
-<script src="landmask.js?v=20261112214612"></script>
-<script src="presets.js?v=20261112214612"></script>
-<script src="trees.js?v=20261112214612"></script>
+<script src="model.js?v=20261113123006"></script>
+<script src="events.js?v=20261113123006"></script>
+<script src="policies.js?v=20261113123006"></script>
+<script src="news.js?v=20261113123006"></script>
+<script src="landmask.js?v=20261113123006"></script>
+<script src="presets.js?v=20261113123006"></script>
+<script src="trees.js?v=20261113123006"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -791,13 +799,13 @@
     <ol class="declist" id="history"></ol>
   </div>
   <div class="lab-only">
-    <h3 id="secLevers">Policy levers</h3>
+    <h3 id="secLevers" class="sechead" data-icon="levers">Policy levers</h3>
     <div class="presets" id="presets"></div>
     <details class="infobub"><summary><span class="ibub" aria-hidden="true">i</span><span>How the levers work</span></summary><div class="sub lever-note">Held fixed 2027–2040 across every simulated future. Timelines are calibrated to <a href="https://ai-2040.com/" target="_blank" rel="noopener" style="color:var(--accent)">AI 2040</a>.</div></details>
     <div id="sliders"></div>
     <div class="divider"></div>
-    <h3 id="secUnknowns">Unknowns about the world</h3>
-    <div class="sub">Each future draws these at random: the center you set is the average and the spread its standard deviation. Probabilities follow a Beta distribution on 0–100% (0–60% for how much tests overstate alignment), so their spread is in percentage points; the others follow a bell curve (on a log scale for ease, speed and bio risk).</div>
+    <h3 id="secUnknowns" class="sechead" data-icon="unknowns">Unknowns about the world</h3>
+    <details class="infobub"><summary><span class="ibub" aria-hidden="true">i</span><span>How the unknowns work</span></summary><div class="sub">Each future draws these at random: the center you set is the average and the spread its standard deviation. Probabilities follow a Beta distribution on 0–100% (0–60% for how much tests overstate alignment), so their spread is in percentage points; the others follow a bell curve (on a log scale for ease, speed and bio risk).</div></details>
     <div class="presets" id="unkPresets"></div>
     <div id="assumptions"></div>
   </div>
@@ -824,7 +832,7 @@
     <div id="levers"></div>
   </div>
   <div class="lab-only">
-    <h3 id="secOutcomes">2,000 simulated futures</h3>
+    <h3 id="secOutcomes" class="sechead" data-icon="outcomes">2,000 simulated futures</h3>
     <div class="sub" id="labSub"></div>
     <div id="outcomes"></div>
     <button class="btn copybtn" id="copyPage">Copy for AI</button>
@@ -1133,7 +1141,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261112214612';
+const ASSET_VERSION = '20261113123006';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -2795,7 +2803,7 @@ const fmtA = (k, v, isSd = false) => {
   if (f === 'log') return isSd ? '×' + Math.round(Math.pow(10, v)) : pct(Math.pow(10, v), 2);
   if (f === 'logx') return isSd ? '×' + Math.pow(10, v).toFixed(1) : Math.pow(10, v).toFixed(2) + '×';
   if (f === 'num') return isSd ? String(+v.toFixed(1)) : String(Math.round(v));
-  if (f === 'pct') return isSd ? Math.round(v * 100) + ' pts' : Math.round(v * 100) + '%'; // a spread in percentage points
+  if (f === 'pct') return isSd ? String(Math.round(v * 100)) : Math.round(v * 100) + '%'; // a spread in percentage points
   return v.toFixed(2) + '×';
 };
 // Labelled reference points under a center slider, e.g. AI 2040 and RSI 2027 on Current capability.
@@ -2807,7 +2815,7 @@ function buildAssumptionUI() {
     `${info.group && (i === 0 || all[i - 1][1].group !== info.group) ? '<div class="ggap"></div>' : ''}<div class="slider"><div class="row"><span>${info.label}</span><span id="av-${k}"></span></div>
       <div class="pair"><label>center<input type="range" id="am-${k}" min="${info.min}" max="${info.max}" step="${info.fmt === 'num' ? 1 : 0.01}" aria-label="${info.label} center">${marksHTML(info)}</label>
       <label>± spread<input type="range" id="as-${k}" min="0" max="${(info.max - info.min) / 3}" step="0.01" aria-label="${info.label} spread"></label></div>
-      <div class="note">${info.help}</div></div>`
+      <details class="infobub uhelp"><summary><span class="ibub" aria-hidden="true">i</span><span>What this means</span></summary><div class="note">${info.help}</div></details></div>`
   ).join('');
   let timer;
   for (const k in M.ASSUMPTION_INFO) for (const [pre, field] of [['am-', 'mean'], ['as-', 'sd']]) {
@@ -2817,7 +2825,7 @@ function buildAssumptionUI() {
     });
   }
   $('unkPresets').innerHTML = Object.keys(UNKNOWN_PRESETS).map((n) => `<button data-u="${n}">${n}</button>`).join('') +
-    '<div class="plannote" id="unkNote" hidden></div>';
+    '<details class="infobub" id="unkInfo" hidden><summary><span class="ibub" aria-hidden="true">i</span><span>About this scenario</span></summary><div class="plannote" id="unkNote"></div></details>';
   $('unkPresets').onclick = (e) => {
     const n = e.target.closest('[data-u]')?.dataset.u; if (!n) return;
     const D = M.defaultAssumptions();
@@ -2844,12 +2852,12 @@ function syncAssumptions(setInputs) {
   // A chance on 0–100% can only spread as far as its center allows (a Beta's spread is capped,
   // and is zero at 0% or 100%), so say so when the slider asks for more than is possible.
   const pctLabel = (k) => {
-    const eff = M.probSpread(k, labA[k]), base = `${fmtA(k, labA[k].mean)} ± ${fmtA(k, eff, true)}`;
+    const eff = M.probSpread(k, labA[k]), base = `${Math.round(labA[k].mean * 100)} ± ${fmtA(k, eff, true)}%`;
     if (labA[k].sd - eff <= 0.005) return base;
     return eff < 0.005 ? `${base} (no spread possible at the edge)` : `${base} (the most possible at this center)`;
   };
   const note = $('unkNote');
-  note.hidden = !u; if (u) note.innerHTML = UNKNOWN_PRESETS[u].html || UNKNOWN_PRESETS[u].text;
+  $('unkInfo').hidden = !u; if (u) note.innerHTML = UNKNOWN_PRESETS[u].html || UNKNOWN_PRESETS[u].text;
   for (const k in M.ASSUMPTION_INFO) {
     if (setInputs) { $('am-' + k).value = labA[k].mean; $('as-' + k).value = labA[k].sd; }
     $('av-' + k).textContent = M.ASSUMPTION_INFO[k].fmt.startsWith('log')
@@ -2995,7 +3003,7 @@ function docMarkdown(box) {
 const leverTable = (L) => '| Lever | Setting | Scale |\n|---|---|---|\n' + M.LEVER_ORDER.map((k) => [k, M.LEVER_INFO[k]]).map(([k, i]) =>
   `| ${i.label} | ${leverText(k, L[k])}${i.pct ? '' : ' / 100'} | ${i.low} → ${i.high} |`).join('\n');
 const unknownTable = (A) => '| Unknown | Mean | Spread (sd) | Meaning |\n|---|---|---|---|\n' + Object.entries(M.ASSUMPTION_INFO).map(([k, i]) =>
-  `| ${i.label} | ${fmtA(k, A[k].mean)} | ${fmtA(k, i.fmt === 'pct' ? M.probSpread(k, A[k]) : A[k].sd, true)} | ${i.help} |`).join('\n');
+  `| ${i.label} | ${fmtA(k, A[k].mean)} | ${fmtA(k, i.fmt === 'pct' ? M.probSpread(k, A[k]) : A[k].sd, true)}${i.fmt === 'pct' ? ' percentage points' : ''} | ${i.help} |`).join('\n');
 const UNKNOWN_DIST_NOTE = 'probabilities and shares are Beta distributions on their range, alignment difficulty, progress speed and bio risk are lognormal (set in log10 units), current capability is normal';
 function modelAppendix() {
   fillModelNumbers();
@@ -3604,6 +3612,9 @@ $('jumpBar').addEventListener('click', (e) => {
   scrollTopTo(h, phone ? pinnedCover() : h.closest('.panel').getBoundingClientRect().top + 12);
   h.classList.remove('jumpflash'); void h.offsetWidth; h.classList.add('jumpflash');
   if (phone) markJump(k);
+});
+document.querySelectorAll('.sechead[data-icon]').forEach((h) => {
+  const svg = $('jumpBar').querySelector(`[data-jump="${h.dataset.icon}"] svg`); if (svg) h.prepend(svg.cloneNode(true));
 });
 function markJump(k) { $('jumpBar').querySelectorAll('[data-jump]').forEach((b) => b.classList.toggle('on', b.dataset.jump === k)); }
 function trackJump() {
