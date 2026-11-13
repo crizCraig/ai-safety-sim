@@ -846,7 +846,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('An old link\'s clipped normal loads as the Beta with its mean and sd (±0.006); a new link loads as written',
     !miss.length && Math.abs(fresh[0] - 0.7) < 1e-9 && fresh[1] === 0.3 && M.assumptionFromURL('speed', 1.3, 0.3, true)[0] === M.assumptionFromURL('speed', 1.3, 0.3)[0], miss.join('; ') || 'ok');
   const html = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
-  check('The sliders label a probability\'s spread in points of a 0–100% distribution', html.includes("' pts'") && html.includes('M.probSpread(k, labA[k])'));
+  check('The sliders label a probability as "center ± spread%" on a 0–100% distribution, and Copy for AI names the unit', html.includes('± ${fmtA(k, eff, true)}%') && html.includes('M.probSpread(k, labA[k])') && html.includes("' percentage points'"));
 }
 
 // --- C20-1: share links are short (3 decimals) but every slider position round-trips exactly ---
