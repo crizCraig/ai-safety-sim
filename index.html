@@ -759,13 +759,13 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261113123006"></script>
-<script src="events.js?v=20261113123006"></script>
-<script src="policies.js?v=20261113123006"></script>
-<script src="news.js?v=20261113123006"></script>
-<script src="landmask.js?v=20261113123006"></script>
-<script src="presets.js?v=20261113123006"></script>
-<script src="trees.js?v=20261113123006"></script>
+<script src="model.js?v=20261113132434"></script>
+<script src="events.js?v=20261113132434"></script>
+<script src="policies.js?v=20261113132434"></script>
+<script src="news.js?v=20261113132434"></script>
+<script src="landmask.js?v=20261113132434"></script>
+<script src="presets.js?v=20261113132434"></script>
+<script src="trees.js?v=20261113132434"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -805,7 +805,7 @@
     <div id="sliders"></div>
     <div class="divider"></div>
     <h3 id="secUnknowns" class="sechead" data-icon="unknowns">Unknowns about the world</h3>
-    <details class="infobub"><summary><span class="ibub" aria-hidden="true">i</span><span>How the unknowns work</span></summary><div class="sub">Each future draws these at random: the center you set is the average and the spread its standard deviation. Probabilities follow a Beta distribution on 0–100% (0–60% for how much tests overstate alignment), so their spread is in percentage points; the others follow a bell curve (on a log scale for ease, speed and bio risk).</div></details>
+    <details class="infobub"><summary><span class="ibub" aria-hidden="true">i</span><span>How the unknowns work</span></summary><div class="sub">Each future draws these at random: the center you set is the average and the spread its standard deviation. Probabilities follow a Beta distribution on 0–100% (0–60% for how much tests overstate alignment), so their spread is in percentage points, and each label shows the average then the range 90% of futures fall in, e.g. 16% (1–52%); the others follow a bell curve (on a log scale for ease, speed and bio risk).</div></details>
     <div class="presets" id="unkPresets"></div>
     <div id="assumptions"></div>
   </div>
@@ -1141,7 +1141,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261113123006';
+const ASSET_VERSION = '20261113132434';
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -2852,7 +2852,10 @@ function syncAssumptions(setInputs) {
   // A chance on 0–100% can only spread as far as its center allows (a Beta's spread is capped,
   // and is zero at 0% or 100%), so say so when the slider asks for more than is possible.
   const pctLabel = (k) => {
-    const eff = M.probSpread(k, labA[k]), base = `${Math.round(labA[k].mean * 100)} ± ${fmtA(k, eff, true)}%`;
+    // The average, then the middle 90% of the Beta draws (its 5th and 95th percentiles), e.g. "16% (1–52%)".
+    const i = M.ASSUMPTION_INFO[k], B = M.betaOf(labA[k], i.min, i.max), eff = M.probSpread(k, labA[k]);
+    const q = (z) => Math.round(100 * M.betaAtZ(B, z)), lo = q(-1.645), hi = q(1.645);
+    const base = lo === hi ? `${Math.round(labA[k].mean * 100)}%` : `${Math.round(labA[k].mean * 100)}% (${lo}–${hi}%)`;
     if (labA[k].sd - eff <= 0.005) return base;
     return eff < 0.005 ? `${base} (no spread possible at the edge)` : `${base} (the most possible at this center)`;
   };
