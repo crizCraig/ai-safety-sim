@@ -211,10 +211,10 @@
     {
       id: 'fund', when: (s) => s.year >= 2028 && SimModel.maxCap(s) > 50, tag: 'Who owns AI?',
       title: 'A Fund for Everyone',
-      text: 'AI is starting to replace whole kinds of jobs, and the profits flow to the few companies that own it. Senators propose a public wealth fund, like Norway\'s oil fund or Alaska\'s: the public would own a share of the AI companies and pay every citizen a dividend. Buying in gets far more expensive once AI is worth more.',
+      text: 'AI is starting to replace whole kinds of jobs, and the profits flow to the few companies that own it. The US already holds small stakes through its sovereign wealth fund. Allies now propose a global AI wealth fund, like Norway\'s oil fund but shared: member countries would own a large share of the frontier AI companies and pay everyone a dividend. Buying in gets far more expensive once AI is worth more.',
       choices: [
-        { label: 'Create the fund now', note: 'Buy a large public stake while it is still affordable.', lev: { fund: +0.4 }, st: { trust: +4, conc: -3, capUS: -1 } },
-        { label: 'Ask companies to pledge a share of future windfall profits', note: 'Cheaper today, but it only binds if profits get extreme.', lev: { fund: +0.15 }, st: { trust: +1 } },
+        { label: 'Create the global fund now', note: 'Buy a large shared stake with allies while it is still affordable.', lev: { fund: +0.4 }, st: { trust: +4, conc: -3, capUS: -1 } },
+        { label: 'Grow the US fund instead', note: 'Keeps ownership national: a smaller stake, and other countries are left out.', lev: { fund: +0.2 }, st: { trust: +1, conc: -1 } },
         { label: 'Leave ownership to the market', note: 'Taxes and charity can sort it out later.', lev: {}, st: { conc: +3 } },
       ],
     },

@@ -162,9 +162,9 @@
       dem: P('Try to rebuild talks', 'No stated position; closest is Cantwell\'s global cooperation principle.', ['cantwell'], true),
     },
     fund: {
-      trump: P('Create the fund now', 'No AI fund proposed; closest are its sovereign wealth fund order and the federal stake in Intel.', ['swf', 'intel'], true),
-      rep: P('Create the fund now', 'No stated position; closest are the Trump-era sovereign fund and equity stakes.', ['swf', 'intel'], true),
-      dem: P('Create the fund now', 'No party-wide position; closest is Senate HELP Democrats\' call for worker equity stakes in automated industries.', ['sanders'], true),
+      trump: P('Grow the US fund instead', 'No global fund proposed; its own moves are national: the sovereign wealth fund order and the federal stake in Intel.', ['swf', 'intel'], true),
+      rep: P('Grow the US fund instead', 'No stated position; closest are the Trump-era sovereign fund and equity stakes, both national.', ['swf', 'intel'], true),
+      dem: P('Create the global fund now', 'No party-wide position; closest is Senate HELP Democrats\' call for worker equity stakes in automated industries.', ['sanders'], true),
     },
     pledge: {
       trump: P('Leave it to the companies', 'No stated position; closest is the minimally burdensome national standard it asks Congress for.', ['wh2026', 'eo14365'], true),

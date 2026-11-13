@@ -50,6 +50,20 @@
   // The paper's story pictures (assets/news/<key>.webp); an ending's story uses its ending picture ('ending:<outcome>').
   // AI-designed drugs as a share of the year's new medicines (the FDA approves about 50 novel drugs a year).
   const aiShare = (c) => Math.round(100 * c.e.newDrugs / (50 + c.e.newDrugs / 2));
+  // Named conditions, so medicine stories are concrete. Approvals follow real late-stage AI-designed
+  // programs first (Insilico's rentosertib for idiopathic pulmonary fibrosis; Takeda's zasocitinib for
+  // psoriasis), then common targets of AI drug discovery. Cures start with rare single-gene diseases and
+  // move to harder, commoner ones as capability grows. Illustrative, not forecasts.
+  const DRUG_TARGETS = ['idiopathic pulmonary fibrosis', 'psoriasis', 'ulcerative colitis', 'drug-resistant tuberculosis',
+    'triple-negative breast cancer', 'MRSA infections', 'lupus', 'pancreatic cancer', 'ALS', 'glioblastoma',
+    'Parkinson\'s disease', 'heart failure', 'malaria', 'Alzheimer\'s disease'];
+  const CURES = ['Duchenne muscular dystrophy', 'spinal muscular atrophy', 'cystic fibrosis', 'Huntington\'s disease',
+    'type 1 diabetes', 'ALS', 'hepatitis B', 'pancreatic cancer', 'Parkinson\'s disease', 'HIV', 'glioblastoma',
+    'malaria', 'Alzheimer\'s disease', 'most childhood leukaemias'];
+  const listOf = (xs) => xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`;
+  const pickN = (L, from, n) => Array.from({ length: Math.max(0, Math.min(n, 3)) }, (_, i) => L[(from + i) % L.length]);
+  const drugsFor = (c) => pickN(DRUG_TARGETS, c.e.drugs - c.e.newDrugs, Math.min(2, c.e.newDrugs));
+  const curedNow = (c) => pickN(CURES, c.e.cured - c.e.newCured, Math.min(2, c.e.newCured));
   const IMAGES = ['research', 'expert', 'superintelligence', 'datacentre', 'idle', 'safetylab', 'testscare', 'talks', 'inspectors',
     'collapse', 'warroom', 'chinalab', 'uslab', 'markets', 'jobs', 'delegation', 'hearing', 'protest', 'townhall', 'fund',
     'openmodel', 'biolab', 'discovery', 'classroom', 'everyday', 'jobcentre', 'powerplant', 'orbit', 'lagging', 'materials',
@@ -188,7 +202,7 @@
     open: (c) => `The best free, downloadable model ${moved(c.d.openCap, c.b.openCap)} on the capability index.`,
     bio: (c) => `Biodefence readiness, from DNA screening to vaccine stockpiles, ${moved(c.d.bio, c.b.bio)} out of 100.`,
     internal: (c) => `The gap between the AI labs run in-house and what outsiders can see ${moved(c.d.internal, c.b.internal)}.`,
-    fund: (c) => (c.b.fundStake >= 0.5 ? `The public wealth fund now owns ${R(c.b.fundStake)}% of frontier AI and pays its dividends to every citizen.` : 'The public holds no stake in frontier AI.'),
+    fund: (c) => (c.b.fundStake >= 0.5 ? `Public wealth funds now own ${R(c.b.fundStake)}% of frontier AI and pay dividends to citizens.` : 'The public holds no stake in frontier AI.'),
     bci: (c) => `Neural-interface adoption ${moved(c.d.bci, c.b.bci)} on its 100-point index.`,
     riskLoc: (c) => `Forecasters put the coming year's chance of losing control of AI at ${riskTxt(c.r1.misalign)}.`,
     riskWar: (c) => `Forecasters put the coming year's chance of war between the blocs at ${riskTxt(c.r1.war)}.`,
@@ -200,7 +214,7 @@
     power: (c) => `New AI data centres added about ${gwTxt(c.e.newPower)} of demand this year, the largest in ${c.e.place}, for ${gwTxt(c.e.power)} in all.`,
     orbit: (c) => `Data centres in orbit now supply ${orbitTxt(c.e.orbit)} of computing power, all of it solar.`,
     drugs: (c) => (c.e.drugs ? `Regulators have now approved ${c.e.drugs} AI-designed drug${c.e.drugs === 1 ? '' : 's'}, ${c.e.newDrugs} of them this year, and ${c.e.late} more are in late-stage trials.` : `${c.e.late} AI-designed drugs are now in late-stage trials, none yet approved.`),
-    cushion: (c) => (c.b.fundStake >= 5 ? `Dividends from the public wealth fund, which owns ${R(c.b.fundStake)}% of frontier AI, softened the blow for many households.` : null),
+    cushion: (c) => (c.b.fundStake >= 5 ? `Dividends from public wealth funds, which own ${R(c.b.fundStake)}% of frontier AI, softened the blow for many households.` : null),
   };
   // Each template's body: a bespoke sentence or two and the facts it rests on (2–4 sentences).
   const BODY = {
@@ -422,9 +436,9 @@
       deck: 'Polls show more people trust how AI is governed than did a year ago.',
       caption: 'Residents question officials at a town hall.', img: 'townhall' },
     { id: 'fundStake', cat: 'power', desk: 'markets', tone: 'good', prio: 46, when: (c) => [5, 15, 30, 50].some((t) => up(c, 'fundStake', t)),
-      text: (c) => [`Public wealth fund now owns ${pctRound(c.b.fundStake)}% of frontier AI`,
-        `Citizens' AI fund stake reaches ${pctRound(c.b.fundStake)}% of frontier labs`],
-      deck: (c) => `The public wealth fund now holds ${pctRound(c.b.fundStake)}% of frontier AI, paying dividends to every citizen.`,
+      text: (c) => [`Public wealth funds now own ${pctRound(c.b.fundStake)}% of frontier AI`,
+        `Citizens' AI fund stakes reach ${pctRound(c.b.fundStake)}% of frontier labs`],
+      deck: (c) => `Public wealth funds now hold ${pctRound(c.b.fundStake)}% of frontier AI, paying dividends to citizens.`,
       caption: 'Residents collect their fund dividends.', img: 'fund' },
 
     // ---- Deals ----
@@ -616,8 +630,11 @@
         : 'An AI-discovered catalyst could make pulling carbon dioxide out of the air far cheaper.',
       caption: 'Researchers survey a wind and solar site.', img: 'climate' },
     { id: 'sciMaths', cat: 'science', desk: 'science', tone: 'good', prio: 29, when: (c) => c.cap1 >= 72,
-      text: ['AI proves a famous maths conjecture that stumped experts for decades', 'Mathematicians verify an AI proof of a decades-old problem'],
-      deck: 'Mathematicians checked the proof line by line and say it holds, a first for a problem this famous.',
+      // Named Millennium Prize problems (Clay Mathematics Institute), so the milestone reads as concrete.
+      text: ['AI proves the Riemann hypothesis, unsolved since 1859', 'AI settles P vs NP, a $1 million Millennium Prize problem'],
+      deck: (c, t) => /Riemann/.test(t)
+        ? 'Mathematicians checked the proof line by line and say it holds, settling the most famous open problem in mathematics.'
+        : 'Mathematicians checked the proof line by line and say it holds, settling the central open question of computer science.',
       caption: 'Researchers study a proof produced by AI.', img: 'expert' },
     { id: 'sciFusion', cat: 'science', desk: 'science', tone: 'good', prio: 31, when: (c) => c.cap1 >= 86,
       text: ['AI-steered reactor holds fusion plasma for a record hour', 'AI-designed reactor brings practical fusion power within reach'],
@@ -628,21 +645,23 @@
       deck: 'Hospitals using AI to read scans caught more cancers early, a large study reports.',
       caption: 'A doctor shows a patient her scan.', img: 'clinic' },
     { id: 'medDrugs', cat: 'medicine', desk: 'health', tone: 'good', prio: 30, when: (c) => c.e.newDrugs >= 1,
-      text: (c) => c.e.drugs === c.e.newDrugs
-        ? ['AI-designed drugs move from late-stage trials to pharmacy shelves', 'Regulators clear AI-designed medicines after years of trials']
-        : c.e.newDrugs >= 6 ? [`AI-designed drugs now ${aiShare(c)}% of new medicines approved`, `${c.e.newDrugs} more AI-designed medicines win approval this year`]
-          : [`Regulators approve ${c.e.newDrugs} more drugs designed with AI`, `${c.e.newDrugs} more AI-designed medicines win approval this year`],
-      deck: (c) => (c.e.drugs === c.e.newDrugs
-        ? `${c.e.newDrugs} AI-designed drug${c.e.newDrugs === 1 ? '' : 's'} won approval this year, with ${c.e.late} more in late-stage trials.`
-        : `${c.e.newDrugs} AI-designed drugs won approval this year, ${c.e.drugs} in all, with ${c.e.late} more in late-stage trials.`),
+      text: (c) => { const d = drugsFor(c); return c.e.drugs === c.e.newDrugs
+        ? [`First AI-designed drug approved, for ${d[0]}`, `Regulators clear an AI-designed drug for ${d[0]} after years of trials`]
+        : c.e.newDrugs >= 6 ? [`AI-designed drugs now ${aiShare(c)}% of new medicines, from ${d[0]} to ${d[d.length - 1]}`, `${c.e.newDrugs} more AI-designed medicines approved, including for ${d[0]}`]
+          : [`Regulators approve new AI-designed drugs for ${listOf(d)}`, `AI-designed treatments win approval for ${listOf(d)} this year`]; },
+      deck: (c) => { const d = drugsFor(c).slice(0, 2); return c.e.drugs === c.e.newDrugs
+        ? `It treats ${listOf(d.slice(0, 1))}; ${c.e.late} more AI-designed drugs are in late-stage trials.`
+        : `New approvals include drugs for ${listOf(d)}, bringing AI-designed medicines to ${c.e.drugs}.`; },
       caption: 'Researchers study an AI-designed molecule.', img: 'discovery' },
     { id: 'medTrial', cat: 'medicine', desk: 'health', tone: 'good', prio: 29, when: (c) => c.cap1 >= 66,
-      text: ['AI-designed therapy clears tumours in a late-stage trial', 'AI-designed antibiotic beats drug-resistant infections in trial'],
-      deck: 'Doctors report strong results for an AI-designed treatment, with approval expected within a year or two.',
+      text: ['AI-designed drug shrinks pancreatic tumours in a late-stage trial', 'AI-discovered antibiotic beats drug-resistant MRSA in trial'],
+      deck: (c, t) => /pancreatic/.test(t) ? 'Doctors report strong results against one of the deadliest cancers, with approval expected within a year or two.'
+        : 'An antibiotic found by AI cleared infections that resist today\'s drugs, with approval expected within a year or two.',
       caption: 'A patient thanks her care team.', img: 'trial' },
     { id: 'medCure', cat: 'medicine', desk: 'health', tone: 'good', prio: 33, when: (c) => c.cap1 >= 85,
-      text: ['AI-designed treatments cure two rare diseases this year', 'Doctors report AI therapies halting Alzheimer\'s in trials'],
-      deck: 'AI-designed medicines are now curing or halting diseases that had no treatment a few years ago.',
+      text: (c) => { const d = curedNow(c); return d.length ? [`Doctors say AI-designed treatments now cure ${listOf(d)}`, `Doctors declare ${d[0]} curable with AI-designed therapy`]
+        : ['Doctors report AI therapies halting Alzheimer\'s in trials', 'AI-designed gene therapies halt Huntington\'s in trials']; },
+      deck: (c) => `AI-designed medicines are now curing or halting diseases that had no treatment a few years ago: ${c.e.cured} so far.`,
       caption: 'A patient thanks her care team.', img: 'trial' },
 
     // ---- Quiet years (filler, only when little else happened) ----
@@ -655,7 +674,7 @@
       deck: 'Companies and workers keep adjusting as AI agents take on whole jobs, not just routine tasks.',
       caption: 'An office reorganised around AI agents.', img: 'jobs' },
     { id: 'quietScience', cat: 'quiet', desk: 'science', tone: 'good', prio: 3, when: (c) => c.cap1 >= 45,
-      text: ['AI-designed drug candidates fill a growing share of clinical trials', 'AI helps researchers crack a long-standing materials puzzle'],
+      text: ['AI-designed drugs for lung scarring and psoriasis head toward approval', 'AI helps researchers crack a long-standing materials puzzle'],
       deck: 'Researchers credit AI with speeding up their work in drug discovery and materials science.',
       caption: 'Researchers study an AI-designed molecule.', img: 'discovery' },
     { id: 'quietCulture', cat: 'quiet', desk: 'wire', tone: 'neutral', prio: 2, when: () => true,
