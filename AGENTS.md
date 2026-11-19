@@ -299,8 +299,8 @@ which `test-model.js` runs).
 
 `analytics.js` sends anonymous usage events straight to PostHog Cloud (US) through its HTTP capture
 API (`ANALYTICS.endpoint`), one `sendBeacon` per event (`fetch` with keepalive as a fallback), a
-JSON body sent as text/plain so there is no preflight. With `ANALYTICS.key` empty (as committed until
-the owner pastes the public project key, `phc_...`) `GA_track` sends nothing. Swapping providers
+JSON body sent as text/plain so there is no preflight. `ANALYTICS.key` is the public project key (`phc_...`, public by design); with it empty `GA_track`
+sends nothing. Swapping providers
 means changing `ANALYTICS` and `GA.payload`/`GA.transport`.
 
 Rules (`test-analytics.js`, run by `test-model.js`, checks them):
@@ -329,7 +329,8 @@ Events:
 - `camp_end`: the ending screen; `outcome`, `year`, `n`, `ff` count, `cat_policy` (the ending's
   "your final policy" catastrophe share), `cat_last` (the last projected chance shown), `difficulty`,
   `secrets`, `party`, `back`/`fwd`/`rewind`, final `lev_*`.
-- `camp_quit`: page hidden or closed with a game unfinished, once per game; `year`, `furthest`,
+- `camp_quit`: page hidden or closed with a game unfinished; sent again only after more choices, so a
+  visit's furthest year is its last `camp_quit`; `year`, `furthest`,
   `n`, `phase`, `back`/`fwd`/`rewind`.
 - `again`: Play again from the ending; `outcome`.
 - `lab_settings`: God Mode settings once they have been still for 3 s, at most every 10 s, only
