@@ -759,14 +759,14 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261119132845"></script>
-<script src="events.js?v=20261119132845"></script>
-<script src="policies.js?v=20261119132845"></script>
-<script src="news.js?v=20261119132845"></script>
-<script src="landmask.js?v=20261119132845"></script>
-<script src="presets.js?v=20261119132845"></script>
-<script src="trees.js?v=20261119132845"></script>
-<script src="analytics.js?v=20261119132845"></script>
+<script src="model.js?v=20261119134746"></script>
+<script src="events.js?v=20261119134746"></script>
+<script src="policies.js?v=20261119134746"></script>
+<script src="news.js?v=20261119134746"></script>
+<script src="landmask.js?v=20261119134746"></script>
+<script src="presets.js?v=20261119134746"></script>
+<script src="trees.js?v=20261119134746"></script>
+<script src="analytics.js?v=20261119134746"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -1143,7 +1143,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261119132845';
+const ASSET_VERSION = '20261119134746';
 // Anonymous usage stats (analytics.js; a no-op until it has a key). track() never throws.
 const GA = window.GameAnalytics;
 const track = (event, props) => { try { if (GA) GA.track(event, props); } catch (e) {} };
@@ -3656,7 +3656,7 @@ $('jumpBar').addEventListener('click', (e) => {
   const k = e.target.closest('[data-jump]')?.dataset.jump; if (!k) return;
   track('jump', { to: k });
   const h = $(JUMPS[k]), phone = phoneLayout();
-  scrollTopTo(h, phone ? pinnedCover() : h.closest('.panel').getBoundingClientRect().top + 12);
+  if (phone) scrollBelow(h, pinnedCover()); else scrollTopTo(h, h.closest('.panel').getBoundingClientRect().top + 12);
   h.classList.remove('jumpflash'); void h.offsetWidth; h.classList.add('jumpflash');
   if (phone) markJump(k);
 });
@@ -3680,9 +3680,13 @@ trackJump();
 function scrollTopTo(el, y) {
   let sc = el.parentElement;
   while (sc && sc !== document.body && !(/(auto|scroll)/.test(getComputedStyle(sc).overflowY) && sc.scrollHeight > sc.clientHeight)) sc = sc.parentElement;
-  const dy = el.getBoundingClientRect().top - y;
-  if (sc && sc !== document.body) sc.scrollBy(0, dy);
-  else { document.body.scrollBy(0, dy); document.scrollingElement.scrollBy(0, el.getBoundingClientRect().top - y); }
+  // One scroller, one absolute position: scrolling the body and then the document by a measured
+  // difference overshot on iOS Safari (its measurements lag a scroll), and pressing twice drifted.
+  if (!sc || sc === document.body) {
+    const bd = document.body;
+    sc = /(auto|scroll)/.test(getComputedStyle(bd).overflowY) && bd.scrollHeight > bd.clientHeight ? bd : document.scrollingElement;
+  }
+  sc.scrollTo({ top: Math.max(0, sc.scrollTop + el.getBoundingClientRect().top - y), behavior: 'instant' });
 }
 // Scroll el's top to just below the pinned graph using the browser's own scrollIntoView
 // (with scroll-margin), which finds the right scroller on iOS Safari too; then correct
