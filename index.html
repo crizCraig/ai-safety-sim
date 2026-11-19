@@ -759,14 +759,14 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261119130659"></script>
-<script src="events.js?v=20261119130659"></script>
-<script src="policies.js?v=20261119130659"></script>
-<script src="news.js?v=20261119130659"></script>
-<script src="landmask.js?v=20261119130659"></script>
-<script src="presets.js?v=20261119130659"></script>
-<script src="trees.js?v=20261119130659"></script>
-<script src="analytics.js?v=20261119130659"></script>
+<script src="model.js?v=20261119132032"></script>
+<script src="events.js?v=20261119132032"></script>
+<script src="policies.js?v=20261119132032"></script>
+<script src="news.js?v=20261119132032"></script>
+<script src="landmask.js?v=20261119132032"></script>
+<script src="presets.js?v=20261119132032"></script>
+<script src="trees.js?v=20261119132032"></script>
+<script src="analytics.js?v=20261119132032"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -1143,7 +1143,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261119130659';
+const ASSET_VERSION = '20261119132032';
 // Anonymous usage stats (analytics.js; a no-op until it has a key). track() never throws.
 const GA = window.GameAnalytics;
 const track = (event, props) => { try { if (GA) GA.track(event, props); } catch (e) {} };
@@ -1816,7 +1816,7 @@ function newGame() {
   const seed = (Math.random() * 2 ** 31) | 0;
   game = { seed, s: M.initialState(M.sampleWorld(M.defaultAssumptions(), M.mulberry32(seed))), L: M.defaultLevers(),
     used: new Set(), decisions: [], history: [], phase: 'choose', card: null, president: pickPresident(),
-    party: null, partyFlip: false, redo: [], nav: { back: 0, fwd: 0, rewind: 0 }, maxYear: M.START_YEAR, quitSent: false };
+    party: null, partyFlip: false, redo: [], nav: { back: 0, fwd: 0, rewind: 0 }, maxYear: M.START_YEAR, quitAt: -1 };
   vis.outcome = null; vis.outT = 0;
   syncTarget(game.s, game.L);
   Object.assign(vis, target);
@@ -3825,8 +3825,10 @@ guard('analytics', () => {
     if (host !== location.hostname) track('link', a.id ? { id: a.id } : { host });
   }, true);
   const leave = () => {
-    if (!game || game.quitSent || ['ended', 'over'].includes(game.phase)) return;
-    game.quitSent = true;
+    // Sent when the tab is hidden or closed mid-game. Switching tabs and coming back to play on
+    // sends it again only after more choices, so a visit's furthest year is its last camp_quit.
+    if (!game || game.quitAt === game.decisions.length || ['ended', 'over'].includes(game.phase)) return;
+    game.quitAt = game.decisions.length;
     track('camp_quit', { year: game.s.year, furthest: Math.max(game.maxYear, game.s.year), n: game.decisions.length, phase: game.phase, ...game.nav });
   };
   addEventListener('pagehide', leave);

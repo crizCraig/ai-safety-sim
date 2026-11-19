@@ -1,7 +1,7 @@
 // Anonymous gameplay analytics: how far games get, which settings people use, on which version.
 // Sent straight to PostHog Cloud's HTTP capture API (no SDK, no third-party script). With an
 // empty key nothing is sent. The key is a public project key (phc_...), safe to publish.
-const ANALYTICS = { endpoint: 'https://us.i.posthog.com/i/v0/e/', key: '' };
+const ANALYTICS = { endpoint: 'https://us.i.posthog.com/i/v0/e/', key: 'phc_z3AMdRSVYzXBFjPnkczR9QPzGuGkgX2EpRPk4DLmMafd' };
 
 // Privacy: no cookies and no browser storage. The id is random and lives in memory for this
 // page load only (one "visit"), so visits can't be linked. Do Not Track and Global Privacy

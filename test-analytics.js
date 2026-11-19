@@ -32,7 +32,7 @@ function run(check) {
   GA.ctx = { v: '20260101000000', mode: () => 'campaign', webgl: () => true };
 
   const key0 = A.key;
-  check('Analytics: ships with an empty key (nothing is sent until one is added)', key0 === '');
+  check('Analytics: the key is a public PostHog project key (phc_…) or empty', key0 === '' || /^phc_[A-Za-z0-9]+$/.test(key0));
   A.key = '';
   check('Analytics: with an empty key, tracking sends nothing', GA.track('visit', {}) === false && sent.length === 0);
 
