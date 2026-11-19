@@ -599,7 +599,9 @@
     body.mode-lab { overflow-y: auto; display: flex; flex-direction: column; }
     body.mode-lab .panel { position: static; width: auto; max-height: none; overflow: visible; flex-shrink: 0; margin: 0 16px 16px; }
     body.mode-lab #right { order: 1; margin-top: calc(var(--graph-bottom, 50vh) + 58px); }
-    #jumpBar { top: var(--graph-bottom, 50vh); bottom: auto; left: 0; right: 0; transform: none; justify-content: center; border-radius: 0; border-width: 0 0 1px; padding: 6px 8px; background: rgba(8,13,26,.94); }
+    #jumpBar { top: calc(var(--graph-bottom, 50vh) - 1px); bottom: auto; left: 0; right: 0; transform: none; justify-content: center; border-radius: 0; border-width: 0 0 1px; padding: 6px 8px; background: rgb(8,13,26); box-shadow: 0 -4px 0 rgb(8,13,26); }
+    /* The bar overlaps the graph's bottom edge and paints a few solid pixels above itself, so no
+       sub-pixel gap (or the graph's semi-transparent border) lets scrolling text show through on iOS. */
     #jumpBar button { flex: 1 1 0; padding: 9px 6px; font-size: 13px; }
     #catBig { top: calc(var(--graph-top, 53px) + 8px); z-index: 5; }
     #catBig .cb-num { font-size: 34px; }
@@ -759,14 +761,14 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261119134746"></script>
-<script src="events.js?v=20261119134746"></script>
-<script src="policies.js?v=20261119134746"></script>
-<script src="news.js?v=20261119134746"></script>
-<script src="landmask.js?v=20261119134746"></script>
-<script src="presets.js?v=20261119134746"></script>
-<script src="trees.js?v=20261119134746"></script>
-<script src="analytics.js?v=20261119134746"></script>
+<script src="model.js?v=20261119141242"></script>
+<script src="events.js?v=20261119141242"></script>
+<script src="policies.js?v=20261119141242"></script>
+<script src="news.js?v=20261119141242"></script>
+<script src="landmask.js?v=20261119141242"></script>
+<script src="presets.js?v=20261119141242"></script>
+<script src="trees.js?v=20261119141242"></script>
+<script src="analytics.js?v=20261119141242"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -1143,7 +1145,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261119134746';
+const ASSET_VERSION = '20261119141242';
 // Anonymous usage stats (analytics.js; a no-op until it has a key). track() never throws.
 const GA = window.GameAnalytics;
 const track = (event, props) => { try { if (GA) GA.track(event, props); } catch (e) {} };
