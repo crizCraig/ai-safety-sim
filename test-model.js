@@ -1093,5 +1093,8 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
 // --- News clips (news.js): see test-news.js ---
 require('./test-news.js').run(check);
 
+// --- Analytics (analytics.js): see test-analytics.js ---
+require('./test-analytics.js').run(check);
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll checks passed');
 process.exit(failed ? 1 : 0);

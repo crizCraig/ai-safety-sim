@@ -759,13 +759,14 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261113132434"></script>
-<script src="events.js?v=20261113132434"></script>
-<script src="policies.js?v=20261113132434"></script>
-<script src="news.js?v=20261113132434"></script>
-<script src="landmask.js?v=20261113132434"></script>
-<script src="presets.js?v=20261113132434"></script>
-<script src="trees.js?v=20261113132434"></script>
+<script src="model.js?v=20261119130659"></script>
+<script src="events.js?v=20261119130659"></script>
+<script src="policies.js?v=20261119130659"></script>
+<script src="news.js?v=20261119130659"></script>
+<script src="landmask.js?v=20261119130659"></script>
+<script src="presets.js?v=20261119130659"></script>
+<script src="trees.js?v=20261119130659"></script>
+<script src="analytics.js?v=20261119130659"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -955,6 +956,7 @@
     <p>The main sources: <a href="https://ai-2040.com/" target="_blank" rel="noopener">AI 2040: Plan A</a> for timelines and the plans' odds of getting alignment right; a separate factored Monte Carlo estimate for open-weights pandemic risk; and <a href="https://www.nationalsecurity.ai/" target="_blank" rel="noopener"><i>Superintelligence Strategy</i></a> (Hendrycks, Schmidt and Wang) for the deterrence argument (MAIM) behind leaving state programs out; and experts on Chinese AI policy (Concordia AI, Matt Sheehan at Carnegie, SemiAnalysis) for how much alignment work China does itself and how readily it would slow down; and Craig Quiter's <a href="https://nationalsecurityresponse.ai/" target="_blank" rel="noopener">National Security Response</a> for how automation can leave most people without economic leverage or a say even when humans keep control of AI (Locked-In Power and the public wealth fund); and Gladstone AI's <a href="https://aiendgame.com/p/what-rsi-looks-like" target="_blank" rel="noopener">report on recursive self-improvement</a> (covered by <a href="https://time.com/article/2026/10/14/recursive-self-improvement-AI-report/" target="_blank" rel="noopener">TIME</a>) for the RSI 2027 scenario, where lab insiders expect AI to start substantially speeding up AI research during 2027.</p>
     <p class="no-copy">The write-up, with the model's key assumptions and open questions, is on <a href="https://crizcraig.substack.com/p/game-of-agi-a-monte-carlo-sim-for" target="_blank" rel="noopener">Substack</a>; feedback and critiques are welcome there.</p>
     <p class="no-copy">The code is open source on <a href="https://github.com/crizCraig/ai-safety-sim" target="_blank" rel="noopener">GitHub</a> (MIT license).</p>
+    <p class="no-copy" id="privacyNote">Privacy: the site collects anonymous usage stats (which features are used, how far games get, the settings chosen and the site version) to learn what to improve. It sets no cookies, stores nothing in your browser for this, and sends no personal data: each page load gets a random id that is forgotten when you leave. If your browser sends Do Not Track or Global Privacy Control, nothing is sent.</p>
     <p class="no-copy">This game was built in conversation with Claude Code. Each session's full history is browsable as a memtree:</p>
     <ol class="treelist no-copy" id="treeList"></ol>
     <h2 style="margin-top:28px">How the model works</h2>
@@ -1141,7 +1143,16 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261113132434';
+const ASSET_VERSION = '20261119130659';
+// Anonymous usage stats (analytics.js; a no-op until it has a key). track() never throws.
+const GA = window.GameAnalytics;
+const track = (event, props) => { try { if (GA) GA.track(event, props); } catch (e) {} };
+if (GA) GA.ctx = { v: ASSET_VERSION, mode: () => mode, webgl: () => gl3d };
+// Where the visit came from, read before the page rewrites its address (syncURL).
+const gaOrigin = (() => { try { return GA ? GA.origin(document.referrer, location.search, location.hostname) : {}; } catch (e) { return {}; } })();
+const round3 = (x) => Math.round(x * 1000) / 1000;
+// Levers as whole-number percents, lev_race: 70 (flat, so each is easy to chart).
+const levProps = (L) => Object.fromEntries(Object.keys(M.LEVER_INFO).map((k) => ['lev_' + k, +M.leverPct(L[k])]));
 const $ = (id) => document.getElementById(id);
 // Small probabilities keep two significant figures instead of rounding to 0.0%.
 const pct = (p, d = 1) => (p > 0 && p < 0.001 ? (p * 100).toPrecision(2) : (p * 100).toFixed(d)) + '%';
@@ -1805,7 +1816,7 @@ function newGame() {
   const seed = (Math.random() * 2 ** 31) | 0;
   game = { seed, s: M.initialState(M.sampleWorld(M.defaultAssumptions(), M.mulberry32(seed))), L: M.defaultLevers(),
     used: new Set(), decisions: [], history: [], phase: 'choose', card: null, president: pickPresident(),
-    party: null, partyFlip: false, redo: [] };
+    party: null, partyFlip: false, redo: [], nav: { back: 0, fwd: 0, rewind: 0 }, maxYear: M.START_YEAR, quitSent: false };
   vis.outcome = null; vis.outT = 0;
   syncTarget(game.s, game.L);
   Object.assign(vis, target);
@@ -1891,9 +1902,10 @@ function ffDecide() {
 // The year index on screen: 0 for 2027.
 const yearOnScreen = () => game.decisions.length - (game.phase === 'choose' ? 0 : 1);
 // Return to the decision made at history[i]; the years after it go to the redo tail.
-function rewind(i) {
+function rewind(i, how = 'rewind') {
   const h = game.history[i];
   if (!h || game.phase === 'rolling') return;
+  game.nav[how]++;
   const tail = [];
   for (let k = i; k < game.decisions.length; k++) tail.push({ h: game.history[k], d: game.decisions[k] });
   if (game.redo.length) tail.push(...game.redo);
@@ -1916,21 +1928,22 @@ function restoreCard(h) {
 }
 const canBack = () => !!game && game.phase !== 'rolling' && game.decisions.length > 0;
 const canForward = () => !!game?.redo.length && (game.phase === 'choose' ? !!game.redo[0].d : game.phase === 'result');
-function goBack() { if (canBack()) rewind(game.decisions.length - 1); }
+function goBack() { if (canBack()) rewind(game.decisions.length - 1, 'back'); }
 // One year forward: from a result, the next card; from a card, replay the choice made before
 // and land on the next year's card (or, for the last stored year, play it out as before).
 function goForward() {
   if (!canForward()) return;
+  game.nav.fwd++;
   if (game.phase === 'result') { restoreCard(game.redo[0].h); return; }
   const [cur, next] = game.redo, d = cur.d, ch = game.card.choices.find((c) => c.label === d.label);
   if (!ch) { game.redo = []; renderAll(); return; }
-  if (!next) { choose(ch, d.by); return; }
+  if (!next) { choose(ch, d.by, true); return; }
   // Replay the year off screen with the same dice and check it lands where it did before.
   const s = structuredClone(game.s), L = { ...game.L };
   E.applyChoice(s, L, ch); M.risks(s, L); M.step(s, L, yearRng(2), true);
   if (JSON.stringify([s, L]) !== JSON.stringify([next.h.s, next.h.L])) {
     console.error(`Game of AGI: replaying ${d.year} did not reproduce it; playing it again.`);
-    game.redo = [cur]; choose(ch, d.by); return;
+    game.redo = [cur]; choose(ch, d.by, true); return;
   }
   game.decisions.push(d);
   game.redo.shift();
@@ -2155,8 +2168,12 @@ function project(ch) {
 }
 function preview(ch) { return { now: project(ch), base: project(null) }; }
 
-function choose(ch, by = null) {
+// replay: the choice is Forward replaying the one made before.
+function choose(ch, by = null, replay = false) {
   if (game.phase !== 'choose') return;
+  track('camp_choice', { year: game.s.year, card: game.card.id, choice: game.card.choices.indexOf(ch), label: ch.label,
+    ff: !!by, party: by ? by.party || null : null, replay, rewound: game.redo.length > 0, n: game.decisions.length + 1, ...game.nav });
+  game.maxYear = Math.max(game.maxYear, game.s.year);
   game.phase = 'rolling';
   document.body.classList.remove('deciding');
   game.before = { ...game.s };
@@ -2405,6 +2422,7 @@ function showPaper(at) {
   const archive = at != null;
   const i = archive ? at : game.decisions.length - 1, d = game.decisions[i];
   if (!archive) game.archive = null;
+  if (d?.result?.news?.length) track('camp_paper', { year: d.year, archive });
   if (!d?.result?.news?.length) { game.paperOpen = true; advance(); return; }
   if (!archive) game.paperOpen = true;
   const paper = $('paper'), view = $('paperView');
@@ -2551,6 +2569,9 @@ function showEnding() {
   $('endDiff').innerHTML = `<b>How hard your world was: <span class="diff-tier" style="color:${d.tier[1]}">${d.tier[0]}</span></b>
     <p style="margin:6px 0 0">${d.here > d.typical ? 'Even a strong plan' : 'A strong plan'} (AI 2040's Plan A) would end in catastrophe <b>${pct(d.here, 0)}</b> of the time in this world, against ${pct(d.typical, 0)} in a typical one. ${diffSentence(d)} Your final policy, run from 2027 in this same world, would end in catastrophe <b>${pct(mine, 0)}</b> of the time.</p>`;
   $('endWorld').innerHTML = `<b>What you couldn't know until now</b>${secretList(s, game.L)}${SECRETS_NOTE}`;
+  const lastEst = [...game.decisions].reverse().find((x) => x.result?.est)?.result.est.byEnd;
+  track('camp_end', { outcome: s.outcome, year: s.year, n: game.decisions.length, ff: game.decisions.filter((x) => x.by).length,
+    cat_policy: round3(mine), cat_last: lastEst == null ? null : round3(lastEst), difficulty: d.tier[0], secrets: secretsOn, party: game.party, ...game.nav, ...levProps(game.L) });
   $('endMC').innerHTML = `<p class="mcline">Your game was one path through one world. For comparison: if your <i>final</i> policy had been in place since 2027, across ${mc.n.toLocaleString()} possible worlds, futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
   // Always open at the top (the outcome and its picture), whatever was scrolled before.
@@ -2736,7 +2757,7 @@ function syncSecrets() {
   $('secrets').hidden = !secretsOn;
   if (game) { renderRisks(); renderChart(); }
 }
-$('secretsBtn').onclick = () => { secretsOn = !secretsOn; try { localStorage.setItem('goagi-secrets', secretsOn ? '1' : '0'); } catch (e) {} syncSecrets(); };
+$('secretsBtn').onclick = () => { secretsOn = !secretsOn; track('secrets_toggle', { on: secretsOn, year: game?.s.year ?? null }); try { localStorage.setItem('goagi-secrets', secretsOn ? '1' : '0'); } catch (e) {} syncSecrets(); };
 // Chances shown as words at the extremes, so 0.000020% does not read as a precise number.
 const chance = (p) => p < 0.001 ? 'almost none (under 0.1%)' : p > 0.999 ? 'almost certain (over 99.9%)' : pct(p, p < 0.01 || p > 0.99 ? 1 : 0);
 
@@ -2783,6 +2804,7 @@ function buildLabUI() {
     <details class="infobub" id="planInfo" hidden><summary><span class="ibub" aria-hidden="true">i</span><span id="planInfoLbl">About this plan</span></summary><div class="plannote" id="planNote"></div></details>`;
   $('presets').onclick = (e) => {
     const p = e.target.closest('[data-p]')?.dataset.p; if (!p) return;
+    track('preset', { name: p });
     Object.assign(labL, PRESETS[p]); syncSliders(); runLab(); selectPreset(p);
   };
   // Similar levers sit together, with a little extra space between groups (M.LEVER_GROUPS).
@@ -2828,6 +2850,7 @@ function buildAssumptionUI() {
     '<details class="infobub" id="unkInfo" hidden><summary><span class="ibub" aria-hidden="true">i</span><span>About this scenario</span></summary><div class="plannote" id="unkNote"></div></details>';
   $('unkPresets').onclick = (e) => {
     const n = e.target.closest('[data-u]')?.dataset.u; if (!n) return;
+    track('unk_preset', { name: n });
     const D = M.defaultAssumptions();
     for (const k in D) labA[k] = { ...D[k], ...(UNKNOWN_PRESETS[n].set[k] || {}) };
     syncAssumptions(true); runLab();
@@ -2949,12 +2972,27 @@ function runLab() {
   $('catNum').textContent = pct(cat, cat < 0.1 ? 1 : 0);
   $('catNum').style.color = cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)';
   labCat = cat;
+  labSettled(labProps());
   if (distOpen) scheduleDist();
   $('labSub').innerHTML = `Catastrophe in <b style="color:${cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)'}">${pct(cat, cat < 0.1 ? 1 : 0)}</b> of futures · outcome reached after ${mc.meanYears.toFixed(1)} years on average (${avgDate(mc.meanYears)}) · click an outcome to isolate it`;
   buildFan(mc.paths);
   applyFocus();
 }
 
+// God Mode's settings for analytics: every lever, the unknowns changed from their defaults
+// (unk_ease: '0.3:0.1', as in share links), the matching presets and the headline.
+function labProps() {
+  const D = M.defaultAssumptions(), p = { ...levProps(labL) };
+  let n = 0;
+  for (const k of Object.keys(M.ASSUMPTION_INFO)) if (labA[k].mean !== D[k].mean || labA[k].sd !== D[k].sd) { p['unk_' + k] = M.assumptionToURL(k, labA[k]).join(':'); n++; }
+  p.unk_changed = n;
+  p.preset = $('presets').querySelector('[data-p].on')?.dataset.p || null;
+  p.unk_preset = unknownPreset();
+  p.cat = round3(labCat);
+  return p;
+}
+// Sent once the settings have been still for 3 s, at most every 10 s, and only when they changed.
+const labSettled = GA ? GA.settler((p) => track('lab_settings', p), 3000, 10000) : () => {};
 function renderOutcomeRows(mc) {
   const order = Object.keys(M.OUTCOMES).sort((a, b) => mc.counts[b] - mc.counts[a]);
   $('outcomes').innerHTML = order.map((k) => {
@@ -3233,6 +3271,7 @@ function loadShared() {
 }
 $('shareLink').onclick = () => {
   const url = shareURL();
+  track('share', { native: !!(navigator.share && matchMedia('(pointer: coarse)').matches), ...labProps() });
   if (navigator.share && matchMedia('(pointer: coarse)').matches) {
     try { navigator.share({ title: 'Game of AGI', text: 'My settings in the Game of AGI. Can you save humanity?', url }).catch(() => {}); return; } catch (e) {}
   }
@@ -3249,8 +3288,8 @@ function writeClip(text, ok) {
   try { if (navigator.clipboard?.writeText) { navigator.clipboard.writeText(text).then(ok, () => copyFallback(text)); return; } } catch (e) {}
   copyFallback(text);
 }
-$('copyPage').onclick = () => copyForAI(scenarioText(), 'Copied. Paste it into Claude or another AI and ask it to poke holes in the model.');
-$('copyCampaign').onclick = $('endCopy').onclick = () => { if (game) copyForAI(campaignText(), 'Copied. Paste it into Claude or another AI and ask why your game went the way it did.'); };
+$('copyPage').onclick = () => { track('copy_ai', { what: 'lab' }); copyForAI(scenarioText(), 'Copied. Paste it into Claude or another AI and ask it to poke holes in the model.'); };
+$('copyCampaign').onclick = $('endCopy').onclick = (e) => { track('copy_ai', { what: 'campaign', at: e.currentTarget.id === 'endCopy' ? 'ending' : 'game', year: game?.s.year ?? null }); if (game) copyForAI(campaignText(), 'Copied. Paste it into Claude or another AI and ask why your game went the way it did.'); };
 
 /* =====================================================================
  * Mode switching & wiring
@@ -3322,9 +3361,9 @@ function rollWorld(then) {
   const rows = [...list.children], t0 = performance.now(), lock = (li) => {
     li.classList.add('on', 'locked'); li.querySelector('.uv').textContent = 'hidden 🔒';
   };
-  let timer = 0, done = false, settled = false;
-  const settle = () => {
-    if (settled) return; settled = true;
+  let timer = 0, done = false, settled = false, skipped = false;
+  const settle = (byUser) => {
+    if (settled) return; settled = true; skipped = byUser === true;
     clearTimeout(timer); rows.forEach(lock);
     box.classList.add('still', 'settled');
     go.focus({ preventScroll: true });
@@ -3344,19 +3383,20 @@ function rollWorld(then) {
     if (['Shift', 'Control', 'Alt', 'Meta', 'Tab'].includes(e.key)) return;
     e.preventDefault(); e.stopImmediatePropagation();
     if (!['Enter', ' '].includes(e.key)) return;
-    if (settled) end(true); else settle();
+    if (settled) end(true); else settle(true);
   };
   // A tap during the roll settles it; once settled only Begin goes on (a backdrop tap does nothing).
   const onClick = (e) => {
     if (e.target.closest('#rollGo')) return;
     e.stopImmediatePropagation();
-    settle();
+    settle(true);
   };
   // go: carry on into the game; false when a new roll replaces this one.
   const end = (go) => {
     if (done) return; done = true; rollEnd = null;
     clearTimeout(timer); removeEventListener('keydown', onKey, true); box.removeEventListener('click', onClick, true);
     box.classList.add('hidden');
+    if (go) track('camp_start', { roll: skipped ? 'skipped' : 'watched' });
     if (go && then) then();
   };
   rollEnd = end;
@@ -3490,17 +3530,18 @@ function worldDifficulty(world, seed) {
 // The Campaign opens on a one-line title screen over the globe; Play starts the game.
 function openSplash() { setMode('campaign'); document.body.classList.add('splash'); $('splash').classList.remove('hidden'); $('playBtn').focus({ preventScroll: true }); }
 function closeSplash() { document.body.classList.remove('splash'); $('splash').classList.add('hidden'); }
-$('playBtn').onclick = startCampaign;
-$('splashLab').onclick = () => { closeSplash(); setMode('lab'); maybeTour('lab'); };
+$('playBtn').onclick = () => { track('mode_open', { to: 'campaign', from: 'home' }); startCampaign(); };
+$('splashLab').onclick = () => { track('mode_open', { to: 'lab', from: 'home' }); closeSplash(); setMode('lab'); maybeTour('lab'); };
 document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
   const m = b.dataset.mode;
+  if (m !== mode) track('mode_open', { to: m, from: 'tab' });
   if (m === 'campaign' && !game) { openSplash(); return; }
   closeSplash();
   if (m === 'lab') campaignToLab();
   setMode(m);
   if (m === 'lab') maybeTour('lab');
 }));
-$('againBtn').onclick = () => { setMode('campaign'); newGame(); rollWorld(); };
+$('againBtn').onclick = () => { track('again', { outcome: game?.s.outcome ?? null }); setMode('campaign'); newGame(); rollWorld(); };
 // After a campaign ends, the Lab opens on the levers that game ended with (once; later
 // Lab changes are kept).
 function campaignToLab() {
@@ -3508,7 +3549,7 @@ function campaignToLab() {
   game.sentToLab = true;
   Object.assign(labL, game.L); syncSliders(); selectPreset(null);
 }
-$('toLabBtn').onclick = () => { $('ending').classList.add('hidden'); campaignToLab(); setMode('lab'); };
+$('toLabBtn').onclick = () => { track('mode_open', { to: 'lab', from: 'ending' }); $('ending').classList.add('hidden'); campaignToLab(); setMode('lab'); };
 $('viewBtn').onclick = () => $('ending').classList.add('hidden');
 // Numbers in the reference that come straight from the code: model constants written as
 // ⟦name⟧ in equations, inline math and .kv cells (filled from M.K by M.fillConstants), and G_ref.
@@ -3539,7 +3580,7 @@ function renderMath() {
     try { temml.render(el.dataset.tex, el, { displayMode: el.classList.contains('math') }); el.classList.add('rendered'); } catch (e) { /* keep the source */ }
   });
 }
-$('modelBtn').onclick = () => { renderMath(); $('modelInfo').classList.remove('hidden'); };
+$('modelBtn').onclick = () => { track('model_open', { deep: DEEP_MODEL }); renderMath(); $('modelInfo').classList.remove('hidden'); };
 $('statsToggle').onclick = () => {
   const open = document.body.classList.toggle('compact-open');
   $('statsToggle').textContent = open ? 'Back to decision' : 'Stats';
@@ -3592,10 +3633,12 @@ const TOURS = {
 };
 let tour = null;
 const visible = (el) => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 4 && r.height > 4 && getComputedStyle(el).visibility !== 'hidden'; };
-function startTour(m) {
+// auto: the first-visit tutorial (maybeTour), not the How to play button.
+function startTour(m, auto = false) {
   const steps = TOURS[m].filter(([sel]) => visible(document.querySelector(sel)));
   if (!steps.length) return;
   tour = { steps, i: 0, mode: m };
+  track('tour', { act: 'start', of: m, auto, steps: steps.length });
   $('tour').hidden = false;
   showTourStep();
 }
@@ -3611,6 +3654,7 @@ function pinnedCover() {
 const JUMPS = { outcomes: 'secOutcomes', levers: 'secLevers', unknowns: 'secUnknowns' };
 $('jumpBar').addEventListener('click', (e) => {
   const k = e.target.closest('[data-jump]')?.dataset.jump; if (!k) return;
+  track('jump', { to: k });
   const h = $(JUMPS[k]), phone = phoneLayout();
   scrollTopTo(h, phone ? pinnedCover() : h.closest('.panel').getBoundingClientRect().top + 12);
   h.classList.remove('jumpflash'); void h.offsetWidth; h.classList.add('jumpflash');
@@ -3692,6 +3736,7 @@ addEventListener('scroll', () => { if (tour && tour.el) placeTour(); }, true);
 // the headline, on phones at the top of the outcome list, which it scrolls to (just below the graph).
 $('catBig').addEventListener('click', () => {
   if (distOpen) { closeDist(); return; }
+  track('dist_open', { cat: round3(labCat) });
   openDist();
   const t = phoneLayout() ? $('catDist') : $('labSub'), cover = pinnedCover();
   if (cover) scrollBelow(t, cover); else t.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -3702,6 +3747,7 @@ document.addEventListener('click', (e) => {
   if (distOpen && !e.target.closest('#catDist, #catBig, .panel')) closeDist();
 });
 function endTour(interrupted) {
+  if (tour) track('tour', { act: tour.done ? 'finished' : interrupted === true ? 'interrupted' : 'skipped', of: tour.mode, step: tour.i + 1, steps: tour.steps.length });
   if (tour) { try { localStorage.setItem('goagi-tour-' + tour.mode, '1'); } catch (e) {} }
   // The Lab tour ends with the policy panel back at the plans: on phones just below the
   // pinned graph, on desktop at the top of the panel. Not when the visitor ended it by using
@@ -3724,7 +3770,7 @@ document.addEventListener('keydown', (e) => {
   if (!tour) return;
   if (['1', '2', '3'].includes(e.key) || (['Enter', ' ', 'ArrowRight'].includes(e.key) && outsideTour(e.target))) endTour(true);
 }, true);
-$('tourNext').onclick = () => { if (++tour.i >= tour.steps.length) endTour(); else showTourStep(); };
+$('tourNext').onclick = () => { if (tour.i + 1 >= tour.steps.length) { tour.done = true; endTour(); } else { tour.i++; showTourStep(); } };
 $('tourSkip').onclick = () => endTour();
 addEventListener('resize', () => { if (tour) showTourStep(); });
 // Crossing the phone breakpoint while the spread is open moves it to the right place.
@@ -3736,10 +3782,10 @@ function maybeTour(m) {
   // Marked seen only when the tutorial is finished or skipped (endTour), so closing the tab
   // mid-tutorial, or opening another tab first, still shows it.
   try { seen = localStorage.getItem('goagi-tour-' + m) === '1'; } catch (e) {}
-  if (!seen) setTimeout(() => { if (mode === m && !tour) startTour(m); }, 700);
+  if (!seen) setTimeout(() => { if (mode === m && !tour) startTour(m, true); }, 700);
 }
 $('tourBtn').onclick = () => {
-  if (mode === 'campaign' && !game) { setMode('campaign'); newGame(); setTimeout(() => startTour('campaign'), 600); return; }
+  if (mode === 'campaign' && !game) { setMode('campaign'); newGame(); track('camp_start', { roll: 'none' }); setTimeout(() => startTour('campaign'), 600); return; }
   startTour(mode);
 };
 
@@ -3767,6 +3813,25 @@ function afterModelClose() { if (mode === 'campaign' && !game) openSplash(); }
 document.querySelectorAll('[data-close="modelInfo"]').forEach((b) => b.addEventListener('click', afterModelClose));
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && DEEP_MODEL) afterModelClose(); });
 guard('3D view', animate);
+// Analytics: the visit (where it came from and what a shared link carried), external links by
+// id (or host), and a campaign left unfinished when the page is hidden or closed (once per game).
+guard('analytics', () => {
+  if (!GA) return;
+  track('visit', { ...gaOrigin, shared, deep: DEEP_MODEL,
+    sw: Math.round((screen.width || 0) / 100) * 100, ...(shared ? labProps() : {}) });
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest?.('a[href^="http"]'); if (!a) return;
+    let host = ''; try { host = new URL(a.href).hostname; } catch (er) {}
+    if (host !== location.hostname) track('link', a.id ? { id: a.id } : { host });
+  }, true);
+  const leave = () => {
+    if (!game || game.quitSent || ['ended', 'over'].includes(game.phase)) return;
+    game.quitSent = true;
+    track('camp_quit', { year: game.s.year, furthest: Math.max(game.maxYear, game.s.year), n: game.decisions.length, phase: game.phase, ...game.nav });
+  };
+  addEventListener('pagehide', leave);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') leave(); });
+});
 </script>
 </body>
 </html>

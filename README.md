@@ -66,6 +66,7 @@ explains the assumptions, sensitivity and exposure calibration.
 | `news.js` | The campaign's news clips and year-end front page stories: deterministic headline, deck and body templates for what visibly changed each year, plus illustrative economy figures derived from the visible state (not model outputs; `node test-news.js --report` shows how often each fires) |
 | `landmask.js` | Land/sea bitmap for the globe, rasterized from Natural Earth 1:50m coastlines (public domain) |
 | `trees.js` | Memtree links for the sessions that built the game |
+| `analytics.js` | Anonymous usage stats sent to PostHog's HTTP API (no SDK, no cookies, no storage, a random id per page load; Do Not Track and Global Privacy Control respected; off while `ANALYTICS.key` is empty). Events: `visit`, `mode_open`, `camp_start`, `camp_choice`, `camp_paper`, `camp_end`, `camp_quit`, `again`, `lab_settings`, `preset`, `unk_preset`, `jump`, `dist_open`, `share`, `copy_ai`, `tour`, `model_open`, `link`, `secrets_toggle` (properties in AGENTS.md, "Analytics") |
 | `scripts/build_artifact.py` | Builds a copy for a claude.ai Artifact |
 | `index.html` | Three.js scene, HUD, campaign loop, God Mode |
 | `test-model.js` | `node test-model.js` prints outcome distributions for policy presets |

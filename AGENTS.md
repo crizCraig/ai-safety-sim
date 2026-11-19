@@ -2,7 +2,7 @@
 
 A static site (no build step): `index.html` (Three.js scene, UI), `model.js` (world model),
 `events.js` (campaign cards), `news.js` (campaign news clips), `landmask.js` (globe coastlines),
-`trees.js` (memtree links).
+`trees.js` (memtree links), `analytics.js` (anonymous usage stats).
 Live at https://thegameofagi.com (agi.memtree.dev redirects there) via GitHub Pages from `main`.
 
 This repo is a public showcase of memtree: the conversations that build it are published as
@@ -294,3 +294,50 @@ which `test-model.js` runs).
 2. `test-k-baseline.json`: regenerate (the baseline test covers every preset).
 3. `test-model.js` any promise the description makes; §6 calibration table for a calibrated plan.
 4. Unknown scenarios go in `UNKNOWN_PRESETS` (`set` lists only the unknowns it changes).
+
+## Analytics
+
+`analytics.js` sends anonymous usage events straight to PostHog Cloud (US) through its HTTP capture
+API (`ANALYTICS.endpoint`), one `sendBeacon` per event (`fetch` with keepalive as a fallback), a
+JSON body sent as text/plain so there is no preflight. With `ANALYTICS.key` empty (as committed until
+the owner pastes the public project key, `phc_...`) `GA_track` sends nothing. Swapping providers
+means changing `ANALYTICS` and `GA.payload`/`GA.transport`.
+
+Rules (`test-analytics.js`, run by `test-model.js`, checks them):
+- No cookies and no browser storage; the `distinct_id` is random per page load. Do Not Track
+  (`navigator.doNotTrack === '1'`) and Global Privacy Control turn it off. Events set
+  `$process_person_profile: false` and `$geoip_disable: true`.
+- Never send the hidden world (`s.world`, real risks, secret facts) before the ending reveals it,
+  typed text, or full URLs: the referrer goes as its domain and only utm_source/medium/campaign are
+  kept. Every call goes through the page's `track()`, which never throws.
+- Every event carries `v` (`ASSET_VERSION`), `mode` (campaign/lab), `device` (phone ≤ 640 px,
+  tablet ≤ 1024, desktop), `webgl` and `t` (seconds since load). Levers go flat as `lev_<key>`
+  (percent), changed unknowns as `unk_<key>: 'mean:sd'` (share-link units) plus `unk_changed`.
+- A new event is named here and in README.md (a test checks both).
+
+Events:
+- `visit`: on load. `ref` (referrer domain or `self`), `utm_source`/`utm_medium`/`utm_campaign`,
+  `shared` (opened from a share link, then with its levers, unknowns and matching `preset`/`unk_preset`),
+  `deep` (opened on #model), `sw` (screen width to 100 px).
+- `mode_open`: `to` (campaign/lab), `from` (home, tab, ending).
+- `camp_start`: after the dice screen; `roll` watched, skipped (settled by a tap or key) or none
+  (started from How to play).
+- `camp_choice`: `year`, `card`, `choice` (index), `label`, `ff` (Let Washington decide), `party`,
+  `replay` (Forward replaying the stored choice), `rewound` (on a path the player went back on),
+  `n` (decisions so far), `back`/`fwd`/`rewind` counts.
+- `camp_paper`: front page viewed; `year`, `archive` (an earlier year's page).
+- `camp_end`: the ending screen; `outcome`, `year`, `n`, `ff` count, `cat_policy` (the ending's
+  "your final policy" catastrophe share), `cat_last` (the last projected chance shown), `difficulty`,
+  `secrets`, `party`, `back`/`fwd`/`rewind`, final `lev_*`.
+- `camp_quit`: page hidden or closed with a game unfinished, once per game; `year`, `furthest`,
+  `n`, `phase`, `back`/`fwd`/`rewind`.
+- `again`: Play again from the ending; `outcome`.
+- `lab_settings`: God Mode settings once they have been still for 3 s, at most every 10 s, only
+  when changed; `lev_*`, `unk_*`, `unk_changed`, `preset`, `unk_preset`, `cat` (headline).
+- `preset`, `unk_preset`: `name`. `jump`: `to` (outcomes/levers/unknowns). `dist_open`: `cat`.
+- `share`: `native` (the phone share sheet) plus the God Mode settings. `copy_ai`: `what`
+  (lab/campaign), `at`, `year`.
+- `tour`: `act` (start, finished, skipped, interrupted), `of` (mode), `auto`, `step`, `steps`.
+- `model_open`: `deep`. `link`: an external link, by `id` (ghLink, writeupLink, builtLink) or `host`.
+  `secrets_toggle`: `on`, `year`.
+
