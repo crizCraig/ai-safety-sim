@@ -161,7 +161,7 @@
     // Ease of alignment = 1 / difficulty. Lognormal, set in log10 units: median
     // 10^mean, spread ×10^sd. Calibrated to AI 2040's p(alignment) estimates (0.10 before
     // delegation was added; 0.13 restores Plan B's p(alignment) to where it was).
-    capNow: { group: 'How fast is AI moving?', label: 'Current capability', mean: 44, sd: 0, min: 30, max: 62, fmt: 'num',
+    capNow: { low: 'Further from AC', high: 'Near AC (70)', group: 'How fast is AI moving?', label: 'Current capability', mean: 44, sd: 0, min: 30, max: 62, fmt: 'num',
       marks: [[44, 'AI 2040'], [50, 'RSI 2027']],
       help: 'How capable the best AI is at the start of 2027 (US bloc; China starts 7 points behind). AI starts speeding up its own research at 50, and 70 is an Automated Coder. AI 2040 starts at 44; lab insiders quoted by Gladstone AI expect recursive self-improvement during 2027, which is about 50. <a href="https://metr.org/blog/2026-11-05-anthropic-ai-rd-acceleration-assessment/" target="_blank" rel="noopener">METR</a> (Nov 2026) estimates AI already speeds Anthropic\'s progress about 1.7×, which is about 60. <a href="https://www.sec.gov/Archives/edgar/data/2130357/000162828026067168/anthropicpbc-sx1.htm" target="_blank" rel="noopener">Anthropic\'s S-1</a> (Oct 2026) says Claude wrote "over 90%" of its code contributions in September 2026, though a share of code is not a research speed-up.',
       sample: (A, rng, draw) => (A.capNow.sd > 0 ? draw('capNow') : A.capNow.mean), // only drawn when it has a spread
@@ -173,12 +173,12 @@
     // and METR's task-horizon doubling ranges from ~7 months (2019–25) to ~4.3 months (recent fit),
     // a ratio of 1.63. Physical limits (HBM, CoWoS packaging, US power) make the slow worlds, though
     // historically such walls have been stalls that get worked around more than ceilings.
-    speed: { group: 'How fast is AI moving?', label: 'AI progress speed', mean: 0, sd: 0.35 / Math.LN10, min: Math.log10(0.3), max: Math.log10(2.5), fmt: 'logx',
+    speed: { low: '0.3× AI 2040', high: '2.5× AI 2040', group: 'How fast is AI moving?', label: 'AI progress speed', mean: 0, sd: 0.35 / Math.LN10, min: Math.log10(0.3), max: Math.log10(2.5), fmt: 'logx',
       help: 'How fast AI improves for a given amount of compute. The median 1× reaches an Automated Coder around 2030, as in AI 2040; 0.6× pushes that to about 2031 and superintelligence to about 2033. 90% of worlds fall between about 0.56× and 1.78×, a spread informed by measured trends: frontier training compute growing 4–6× a year and algorithms about 3× a year (Epoch AI), and AI task horizons doubling every 4–7 months (METR). Slow worlds are ones where memory chips, chip packaging or US power hold AI back.',
       sample: (A, rng, draw) => Math.pow(10, draw('speed')), atMean: (A) => Math.pow(10, A.speed.mean), world: (A, speed) => ({ speed }),
       revealOrder: 20, roll: ['How fast AI progresses', (r) => `${(0.5 + r).toFixed(1)}× speed`],
       secret: ['How fast AI progressed', (w) => `${w.speed.toFixed(1)}× the expected pace for the compute spent.`] },
-    ease: { group: 'How hard is alignment?', label: 'Ease of alignment', mean: 0.13, sd: 0.4, min: -0.6, max: 0.7, fmt: 'logx',
+    ease: { low: '¼× (very hard)', high: '5× (safe by default)', group: 'How hard is alignment?', label: 'Ease of alignment', mean: 0.13, sd: 0.4, min: -0.6, max: 0.7, fmt: 'logx',
       help: 'How hard the problem really is: how much real alignment the superintelligence handoff needs. Policy cannot change it. Easy enough (above 3.3×), fixing safety problems as they come up leads to long-term alignment and loss of control cannot happen; at 0.5×, progress comes at half the speed. Compare "Tests overstate alignment", which is about measuring progress, not the problem itself.',
       sample: (A, rng) => { const dd = diffDistOf(A); return Math.min(5, Math.max(0.1, Math.pow(10, dd.mean + dd.sd * gauss(rng)))); },
       atMean: (A) => Math.pow(10, diffDistOf(A).mean), world: (A, d) => Object.assign({ difficulty: d }, difficultyWorld(d, diffDistOf(A))),
@@ -189,12 +189,12 @@
     // Where the frontier stands at the start of 2027. AI 2040's starting point is 44; Gladstone
     // AI's lab insiders expect recursive self-improvement (AI substantially speeding up AI R&D,
     // which begins at 50 here) within 3-12 months of Oct 2026, i.e. during 2027.
-    evalGap: { group: 'How hard is alignment?', label: 'Tests overstate alignment', mean: 0.15, sd: 0.09, min: 0, max: 0.6, fmt: 'pct',
+    evalGap: { low: 'Tests accurate', high: 'Overstate by 60', group: 'How hard is alignment?', label: 'Tests overstate alignment', mean: 0.15, sd: 0.09, min: 0, max: 0.6, fmt: 'pct',
       help: 'How wrong the measurements are: how far the alignment you see sits above the real level, because AIs can tell when they are being tested and behave better. Policy can change it: independent oversight, published research and safety work expose more of the gap, and secret internal AI hides more. Insiders who speak up expose some of it too. This is why your estimate and the real risk can differ. <a href="https://www.sec.gov/Archives/edgar/data/2130357/000162828026067168/anthropicpbc-sx1.htm" target="_blank" rel="noopener">Anthropic\'s S-1</a> (Oct 2026) reports "models behaving differently when they detect or infer that they are being evaluated" and warns its evaluations could "overstate the safety or alignment" of its models. Compare "Ease of alignment", which is how hard the problem itself is.',
       world: (A, evalGap) => { const c = probNodes(A.evalGap, 0, 0.6, EG_DX); return { evalGap, egNodes: c.nodes, egMean: c.mean }; },
       revealOrder: 30, roll: ['How much safety tests overstate alignment', (r) => `${Math.round(r * 40)}%`],
       secret: ['How misleading the tests were', (w, c) => `${c.over ? 'By the end, real alignment was' : 'Right now, real alignment is'} <b>${c.pct(hiddenShare(c.s, c.L) * w.evalGap, 0)}</b> lower than the tests showed.`] },
-    benevolent: { group: 'Does AI care about everyone?', label: 'Kind even if uncontrolled', mean: 0.16, sd: 0.18, min: 0, max: 1, fmt: 'pct',
+    benevolent: { low: 'Never kind', high: 'Always kind', group: 'Does AI care about everyone?', label: 'Kind even if uncontrolled', mean: 0.16, sd: 0.18, min: 0, max: 1, fmt: 'pct',
       help: 'If humans lose control of AI, the chance it still cares for humanity. The future is then steered by AI, kindly, instead of by people (Benevolent Takeover).',
       sample: (A, rng, draw) => { const p = draw('benevolent'); return rng() < p; }, atMean: () => false,
       world: (A, benevolent) => ({ pBenevolent: probMean(A.benevolent), benevolent }),
@@ -204,12 +204,12 @@
     // safety-paper counts, SemiAnalysis's count of releases with safety results), official
     // "human control" language and current racing; none of these measures effort, and there is
     // no case of Beijing slowing frontier AI for safety. Hence the wide spreads.
-    valueAlign: { group: 'Does AI care about everyone?', label: 'Aligned AI fights corruption', mean: 0.26, sd: 0.18, min: 0, max: 1, fmt: 'pct',
+    valueAlign: { low: 'Serves controllers', high: 'Always resists', group: 'Does AI care about everyone?', label: 'Aligned AI fights corruption', mean: 0.26, sd: 0.18, min: 0, max: 1, fmt: 'pct',
       help: 'Value alignment: the chance an aligned superintelligence cares about humanity broadly, not just about whoever controls it, and so declines to help a few seize power even when its controllers ask. Unlike "Kind even if uncontrolled", which is about an AI that has escaped control, this is about one that is still under control: alignment can succeed technically yet serve only a powerful few if governance fails. Labs aim for this (e.g. constitutions that tell models to refuse illegitimate power grabs), but it\'s unproven under pressure from whoever controls the weights. An AI that surely refuses stops lock-in entirely. At the default it cuts status-quo lock-in from about 70% to about 54% of futures where humans keep control.',
       world: (A, valueAlign) => ({ valueAlign, valueNodes: probNodes(A.valueAlign, 0, 1, LOCK_DX).nodes }),
       revealOrder: 70, roll: ['Whether aligned AI fights corruption', (r) => `${Math.round(r * 70)}%`],
       secret: ['Aligned AI fights corruption', (w, c) => `A <b>${c.pct(w.valueAlign, 0)}</b> chance an aligned AI would refuse to help a few seize power, even if its controllers asked.`] },
-    share: { group: 'Does power stay in check?', label: 'The powerful share the gains', mean: 0.31, sd: 0.19, min: 0, max: 1, fmt: 'pct',
+    share: { low: 'Never share', high: 'Always share', group: 'Does power stay in check?', label: 'The powerful share the gains', mean: 0.31, sd: 0.19, min: 0, max: 1, fmt: 'pct',
       help: 'If a few control AI and nothing forces them, the chance they share its gains broadly anyway. Low means the powerful keep AI and its gains once most people\'s work is no longer needed. The wealth fund, oversight, transparency and whistleblowers can still force sharing.',
       world: (A, share) => ({ share, shareNodes: probNodes(A.share, 0, 1, LOCK_DX).nodes }),
       revealOrder: 60, roll: ['Whether the powerful would share AI\'s gains', (r) => `${Math.round(r * 70)}%`],
@@ -220,7 +220,7 @@
     // Insiders speaking up: it cuts lock-in (lockWhistle) and, a little, the hidden share of the
     // test overstatement (hidWhistle in hiddenShare): staff leak that an AI is less safe than its
     // evaluations show, as safety-team resignations and disclosures have done.
-    whistle: { group: 'Does power stay in check?', label: 'Insiders speak up', mean: 0.25, sd: 0.14, min: 0, max: 1, fmt: 'pct',
+    whistle: { low: 'Stay silent', high: 'Always speak up', group: 'Does power stay in check?', label: 'Insiders speak up', mean: 0.25, sd: 0.14, min: 0, max: 1, fmt: 'pct',
       help: 'The chance insiders expose or refuse a power grab by whoever controls AI, or leak that an AI is less safe than its tests show. Higher settings lower lock-in and also expose more safety problems: at 100%, insiders reveal as much of the gap between tested and real alignment as full oversight does.',
       world: (A, whistle) => { const c = probNodes(A.whistle, 0, 1, LOCK_DX); return { whistle, whistleNodes: c.nodes, whMean: c.mean }; },
       revealOrder: 50, roll: ['Whether insiders would speak up', (r) => `${Math.round(r * 60)}%`],
@@ -229,13 +229,13 @@
     // will not: once most people's work is no longer needed, they lose their leverage (Drago and
     // Laine, The Intelligence Curse; Kulveit et al., Gradual Disempowerment), as in rentier
     // states; voluntary pledges exist but nothing enforces them.
-    cnAlign: { group: 'What will China do?', label: 'China\'s own alignment work', mean: 0.36, sd: 0.23, min: 0, max: 1, fmt: 'pct',
+    cnAlign: { low: 'None', high: 'Matches US bloc', group: 'What will China do?', label: 'China\'s own alignment work', mean: 0.36, sd: 0.23, min: 0, max: 1, fmt: 'pct',
       help: 'How much alignment research China\'s labs do themselves, relative to the US bloc. It fills part of the gap that published US research and coordination do not reach, and China\'s AI speeds this research up as it improves (100% is a serious program, like a US bloc putting 30% of compute on safety). Work on keeping AI loyal to the Party\'s line does not count.',
       world: (A, cnAlign) => { const c = probNodes(A.cnAlign); return { cnAlign, cnNodes: c.nodes, cnMean: c.mean }; },
       revealOrder: 40, roll: ['How much alignment work China does itself', (r) => `${Math.round(r * 100)}%`],
       // One secret row for both of China's unknowns.
       secret: ['China', (w, c) => `Did <b>${c.pct(w.cnAlign, 0)}</b> as much alignment work as the US bloc, and ${w.cnCaution < 0.005 ? 'would not have slowed down' : `would have slowed <b>${c.pct(w.cnCaution, 0)}</b>`} near the brink.`] },
-    cnCaution: { group: 'What will China do?', label: 'China slows near the brink', mean: 0.27, sd: 0.22, min: 0, max: 1, fmt: 'pct',
+    cnCaution: { low: 'Races to the end', high: 'Always slows', group: 'What will China do?', label: 'China slows near the brink', mean: 0.27, sd: 0.22, min: 0, max: 1, fmt: 'pct',
       help: 'How far China cuts its AI race once there are signs of losing control. It notices later than the US would, slows more if the US slows or a deal is in force, and never slows for fear of concentrated power: an AI that obeys the Party counts as aligned in Beijing.',
       world: (A, cnCaution) => ({ cnCaution }),
       revealOrder: 45, roll: ['Whether China slows down near the brink', (r) => `${Math.round(r * 70)}%`] },
@@ -246,7 +246,7 @@
     // Source median 6.55e-4, mean 8.37e-3, 95% 5.75e-6–6.69e-2.
     // Fit median and mean, rounded to the Lab's log10 units: -3.18, 1.00.
     // Fit P(>1%) ≈ 11.9%, P(>10%) ≈ 1.46%; not total AI-enabled bio risk.
-    bioDecade: { group: 'How dangerous are open weights?', label: 'Open-weights bio risk per decade', mean: -3.18, sd: 1, min: -7, max: -1, fmt: 'log',
+    bioDecade: { low: '1 in 10 million', high: '1 in 10', group: 'How dangerous are open weights?', label: 'Open-weights bio risk per decade', mean: -3.18, sd: 1, min: -7, max: -1, fmt: 'log',
       help: 'Chance that open-weights models enable a pandemic killing 100M+ people within ten years, on the default path. Includes both uncertain transmission and an already-transmissible starting point; both still face physical, containment, severity and attribution barriers. The illustrative fit has a 0.066% median and 0.83% mean per decade. Policy scales it from there. This is not total bio risk.',
       sample: (A, rng) => Math.min(0.99, Math.pow(10, A.bioDecade.mean + A.bioDecade.sd * gauss(rng))), // unclamped in log space: the tails are the point
       atMean: (A) => Math.pow(10, A.bioDecade.mean), world: (A, d) => bioWorld(d, A.bioDecade), notInBase: true,
