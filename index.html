@@ -761,14 +761,14 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261119141242"></script>
-<script src="events.js?v=20261119141242"></script>
-<script src="policies.js?v=20261119141242"></script>
-<script src="news.js?v=20261119141242"></script>
-<script src="landmask.js?v=20261119141242"></script>
-<script src="presets.js?v=20261119141242"></script>
-<script src="trees.js?v=20261119141242"></script>
-<script src="analytics.js?v=20261119141242"></script>
+<script src="model.js?v=20261119215334"></script>
+<script src="events.js?v=20261119215334"></script>
+<script src="policies.js?v=20261119215334"></script>
+<script src="news.js?v=20261119215334"></script>
+<script src="landmask.js?v=20261119215334"></script>
+<script src="presets.js?v=20261119215334"></script>
+<script src="trees.js?v=20261119215334"></script>
+<script src="analytics.js?v=20261119215334"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -1145,7 +1145,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261119141242';
+const ASSET_VERSION = '20261119215334';
 // Anonymous usage stats (analytics.js; a no-op until it has a key). track() never throws.
 const GA = window.GameAnalytics;
 const track = (event, props) => { try { if (GA) GA.track(event, props); } catch (e) {} };

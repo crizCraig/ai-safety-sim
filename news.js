@@ -384,13 +384,20 @@
       caption: 'Researchers trace a model\'s reasoning.', img: 'safetylab' },
 
     // ---- Erosion of control (delegation) ----
+    // Already true when the game starts (2026 studies: managers check work less carefully when told an
+    // AI produced it; Amazon's 2026 outages followed AI-assisted changes shipped without a second review).
+    { id: 'delegNow', cat: 'control', desk: ['ledger', 'science'], tone: 'neutral', prio: 19, when: (c) => c.year <= 2028 && c.b.deleg < 20,
+      text: ['Studies find managers already wave through AI work they don\'t check', 'Outages traced to AI changes shipped without a second look'],
+      deck: (c, t) => /Outages/.test(t) ? 'Engineers approved AI-written changes without a full review, and the fixes took hours.'
+        : 'Researchers find people check work less carefully once they are told an AI produced it.',
+      caption: 'A manager approves AI-prepared decisions.', img: 'delegation' },
     { id: 'deleg20', cat: 'control', desk: ['ledger', 'markets'], tone: 'neutral', prio: 52, when: (c) => up(c, 'deleg', 20),
       text: ['A fifth of business decisions now get no human review, survey finds', 'Firms let AI agents sign off on decisions without human review'],
       deck: 'A survey finds firms now leave about a fifth of consequential decisions to AI agents, with no human check.',
       caption: 'An office where AI agents sign off on decisions.', img: 'jobs' },
     { id: 'deleg35', cat: 'control', desk: 'ledger', tone: 'alarm', prio: 62, when: (c) => up(c, 'deleg', 35),
-      text: ['Managers now rubber-stamp AI decisions they no longer review', 'Audit finds most AI decisions approved without a human check'],
-      deck: 'Auditors find managers increasingly approve AI decisions without reading them, as volumes keep rising.',
+      text: ['A third of key decisions now pass with no real human review', 'Audit finds AI decisions waved through faster than anyone can check'],
+      deck: 'What began as managers waving through AI drafts is now routine, auditors find, as volumes keep rising.',
       caption: 'A manager approves AI-prepared decisions.', img: 'delegation' },
     { id: 'deleg50', cat: 'control', desk: 'brief', tone: 'alarm', prio: 72, when: (c) => up(c, 'deleg', 50) || up(c, 'deleg', 65),
       text: (c) => [c.b.deleg >= 65 ? 'Officials struggle to name a decision AI didn\'t make' : 'Half of key decisions are now made by AI, study finds',
