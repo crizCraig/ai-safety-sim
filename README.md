@@ -39,7 +39,7 @@ explains the assumptions, sensitivity and exposure calibration.
 
 ## Two modes
 
-- **God Mode**. Set ten policy levers and eleven uncertain
+- **God Mode**. Set ten policy levers and twelve uncertain
   assumptions (mean ± spread, as in the original; the seven probabilities are Beta
   distributions on 0–100% (0–60% for how much tests overstate alignment) with that mean and
   standard deviation, the spread in percentage points,
@@ -61,7 +61,7 @@ explains the assumptions, sensitivity and exposure calibration.
 
 | File | What it is |
 | --- | --- |
-| `model.js` | The world model: state, levers, yearly dynamics (every update reads the start-of-year state, so their order does not matter), hazard equations, Monte Carlo, and its 160 named constants |
+| `model.js` | The world model: state, levers, yearly dynamics (every update reads the start-of-year state, so their order does not matter), hazard equations, Monte Carlo, and its 169 named constants |
 | `events.js` | The decision cards and how each choice moves levers and state |
 | `news.js` | The campaign's news clips and year-end front page stories: deterministic headline, deck and body templates for what visibly changed each year, plus illustrative economy figures derived from the visible state (not model outputs; `node test-news.js --report` shows how often each fires) |
 | `landmask.js` | Land/sea bitmap for the globe, rasterized from Natural Earth 1:50m coastlines (public domain) |

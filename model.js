@@ -85,6 +85,19 @@
     fundRate: 0.4, fundExpensive: 0.85,
     // 2040 endings
     endTrust: 45, pauseCoord: 55,
+    // Lives comparison (read-only: computed from finished paths, it moves no outcome). AI medicine
+    // starts reaching people at capability medStart (an Automated Coder) and reaches its full
+    // effect medSpan points later (superintelligence), medLag years after the capability exists
+    // (trials, manufacturing, rollout). Under Locked-In Power a share medLockin of it still
+    // reaches people. World deaths a year and population in millions: UN World Population
+    // Prospects 2024 (about 62 million deaths and 8.2 billion people in 2025, 8.5 billion by 2030).
+    medStart: 70, medSpan: 30, medLag: 3, medLockin: 0.5, deathsYr: 62, worldPop: 8300,
+    // Deaths per catastrophe: Loss of Control kills a share lossLoc of the world (the ending is
+    // one where nothing the AI wanted left room for us); Great-Power War a share lossWar (about
+    // 830 million, between the 2 to 5 billion of the nuclear-winter famine studies, Xia et al.
+    // 2022, and a war that stays conventional); Engineered Pandemic lossBio million, the
+    // ending's own 100M+ floor. Locked-In Power and a Benevolent Takeover kill no one.
+    lossLoc: 1, lossWar: 0.1, lossBio: 100,
   });
   const K = Object.assign({}, K_DEFAULTS);
   // Constants the model page shows as exact fractions, written ⟦name:f⟧ there: [numerator, denominator].
@@ -252,6 +265,18 @@
       atMean: (A) => Math.pow(10, A.bioDecade.mean), world: (A, d) => bioWorld(d, A.bioDecade), notInBase: true,
       revealOrder: 90, roll: ['Pandemic risk from open models', (r) => `${(Math.pow(10, -6 + 4 * r) * 100).toPrecision(2)}%`],
       secret: ['Pandemic risk from open models', (w, c) => `<b>${c.pct(w.bioDecade, 2)}</b> per decade.`] },
+    // AI medicine's reach: the share of the world's yearly deaths that superintelligent AI
+    // medicine would eventually prevent. About 62 million people die each year (UN World
+    // Population Prospects 2024); roughly three quarters of deaths are from noncommunicable
+    // diseases (WHO), many tied to ageing, so most of the gain needs cures that do not exist yet.
+    // An assumption with a wide spread. It feeds only the lives comparison (livesOfFuture), never a
+    // hazard, so it draws from its own stream (ownStream) and every existing world and seeded future
+    // is unchanged.
+    medicine: { low: 'Prevents none', high: 'Prevents every death', group: 'What could AI medicine do?', label: 'AI medicine\'s reach', mean: 0.3, sd: 0.2, min: 0, max: 1, fmt: 'pct', ownStream: true,
+      help: 'The share of the world\'s yearly deaths (about 62 million, <a href="https://population.un.org/wpp/" target="_blank" rel="noopener">UN World Population Prospects</a>) that AI medicine at superintelligence would eventually prevent each year. An assumption: most deaths come from heart disease, cancer, stroke and other diseases of ageing (WHO), so a high share needs cures that do not exist yet. It changes no outcome; it sets only the lives comparison under the outcomes, where medicine starts helping at an Automated Coder, reaches this share at superintelligence and arrives a few years after the capability does.',
+      world: (A, medicine) => ({ medicine }),
+      revealOrder: 85, roll: ['How many deaths AI medicine could prevent', (r) => `${Math.round(r * 60)}% a year`],
+      secret: ['AI medicine', (w, c) => `Could have prevented <b>${c.pct(w.medicine, 0)}</b> of the world's deaths each year at superintelligence.`] },
   };
 
   function defaultAssumptions() {
@@ -306,18 +331,34 @@
   //   world(A, v)           the fields a world carries for value v, belief nodes included;
   //   notInBase             left out of the base world that measures bio exposure.
   // The RNG order. Append-only: a new unknown goes at the end, so every existing seed keeps its world.
-  const DRAW_ORDER = Object.freeze(['ease', 'speed', 'whistle', 'benevolent', 'bioDecade', 'cnAlign', 'cnCaution', 'evalGap', 'capNow', 'share', 'valueAlign']);
+  // An unknown marked ownStream feeds no hazard (today only AI medicine's reach, for the lives
+  // comparison). It draws from a second stream seeded by the world's other draws (worldSeed), so the
+  // main stream, and with it every existing world and every seeded future, is the same as without it.
+  const DRAW_ORDER = Object.freeze(['ease', 'speed', 'whistle', 'benevolent', 'bioDecade', 'cnAlign', 'cnCaution', 'evalGap', 'capNow', 'share', 'valueAlign', 'medicine']);
 
   // Draw one world. `pSafe` is what everyone believes up front; `safe` is the truth.
   function sampleWorld(A, rng, skipBio = false) {
     // Every draw takes one standard normal (two RNG calls), whatever the distribution or its spread.
-    const draw = (k) => {
-      const info = ASSUMPTION_INFO[k], z = gauss(rng);
+    const drawFrom = (r) => (k) => {
+      const info = ASSUMPTION_INFO[k], z = gauss(r);
       return info.fmt === 'pct' ? betaAtZ(betaOf(A[k], info.min, info.max), z) : Math.max(info.min, Math.min(info.max, A[k].mean + A[k].sd * z));
     };
-    const v = {};
-    for (const k of DRAW_ORDER) v[k] = ASSUMPTION_INFO[k].sample ? ASSUMPTION_INFO[k].sample(A, rng, draw) : draw(k);
+    const v = {}, one = (k, r) => { v[k] = ASSUMPTION_INFO[k].sample ? ASSUMPTION_INFO[k].sample(A, r, drawFrom(r)) : drawFrom(r)(k); };
+    for (const k of DRAW_ORDER) if (!ASSUMPTION_INFO[k].ownStream) one(k, rng);
+    const side = mulberry32(worldSeed(v));
+    for (const k of DRAW_ORDER) if (ASSUMPTION_INFO[k].ownStream) one(k, side);
     return buildWorld(A, v, skipBio);
+  }
+  // A 32-bit seed from the main-stream draws' exact bits (FNV-1a over their float64 words).
+  function worldSeed(v) {
+    const f = new Float64Array(1), u = new Uint32Array(f.buffer);
+    let h = 0x811c9dc5;
+    for (const k of DRAW_ORDER) {
+      if (ASSUMPTION_INFO[k].ownStream) continue;
+      f[0] = +v[k];
+      for (let i = 0; i < 2; i++) h = Math.imul(h ^ u[i], 0x01000193);
+    }
+    return h | 0;
   }
   // The world's fields from one value per unknown; the bio fields go last (and are skipped for the base world).
   function buildWorld(A, v, skipBio = false) {
@@ -1192,27 +1233,70 @@
       text: '2040 arrives with no catastrophe — and no resolution. The race continues, the risks compound, and the hardest decisions still lie ahead.' },
   };
 
+  // ---- Lives: AI medicine against catastrophe (read-only, from finished paths) ----
+  // Nothing here feeds back into a future: it is a tally kept beside the outcomes, so players can
+  // weigh the lives faster AI medicine might save against the lives a catastrophe would take.
+  // All figures are in millions of people and run from 2027 until the simulation ends in 2040.
+  // Medicine's reach at capability c: none below an Automated Coder, its full effect at superintelligence.
+  const medReach = (c) => clamp((c - K.medStart) / K.medSpan, 0, 1);
+  // Deaths (millions) when a future ends in `ev`. Locked-In Power and a Benevolent Takeover kill no one.
+  const catastropheDeaths = (ev) => (ev === 'misalign' ? K.lossLoc * K.worldPop : ev === 'war' ? K.lossWar * K.worldPop : ev === 'bio' ? K.lossBio : 0);
+  // One future's medicine-years: the sum over the years 2027–2039 of the reach deployed that year,
+  // medReach of the capability at the start of the year medLag years earlier (the start of 2027
+  // for earlier years, and the capability the future ended with for years after its end).
+  // `caps` holds the frontier capability at the start of each year from 2027 on, its last entry
+  // the capability the future ended with. A year counts in full while the future runs; after the
+  // future ends, an Aligned Transition or a Benevolent Takeover keeps counting in full, Locked-In
+  // Power a share medLockin, and a catastrophe that kills (or the year it strikes) nothing.
+  // Lives saved are then its medicine-years × the world's yearly deaths × AI medicine's reach.
+  function livesOfFuture(caps, ev, stage, year) {
+    // The last year lived in full: the year before an annual hazard strikes (year = the year it
+    // struck), the year the handoff happened (year = the year after it), or 2039.
+    const lived = stage === 'end' ? END_YEAR - 1 : year - 1;
+    const after = ev === 'flourish' || ev === 'benevolent' ? 1 : ev === 'lockin' ? K.medLockin : 0;
+    let medYears = 0;
+    for (let y = START_YEAR; y < END_YEAR; y++) {
+      const f = y <= lived ? 1 : after;
+      if (!f) continue;
+      const i = Math.min(caps.length - 1, Math.max(0, y - K.medLag - START_YEAR));
+      medYears += f * medReach(caps[i]);
+    }
+    return { medYears, lost: catastropheDeaths(ev) };
+  }
+  // Expected lives over a set of futures, from their summed medicine-years and deaths. The shown
+  // figure uses AI medicine's mean reach: the reach changes nothing in a future, so it is
+  // independent of the medicine-years and E[reach × medicine-years] = E[reach] × E[medicine-years].
+  function livesSummary(acc, n, A) {
+    const reach = probMean(A.medicine, 0, 1), medYears = acc.medYears / n;
+    return { saved: reach * K.deathsYr * medYears, lost: acc.lost / n, medYears, reach };
+  }
+  // A future's own lives saved, with its hidden reach (the campaign's truth).
+  const livesSavedTrue = (w, medYears) => w.medicine * K.deathsYr * medYears;
+
   // Monte Carlo: run n futures under fixed levers, returning outcome counts
   // and a sample of trajectories for visualisation.
   function monteCarlo(L, n = 2000, keepPaths = 240, seed = 1, A = defaultAssumptions()) {
     const rng = mulberry32(seed);
     const counts = {};
     for (const k in OUTCOMES) counts[k] = 0;
-    const paths = [];
+    const paths = [], lives = { medYears: 0, lost: 0 };
     let yearsSum = 0;
     for (let i = 0; i < n; i++) {
       const s = initialState(sampleWorld(A, rng)); s.fast = true; // outcomes only: skip shown-risk bookkeeping
-      const path = [{ year: s.year, cap: maxCap(s), align: s.align, coord: s.coord }];
-      let ev = null;
+      const path = [{ year: s.year, cap: maxCap(s), align: s.align, coord: s.coord }], caps = [maxCap(s)];
+      let ev = null, res;
       while (!ev) {
-        ev = step(s, L, rng, true).event;
+        res = step(s, L, rng, true); ev = res.event;
         path.push({ year: s.year, cap: maxCap(s), align: s.align, coord: s.coord });
+        caps.push(maxCap(s));
       }
       counts[ev]++;
       yearsSum += s.year - START_YEAR;
+      const lv = livesOfFuture(caps, ev, res.stage, s.year);
+      lives.medYears += lv.medYears; lives.lost += lv.lost;
       if (i < keepPaths) paths.push({ outcome: ev, points: path, world: s.world });
     }
-    return { counts, n, paths, meanYears: yearsSum / n };
+    return { counts, n, paths, meanYears: yearsSum / n, lives: livesSummary(lives, n, A) };
   }
 
   // The campaign's outlook: of the futures that start from a state the player can see and run
@@ -1267,13 +1351,16 @@
   function summarize(L, A = defaultAssumptions(), n = 2000, seed = 7) {
     const rng = mulberry32(seed);
     const counts = {}; for (const k in OUTCOMES) counts[k] = 0;
-    const acYears = [], asiYears = [];
+    const acYears = [], asiYears = [], lives = { medYears: 0, lost: 0 };
     let pAlign = 0, nAlign = 0;
     for (let i = 0; i < n; i++) {
       const s = initialState(sampleWorld(A, rng)); s.fast = true; // outcomes only: skip shown-risk bookkeeping
-      let ev = null, ac = null;
-      while (!ev) { ev = step(s, L, rng, true).event; if (!ac && maxCap(s) >= AC) ac = s.year; }
+      let ev = null, ac = null, res;
+      const caps = [maxCap(s)];
+      while (!ev) { res = step(s, L, rng, true); ev = res.event; caps.push(maxCap(s)); if (!ac && maxCap(s) >= AC) ac = s.year; }
       counts[ev]++;
+      const lv = livesOfFuture(caps, ev, res.stage, s.year);
+      lives.medYears += lv.medYears; lives.lost += lv.lost;
       if (ac) acYears.push(ac);
       if (maxCap(s) >= 100) asiYears.push(s.year);
       if (ev === 'bio' || ev === 'war') continue;
@@ -1287,6 +1374,7 @@
       acShare: acYears.length / n, acMedian: median(acYears),
       asiShare: asiYears.length / n, asiMedian: median(asiYears),
       pAlignment: nAlign ? pAlign / nAlign : null,
+      lives: livesSummary(lives, n, A),
     };
   }
 
@@ -1335,6 +1423,6 @@
     AC, TOP_EXPERT, TEDAI, DELEG0, oversightBite, delegHazard, uplift, rdShare, locGate, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, assumptionToURL, assumptionFromURL, legacyProbAssumption, betaOf, betaAtZ, probNodes, LOCK_DX, probMean, probSpread, BETA_SD_CAP, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
-    risks, transitionOdds, handoffBelief, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, outlook, outlookStart, outlookTotal, OUTLOOK_SEED, summarize, alignmentScore, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
+    risks, transitionOdds, handoffBelief, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, outlook, outlookStart, outlookTotal, OUTLOOK_SEED, summarize, alignmentScore, medReach, catastropheDeaths, livesOfFuture, livesSummary, livesSavedTrue, worldSeed, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

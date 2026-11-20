@@ -589,13 +589,13 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   M.sampleWorld(A, probe); const used = pos;
   const last = M.mulberry32(42); for (let i = 0; i < used - 2; i++) last();
   const z = Math.sqrt(-2 * Math.log(1 - last())) * Math.cos(2 * Math.PI * last());
-  check('The value-alignment draw is the last draw of a world', Math.abs(a.valueAlign - M.betaAtZ(M.betaOf(A.valueAlign, 0, 1), z)) < 1e-12);
+  check('The value-alignment draw is the last draw of a world\'s main stream (AI medicine\'s reach draws from its own)', Math.abs(a.valueAlign - M.betaAtZ(M.betaOf(A.valueAlign, 0, 1), z)) < 1e-12);
   const prev = M.mulberry32(42); for (let i = 0; i < used - 4; i++) prev();
   const z2 = Math.sqrt(-2 * Math.log(1 - prev())) * Math.cos(2 * Math.PI * prev());
   check('The sharing draw comes just before it', Math.abs(a.share - M.betaAtZ(M.betaOf(A.share, 0, 1), z2)) < 1e-12);
   // One registry: every unknown is drawn exactly once, in a fixed append-only order, and each
   // entry builds its own world fields.
-  const FIXED = ['ease', 'speed', 'whistle', 'benevolent', 'bioDecade', 'cnAlign', 'cnCaution', 'evalGap', 'capNow', 'share', 'valueAlign'];
+  const FIXED = ['ease', 'speed', 'whistle', 'benevolent', 'bioDecade', 'cnAlign', 'cnCaution', 'evalGap', 'capNow', 'share', 'valueAlign', 'medicine'];
   check('DRAW_ORDER keeps the existing draws first and covers every unknown once',
     FIXED.every((k, i) => M.DRAW_ORDER[i] === k) && M.DRAW_ORDER.length === Object.keys(M.ASSUMPTION_INFO).length
       && new Set(M.DRAW_ORDER).size === M.DRAW_ORDER.length && M.DRAW_ORDER.every((k) => typeof M.ASSUMPTION_INFO[k].world === 'function') && Object.isFrozen(M.DRAW_ORDER));
@@ -663,7 +663,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Safest mix / Under 2% promises say they assume the defaults', /under 2% under the default \(AI 2040\) assumptions/.test(PR.PRESET_INFO['Under 2% risk']) && /Under the default \(AI 2040\) assumptions, about 1\.2%/.test(PR.PRESET_INFO['Safest mix']) && html.includes('Your hidden assumptions differ from the defaults'));
   // C14-4: the reference and README document Current capability.
   const readme = require('fs').readFileSync(__dirname + '/README.md', 'utf8');
-  check('Reference documents Current capability and README counts eleven assumptions', html.includes('Current capability: the US bloc') && Object.keys(M.ASSUMPTION_INFO).length === 11 && readme.includes('eleven uncertain'));
+  check('Reference documents Current capability and README counts twelve assumptions', html.includes('Current capability: the US bloc') && Object.keys(M.ASSUMPTION_INFO).length === 12 && readme.includes('twelve uncertain'));
 }
 
 // --- The page loads every script the preview build copies ---
@@ -781,7 +781,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
 // --- Probability unknowns are Betas with the slider's mean and sd (not clipped normals) ---
 {
   const PROB = Object.keys(M.ASSUMPTION_INFO).filter((k) => M.ASSUMPTION_INFO[k].fmt === 'pct');
-  check('The probability unknowns are the seven fmt pct ones', PROB.join() === 'evalGap,benevolent,valueAlign,share,whistle,cnAlign,cnCaution', PROB.join());
+  check('The probability unknowns are the eight fmt pct ones', PROB.join() === 'evalGap,benevolent,valueAlign,share,whistle,cnAlign,cnCaution,medicine', PROB.join());
   // Sampled mean and sd equal the sliders' center and spread, inside [min, max], with no pile at the ends.
   const rng = M.mulberry32(17), n = 100000, sums = {};
   for (const k of PROB) sums[k] = { e: 0, e2: 0, ends: 0, out: 0 };
@@ -832,8 +832,9 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   // Old links: center:spread meant a clipped normal. The default Beta is the old default converted,
   // and any old setting converts to the Beta with the clipped normal's mean and sd.
   const OLD = { evalGap: [0.15, 0.1], benevolent: [0.1, 0.25], valueAlign: [0.25, 0.2], share: [0.3, 0.2], whistle: [0.25, 0.15], cnAlign: [0.35, 0.25], cnCaution: [0.25, 0.25] };
-  check('Each default is the old clipped-normal default converted', PROB.every((k) => { const [m, sd] = M.legacyProbAssumption(k, ...OLD[k]); return m === A0[k].mean && sd === A0[k].sd; }),
-    PROB.map((k) => `${k} ${OLD[k].join('±')} -> ${M.legacyProbAssumption(k, ...OLD[k]).join('±')}`).join(', '));
+  const LEGACY = PROB.filter((k) => k in OLD); // AI medicine's reach came after the switch to Betas
+  check('Each default is the old clipped-normal default converted', LEGACY.length === 7 && LEGACY.every((k) => { const [m, sd] = M.legacyProbAssumption(k, ...OLD[k]); return m === A0[k].mean && sd === A0[k].sd; }),
+    LEGACY.map((k) => `${k} ${OLD[k].join('±')} -> ${M.legacyProbAssumption(k, ...OLD[k]).join('±')}`).join(', '));
   const clip = (m, sd, lo, hi) => { const r = M.mulberry32(3); let e = 0, e2 = 0; const N = 200000;
     for (let i = 0; i < N; i++) { const x = Math.min(hi, Math.max(lo, m + sd * Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r()))); e += x; e2 += x * x; }
     return [e / N, Math.sqrt(e2 / N - (e / N) ** 2)]; };
@@ -956,7 +957,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
     ['structural', 'c \\ge 70'], ['structural', '\\max(0,\\ r-0.03)}{0.52}'], ['structural', '\\operatorname{clip}_{[0.05,1]}'],
     ['structural', '\\operatorname{clip}_{[0.1,1.4]}'], ['structural', 's)-0.5\\big)'], ['structural', '\\min(1.5,\\ c)'],
     ['structural', '\\ell(0.3)'], ['structural', '\\frac{s-0.01}'], ['structural', '\\max(0,\\ C-40)'], ['structural', '\\max(0,\\ C-60)'],
-    ['structural', '\\max(0,\\ C-55)'], ['structural', '\\Big)^{2}'], ['structural', '100 f'],
+    ['structural', '\\max(0,\\ C-55)'], ['structural', '\\Big)^{2}'], ['structural', '100 f'], ['structural', '\\sum_{t=2027}^{2039}'],
     // Worked examples in the prose.
     ['example', '\\Lambda = 30'], ['example', '\\Lambda = 32'],
     // Earlier forms of an equation, quoted to explain where a fitted constant came from.
@@ -1088,6 +1089,49 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
     }
     check(`Policies: a campaign left entirely to Washington (${party} from 2029) plays to an ending`, ok && !!s.outcome, `${years} years, outcome ${s.outcome}`);
   }
+}
+
+// --- Lives: AI medicine against catastrophe (read-only from finished paths) ---
+{
+  const A = M.defaultAssumptions(), L = PRESETS['Status quo'], n = 1500;
+  const at = (mean, sd = A.medicine.sd) => Object.assign({}, A, { medicine: { mean, sd } });
+  const r0 = M.summarize(L, at(0, 0), n, 7), r3 = M.summarize(L, A, n, 7), r6 = M.summarize(L, at(0.6), n, 7);
+  check('Lives: the medicine unknown changes no outcome (same counts, p(alignment) and timelines at reach 0, 0.3 and 0.6)',
+    [r0, r6].every((r) => JSON.stringify(r.counts) === JSON.stringify(r3.counts) && r.pAlignment === r3.pAlignment && r.asiMedian === r3.asiMedian));
+  check('Lives: zero reach saves no one; saved lives rise with the reach and lost lives do not move',
+    r0.lives.saved === 0 && r3.lives.saved > 0 && r6.lives.saved > r3.lives.saved && r0.lives.lost === r3.lives.lost && r6.lives.lost === r3.lives.lost,
+    `${r0.lives.saved.toFixed(1)}M, ${r3.lives.saved.toFixed(1)}M, ${r6.lives.saved.toFixed(1)}M saved; ${r3.lives.lost.toFixed(0)}M lost`);
+  // Belief = average of truth: the shown figure (mean reach × mean medicine-years) matches the average of each
+  // future's own hidden reach × its medicine-years, and does not depend on any one world's draw.
+  let truth = 0; const rng = M.mulberry32(3), N = 4000;
+  for (let i = 0; i < N; i++) {
+    const s = M.initialState(M.sampleWorld(A, rng)); s.fast = true;
+    const caps = [M.maxCap(s)]; let res;
+    do { res = M.step(s, L, rng, true); caps.push(M.maxCap(s)); } while (!res.event);
+    truth += M.livesSavedTrue(s.world, M.livesOfFuture(caps, res.event, res.stage, s.year).medYears);
+  }
+  const mc = M.monteCarlo(L, N, 0, 3, A);
+  check('Lives: the shown saved lives equal the average of each future\'s own hidden reach (within 8%)', Math.abs(truth / N - mc.lives.saved) < 0.08 * mc.lives.saved,
+    `${(truth / N).toFixed(1)}M vs ${mc.lives.saved.toFixed(1)}M`);
+  const meds = Array.from({ length: 4000 }, (_, i) => M.sampleWorld(A, M.mulberry32(i + 1)).medicine), mm = meds.reduce((a, b) => a + b, 0) / meds.length;
+  check('Lives: AI medicine\'s reach is a Beta draw with the slider\'s mean, different across worlds', Math.abs(mm - 0.3) < 0.01 && new Set(meds).size > 3990 && meds.every((x) => x >= 0 && x <= 1), mm.toFixed(3));
+  // Deaths per ending: Locked-In Power and a Benevolent Takeover count none.
+  const K = M.K;
+  check('Lives: Locked-In Power and a Benevolent Takeover count no deaths; loss of control, war and pandemic count theirs',
+    M.catastropheDeaths('lockin') === 0 && M.catastropheDeaths('benevolent') === 0 && M.catastropheDeaths('flourish') === 0 && M.catastropheDeaths('muddle') === 0
+      && M.catastropheDeaths('misalign') === K.lossLoc * K.worldPop && M.catastropheDeaths('war') === K.lossWar * K.worldPop && M.catastropheDeaths('bio') === K.lossBio);
+  // One future by hand: capability 44 in 2027, superintelligence at the end of 2031 (handoff, year 2032).
+  const caps = [44, 55, 70, 85, 95, 100];
+  const fl = M.livesOfFuture(caps, 'flourish', 'handoff', 2032), lk = M.livesOfFuture(caps, 'lockin', 'handoff', 2032), ml = M.livesOfFuture(caps, 'misalign', 'handoff', 2032);
+  // Reach by year, lag 3: 2027–2032 use 2027's 44 → 0; 2033: caps[3] 85 → 0.5; 2034: 95 → 5/6; 2035–2039: 1.
+  check('Lives: a hand-worked future (ramp from 70 to 100, a three-year lag, full after an Aligned Transition, half under lock-in, none after loss of control)',
+    Math.abs(fl.medYears - (0.5 + 25 / 30 + 5)) < 1e-12 && Math.abs(lk.medYears - 0.5 * fl.medYears) < 1e-12 && ml.medYears === 0 && fl.lost === 0 && lk.lost === 0,
+    `${fl.medYears.toFixed(3)}, ${lk.medYears.toFixed(3)}, ${ml.medYears}`);
+  const end = M.livesOfFuture([44, 50, 60, 70, 80, 90, 95, 96, 97, 98, 99, 99, 99, 99], 'muddle', 'end', 2040);
+  check('Lives: a future reaching 2040 counts 2027–2039 only', end.medYears > 0 && end.medYears < 13 && end.lost === 0, end.medYears.toFixed(2));
+  const page = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+  check('Lives: God Mode shows the line with its (i), Copy for AI includes it, and the model page has its section',
+    page.includes('id="livesLine"') && page.includes('id="livesInfo"') && page.includes('fmtLives(r.lives.saved)') && page.includes('8. Lives: AI medicine against catastrophe') && page.includes('not future generations'));
 }
 
 // --- News clips (news.js): see test-news.js ---

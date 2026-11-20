@@ -317,6 +317,16 @@ const META = {
   fundRate: ['J', 'power', 'Wealth fund speed', 'Share of the gap to the fund target bought (or sold) each year'],
   fundExpensive: ['J', 'power', 'Buying in gets expensive', 'How much slower buy-in gets once AI passes expert level'],
   endTrust: ['J', 'power', 'Trust below which power locks in by 2040', 'Without superintelligence, power can lock in by 2040 only below this trust'],
+  // The lives comparison (group 'lives'): read from finished paths, so it cannot move any swept number and is not swept.
+  medStart: ['J', 'lives', 'Capability where AI medicine starts helping', 'AI medicine prevents no deaths below this capability (an Automated Coder)'],
+  medSpan: ['J', 'lives', 'Capability span to full-strength medicine', 'Points of capability from the start of AI medicine to its full reach (superintelligence)'],
+  medLag: ['J', 'lives', 'Years from capability to deployed medicine', 'Trials, manufacturing and rollout delay'],
+  medLockin: ['J', 'lives', 'Medicine reaching people under locked-in power', 'Share of AI medicine\'s benefit that still reaches people after Locked-In Power'],
+  deathsYr: ['S', 'lives', 'World deaths a year (millions)', 'UN World Population Prospects 2024'],
+  worldPop: ['S', 'lives', 'World population (millions)', 'UN World Population Prospects 2024'],
+  lossLoc: ['J', 'lives', 'Share of the world killed by loss of control', 'Deaths counted for a Loss of Control ending'],
+  lossWar: ['J', 'lives', 'Share of the world killed by great-power war', 'Deaths counted for a Great-Power War ending'],
+  lossBio: ['J', 'lives', 'Deaths in an engineered pandemic (millions)', 'The ending\'s 100M+ floor'],
   // Delegation
   deleg0: ['B', 'deleg', 'Delegation in 2027', 'Where delegation starts; its effects are neutral here'],
   delegBite: ['J', 'deleg', 'Oversight lost to rubber-stamping', 'Share of oversight\'s bite lost when everything is delegated'],
@@ -663,9 +673,11 @@ async function main() {
     return;
   }
   const ni = args.indexOf('--n'), n = ni >= 0 ? +args[ni + 1] : 4000;
-  const K0 = M.K_DEFAULTS, keys = Object.keys(K0);
-  const missing = keys.filter((k) => !META[k]), extra = Object.keys(META).filter((k) => !(k in K0));
+  const K0 = M.K_DEFAULTS, allKeys = Object.keys(K0);
+  const missing = allKeys.filter((k) => !META[k]), extra = Object.keys(META).filter((k) => !(k in K0));
   if (missing.length || extra.length) throw new Error(`META out of sync: missing ${missing} extra ${extra}`);
+  // The lives comparison's constants never touch a future, so they are left out of the sweep.
+  const keys = allKeys.filter((k) => META[k][1] !== 'lives');
   const badGroup = keys.filter((k) => !GROUPS.some(([g]) => g === META[k][1]));
   if (badGroup.length) throw new Error(`META has unknown groups for ${badGroup}`);
 

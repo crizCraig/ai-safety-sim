@@ -366,6 +366,11 @@
   .infobub summary:hover, .infobub[open] summary { color: var(--text); }
   .infobub summary:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
   .infobub .plannote { margin-top: 6px; }
+  /* God Mode's lives line under the outcomes: small, below the headline numbers. */
+  .lives { margin: 2px 0 6px; font-size: 11.5px; line-height: 1.45; color: var(--muted); }
+  #livesLine b { font-family: var(--mono); font-weight: 600; color: var(--text); white-space: nowrap; }
+  .lives .infobub { margin: 2px 0 4px; }
+  .lives .plannote { font-size: 11.5px; line-height: 1.5; overflow-wrap: anywhere; }
   /* Jump to a God Mode section: centred under the 3D view on desktop, pinned under the graph on phones. */
   #jumpBar { position: fixed; left: 50%; bottom: 66px; transform: translateX(-50%); z-index: 5; display: flex; gap: 6px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: rgba(8,13,26,.85); backdrop-filter: blur(8px); }
   #jumpBar button { font: 600 13px/1 var(--sans); color: var(--text); background: none; border: 1px solid transparent; border-radius: 999px; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
@@ -763,14 +768,14 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261120120314"></script>
-<script src="events.js?v=20261120120314"></script>
-<script src="policies.js?v=20261120120314"></script>
-<script src="news.js?v=20261120120314"></script>
-<script src="landmask.js?v=20261120120314"></script>
-<script src="presets.js?v=20261120120314"></script>
-<script src="trees.js?v=20261120120314"></script>
-<script src="analytics.js?v=20261120120314"></script>
+<script src="model.js?v=20261120163222"></script>
+<script src="events.js?v=20261120163222"></script>
+<script src="policies.js?v=20261120163222"></script>
+<script src="news.js?v=20261120163222"></script>
+<script src="landmask.js?v=20261120163222"></script>
+<script src="presets.js?v=20261120163222"></script>
+<script src="trees.js?v=20261120163222"></script>
+<script src="analytics.js?v=20261120163222"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -840,6 +845,8 @@
     <h3 id="secOutcomes" class="sechead" data-icon="outcomes">2,000 simulated futures</h3>
     <div class="sub" id="labSub"></div>
     <div id="outcomes"></div>
+    <div class="lives" id="lives"><div id="livesLine"></div>
+      <details class="infobub" id="livesInfo"><summary><span class="ibub" aria-hidden="true">i</span><span>How lives are counted</span></summary><div class="plannote" id="livesNote"></div></details></div>
     <button class="btn copybtn" id="copyPage">Copy for AI</button>
     <div class="note">Copies these settings, the formulas, the model's code and the results as one prompt. Paste it into Claude or another AI and ask it to poke holes in the assumptions.</div>
     <div class="divider"></div>
@@ -1023,6 +1030,7 @@
         <tr><td><span class="mi">a_{\text{CN}}</span></td><td>China's own alignment work, relative to the US bloc's. Work on keeping AI loyal to the Party line does not count. Chinese labs published safety results for 31 of 857 tracked model releases (SemiAnalysis, Oct 2026), and Chinese safety-paper output rose from about 36 to 57 a month (Concordia AI, Jul 2026); neither measures effort relative to the US</td><td><span class="mi">\mathcal{B}(0.36,\ 0.23)</span> <span class="src china long">Informed by Concordia AI and SemiAnalysis (published work, not effort)</span></td></tr>
         <tr><td><span class="mi">q_{\text{CN}}</span></td><td>How far China cuts its race once there are signs of losing control. Through October 2026 Beijing has never slowed frontier AI for safety reasons, though official statements call for keeping AI under human control</td><td><span class="mi">\mathcal{B}(0.27,\ 0.22)</span> <span class="src china long">Informed by official statements and current racing</span></td></tr>
         <tr><td><span class="mi">R_{\text{bio}}</span></td><td>Decade risk of a 100M+ death pandemic counterfactually enabled by open weights, on the default path</td><td><span class="mi">\log_{10} R_{\text{bio}} \sim \mathcal{N}(-3.18,\ 1.00)</span> <span class="src biodec long">Approximation to the author's two-pathway Monte Carlo (2 million samples; source code not yet published). Source median 6.6×10⁻⁴, mean 8.4×10⁻³, 95% interval 5.8×10⁻⁶ to 6.7×10⁻². The game's capped lognormal fits the median and mean; its 95% interval is 7.2×10⁻⁶ to 6.0×10⁻². These are illustrative priors, not measured frequencies.</span></td></tr>
+        <tr><td><span class="mi">\xi</span></td><td>AI medicine's reach: the share of the world's yearly deaths (about 62 million, <a href="https://population.un.org/wpp/" target="_blank" rel="noopener">UN World Population Prospects</a>) that AI medicine at superintelligence would eventually prevent each year. Most deaths come from heart disease, cancer, stroke and other diseases of ageing (WHO), so a high share needs cures that do not exist yet. It feeds no hazard, only the lives comparison (section 8), so it draws from its own random stream and leaves every other draw unchanged</td><td><span class="mi">\mathcal{B}(0.3,\ 0.2)</span> <span class="src own">Assumption</span></td></tr>
       </tbody>
     </table></div>
     <p>Throughout, <span class="mi">\sigma(x) = 1/(1+e^{-x})</span> and <span class="mi">\operatorname{clamp}(x)</span> limits <span class="mi">x</span> to [0, 1]. Every state variable is clamped to 0–100 after each update; difficulty is clamped to [0.1, 5], the probability unknowns already lie in [0, 1], and <span class="mi">R_{\text{bio}}</span> is capped at 0.99. Each year draws the same fixed set of dice whether or not they are used, so a rewound campaign keeps its luck.</p>
@@ -1102,7 +1110,7 @@
     <p>AI plan checks use 6,000 futures; lock-in uses 40,000; realized bio calibration uses 80,000 (seed 11), and the prior mean is analytic. The bio source mixture and its lognormal approximation differ, and each future's exposure varies around the reference average. These account for differences between the source targets and realized risks. p(alignment) counts aligned handoffs as 1 and loss of control as 0, benevolent or not; futures still short of superintelligence in 2040 count their handoff odds given the hidden world; pandemic and war futures are left out.</p>
 
     <h3>7. Which numbers matter</h3>
-    <p>Most constants above are judgment calls, so we moved each of the model's 160 named constants on its own, to half and one and a half times its value (midpoints and thresholds ±10 points), and watched seven headline numbers: catastrophe under the status quo, Plan A and the Safest mix, and p(alignment) under Plans A–D (4,000 futures per run, the same futures every run). The ten that matter most:</p>
+    <p>Most constants above are judgment calls, so we moved each of the model's 160 named constants that shape outcomes on its own (the nine that set only the lives comparison, section 8, cannot move them), to half and one and a half times its value (midpoints and thresholds ±10 points), and watched seven headline numbers: catastrophe under the status quo, Plan A and the Safest mix, and p(alignment) under Plans A–D (4,000 futures per run, the same futures every run). The ten that matter most:</p>
     <div class="tablewrap"><table>
       <thead><tr><th>Value</th><th>Constant</th><th>Largest effect</th><th>Kind</th></tr></thead>
       <tbody>
@@ -1120,7 +1128,13 @@
     </table></div>
     <p>None of the other 150 moves any headline number by more than 5.8 points, and 136 of the 160 move none by more than 3. No constant moves the status quo's catastrophe rate by more than 6 points. Fitted constants trade off against the target they were fitted to, so their swings show how much that target matters. <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/constant-sensitivity.md" target="_blank" rel="noopener">Which numbers matter</a> goes through every constant by topic (how fast AI improves, alignment research, loss of control, war, pandemic, deals, China, lock-in and delegation), saying what each does, where it comes from (a source, fitted to a target, a 2027 baseline or a judgment call) and what it moves; the <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/constant-sensitivity-full.md" target="_blank" rel="noopener">full table</a> has every number. <code>scripts/sweep_constants.js</code> reproduces both. Moving no headline number does not make a constant removable: these presets barely use the wealth fund, oversight or transparency, so <a href="https://github.com/crizCraig/ai-safety-sim/blob/main/docs/simplification-2.md" target="_blank" rel="noopener">Simplifying the model</a> also checks every lever's effect before cutting one.</p>
 
-    <h3>8. What it leaves out</h3>
+    <h3>8. Lives: AI medicine against catastrophe</h3>
+    <p>The model counts how futures end, but racing may also bring AI medicine sooner. So God Mode sets the lives it might save beside the lives catastrophes would take, as expected numbers over the simulated futures from 2027 until the simulation ends in 2040. The tally is read from finished paths and changes no outcome. AI medicine starts helping at an Automated Coder and reaches its full share <span class="mi">\xi</span> of the world's yearly deaths at superintelligence, arriving <span class="mi">⟦medLag⟧</span> years after the capability does (trials, manufacturing, rollout):</p>
+    <div class="math">\text{Saved} = \xi \cdot ⟦deathsYr⟧\,\text{M} \sum_{t=2027}^{2039} w_t\,\operatorname{clamp}\Big(\tfrac{C_{t-⟦medLag⟧}-⟦medStart⟧}{⟦medSpan⟧}\Big), \qquad w_t = \begin{cases} 1 & \text{while the future runs} \\ 1 & \text{after an Aligned Transition or a Benevolent Takeover} \\ ⟦medLockin⟧ & \text{after Locked-In Power} \\ 0 & \text{from the year a deadly catastrophe strikes} \end{cases}</div>
+    <div class="math">\text{Lost} = \begin{cases} ⟦lossLoc⟧ \times ⟦worldPop⟧\,\text{M} & \text{Loss of Control} \\ ⟦lossWar⟧ \times ⟦worldPop⟧\,\text{M} & \text{Great-Power War} \\ ⟦lossBio⟧\,\text{M} & \text{Engineered Pandemic} \\ 0 & \text{Locked-In Power, Benevolent Takeover, Careful Path, Muddling Through} \end{cases}</div>
+    <p><span class="mi">C_{t-⟦medLag⟧}</span> is the frontier capability at the start of that earlier year (the 2027 level for years before 2027, and the level a future ended at for years after it ended). Because <span class="mi">\xi</span> changes nothing in a future, the number shown uses its mean. The world population is about 8.3 billion and yearly deaths about 62 million (UN World Population Prospects 2024). Loss of Control counts everyone, as its ending describes; Great-Power War a tenth of the world, about 830 million, below the 2 to 5 billion of nuclear-winter famine studies (Xia et al., <i>Nature Food</i>, 2022), since the war need not go nuclear; an Engineered Pandemic its 100 million floor. Locked-In Power is a catastrophe but not mass death, so it counts no deaths. The horizon is fixed at 2040, so medicine that arrives in 2038 counts for two years, and the tally counts only people alive in this period, not future generations, who would weigh far more heavily against catastrophe. One year of full-strength medicine at the default reach saves about 19 million lives, the deaths in about 0.2 catastrophe points of Loss of Control: slowing down saves lives on balance whenever it cuts catastrophe by more than that for each year it delays superintelligence. On today's path, a race of 30 instead of 70 delays superintelligence about two years and cuts catastrophe about 8 points.</p>
+
+    <h3>9. What it leaves out</h3>
     <p>Covert projects and cheating on the deal (beyond the age-based dissolution and impairment rates), cyberattacks, countries other than the two blocs, natural pandemics, closed-model and state-program bio risk, misuse beyond bio, conflict between AGIs, events after a terminal ending or after 2040, plans that change over time in God Mode, and whether capability can really be put on one axis at all. Treat it as an argument you can poke at, not an oracle.</p>
 
     <p class="disclaimer">All parameters are illustrative. The lab, company and leaders in this game are fictional composites.</p>
@@ -1147,7 +1161,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261120120314';
+const ASSET_VERSION = '20261120163222';
 // Anonymous usage stats (analytics.js; a no-op until it has a key). track() never throws.
 const GA = window.GameAnalytics;
 const track = (event, props) => { try { if (GA) GA.track(event, props); } catch (e) {} };
@@ -2972,6 +2986,7 @@ function runLab() {
   const mc = M.monteCarlo(labL, 2000, 260, 42, labA);
   lastMC = mc;
   renderOutcomeRows(mc);
+  renderLives(mc.lives);
   const cat = M.CATASTROPHES.reduce((a, k) => a + mc.counts[k], 0) / mc.n;
   $('catNum').textContent = pct(cat, cat < 0.1 ? 1 : 0);
   $('catNum').style.color = cat > 0.4 ? 'var(--bad)' : cat > 0.15 ? 'var(--warn)' : 'var(--good)';
@@ -2997,6 +3012,18 @@ function labProps() {
 }
 // Sent once the settings have been still for 3 s, at most every 10 s, and only when they changed.
 const labSettled = GA ? GA.settler((p) => track('lab_settings', p), 3000, 10000) : () => {};
+// Lives in millions, as 30M, 5.3B or 0.
+const fmtLives = (m) => (m >= 995 ? (m / 1000).toFixed(m >= 9950 ? 0 : 1) + 'B' : m >= 9.95 ? Math.round(m) + 'M' : m >= 0.05 ? m.toFixed(1) + 'M' : '0');
+// The lives comparison's assumptions, from the model's constants (shown behind the (i) and in Copy for AI).
+function livesAssumptions() {
+  const K = M.K, pop = (K.worldPop / 1000).toFixed(1) + ' billion';
+  return `Expected lives from 2027 until the simulation ends in 2040, averaged over these futures. It counts only people alive in this period, not future generations, and it never changes an outcome. <b>Saved:</b> AI medicine prevents a share of the world's ${K.deathsYr} million deaths a year (UN World Population Prospects): none below an Automated Coder (capability ${K.medStart}), rising to the full share at superintelligence (${K.medStart + K.medSpan}), ${K.medLag} years after the capability exists (trials and rollout). The full share is the unknown "AI medicine's reach" (now ${pct(M.probMean(labA.medicine), 0)} on average). Benefits stop when a catastrophe strikes, continue after an Aligned Transition or a Benevolent Takeover, and continue at ${pct(K.medLockin, 0)} under Locked-In Power. <b>Lost:</b> Loss of Control kills ${K.lossLoc >= 1 ? 'everyone' : pct(K.lossLoc, 0) + ' of the world'} (${pop}), Great-Power War ${pct(K.lossWar, 0)} of the world (${fmtLives(K.lossWar * K.worldPop)}), an Engineered Pandemic ${K.lossBio} million (its 100M+ floor). Locked-In Power is a catastrophe but counts no deaths, and a Benevolent Takeover none. People saved earlier in a future that later ends in catastrophe count in both totals. Every figure here is an assumption, set out on the model page (section 8).`;
+}
+function renderLives(lv) {
+  $('livesLine').innerHTML = `Lives by 2040, expected: AI medicine saves <b>${fmtLives(lv.saved)}</b> · catastrophes take <b>${fmtLives(lv.lost)}</b>`;
+  if ($('livesInfo').open || !$('livesNote').innerHTML) $('livesNote').innerHTML = livesAssumptions();
+}
+$('livesInfo').addEventListener('toggle', () => { if ($('livesInfo').open) $('livesNote').innerHTML = livesAssumptions(); });
 function renderOutcomeRows(mc) {
   const order = Object.keys(M.OUTCOMES).sort((a, b) => mc.counts[b] - mc.counts[a]);
   $('outcomes').innerHTML = order.map((k) => {
@@ -3102,6 +3129,7 @@ ${outcomes}
 - Automated Coder (capability 70) reached in ${p1(r.acShare)} of futures${r.acMedian ? `, median year ${r.acMedian}` : ''}
 - Superintelligence (capability 100) reached in ${p1(r.asiShare)} of futures${r.asiMedian ? `, median year ${r.asiMedian}` : ''}
 - p(alignment), excluding pandemic and war futures: ${r.pAlignment == null ? 'n/a' : p1(r.pAlignment)}
+- Lives by 2040, expected: AI medicine saves ${fmtLives(r.lives.saved)}; catastrophes take ${fmtLives(r.lives.lost)}. ${plainText(livesAssumptions())}
 
 ${modelAppendix()}`;
 }
