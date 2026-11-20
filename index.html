@@ -304,6 +304,8 @@
   .slider .row span:last-child { font-family: var(--mono); font-size: 15px; color: var(--accent); white-space: nowrap; }
   .slider input { width: 100%; accent-color: var(--accent); margin: 4px 0 0; }
   .slider .ends { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: var(--muted); }
+  .pair .ends { font-size: 10.5px; line-height: 1.25; margin-top: 2px; }
+  .pair .ends span:last-child { text-align: right; }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .pair label { font-size: 10px; color: var(--muted); }
   .amarks { position: relative; height: 13px; margin: 0 7px; }
@@ -761,14 +763,14 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261119215334"></script>
-<script src="events.js?v=20261119215334"></script>
-<script src="policies.js?v=20261119215334"></script>
-<script src="news.js?v=20261119215334"></script>
-<script src="landmask.js?v=20261119215334"></script>
-<script src="presets.js?v=20261119215334"></script>
-<script src="trees.js?v=20261119215334"></script>
-<script src="analytics.js?v=20261119215334"></script>
+<script src="model.js?v=20261120120042"></script>
+<script src="events.js?v=20261120120042"></script>
+<script src="policies.js?v=20261120120042"></script>
+<script src="news.js?v=20261120120042"></script>
+<script src="landmask.js?v=20261120120042"></script>
+<script src="presets.js?v=20261120120042"></script>
+<script src="trees.js?v=20261120120042"></script>
+<script src="analytics.js?v=20261120120042"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -1145,7 +1147,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261119215334';
+const ASSET_VERSION = '20261120120042';
 // Anonymous usage stats (analytics.js; a no-op until it has a key). track() never throws.
 const GA = window.GameAnalytics;
 const track = (event, props) => { try { if (GA) GA.track(event, props); } catch (e) {} };
@@ -2837,7 +2839,7 @@ function buildAssumptionUI() {
   // Similar unknowns sit together, with a little extra space between groups (ASSUMPTION_INFO is ordered by group).
   $('assumptions').innerHTML = Object.entries(M.ASSUMPTION_INFO).map(([k, info], i, all) =>
     `${info.group && (i === 0 || all[i - 1][1].group !== info.group) ? '<div class="ggap"></div>' : ''}<div class="slider"><div class="row"><span>${info.label}</span><span id="av-${k}"></span></div>
-      <div class="pair"><label>center<input type="range" id="am-${k}" min="${info.min}" max="${info.max}" step="${info.fmt === 'num' ? 1 : 0.01}" aria-label="${info.label} center">${marksHTML(info)}</label>
+      <div class="pair"><label>center<input type="range" id="am-${k}" min="${info.min}" max="${info.max}" step="${info.fmt === 'num' ? 1 : 0.01}" aria-label="${info.label} center">${marksHTML(info)}${info.low ? `<div class="ends"><span>${info.low}</span><span>${info.high}</span></div>` : ''}</label>
       <label>± spread<input type="range" id="as-${k}" min="0" max="${(info.max - info.min) / 3}" step="0.01" aria-label="${info.label} spread"></label></div>
       <details class="infobub uhelp"><summary><span class="ibub" aria-hidden="true">i</span><span>What this means</span></summary><div class="note">${info.help}</div></details></div>`
   ).join('');
@@ -3383,6 +3385,8 @@ function rollWorld(then) {
   // Enter or Space settles the roll, then begins.
   const onKey = (e) => {
     if (['Shift', 'Control', 'Alt', 'Meta', 'Tab'].includes(e.key)) return;
+    // Browser shortcuts (Cmd/Ctrl +/− zoom, Cmd+R, Cmd+L…) still work; the game just doesn't see them.
+    if (e.metaKey || e.ctrlKey || e.altKey) { e.stopImmediatePropagation(); return; }
     e.preventDefault(); e.stopImmediatePropagation();
     if (!['Enter', ' '].includes(e.key)) return;
     if (settled) end(true); else settle(true);
