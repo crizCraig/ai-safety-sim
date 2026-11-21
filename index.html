@@ -544,6 +544,10 @@
   .endshare { margin: 14px 0 4px; display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
   .endshare-btn { font-size: 16px; font-weight: 600; padding: 11px 22px; background: rgba(127,227,255,0.2); }
   .endshare-txt { font-size: 12.5px; color: var(--muted); font-style: italic; max-width: 46ch; }
+  .endshare-row { display: flex; align-items: center; gap: 10px; }
+  .endshare-thumb { flex: none; display: block; width: 52px; height: 65px; border-radius: 5px; overflow: hidden; border: 1px solid var(--line); background: var(--panel-solid); }
+  .endshare-thumb[hidden] { display: none; }
+  .endshare-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
   .btn:hover { background: rgba(127,227,255,0.22); color: var(--text); }
   .disclaimer { font-size: 11.5px !important; color: var(--muted) !important; border-left: 2px solid var(--warn); padding-left: 10px; }
   .declist { font-size: 12.5px; margin: 8px 0 0; padding-left: 18px; }
@@ -957,7 +961,10 @@
     <p id="endText"></p>
     <div class="endshare">
       <button class="btn endshare-btn" id="endShare">Share your result</button>
-      <div class="endshare-txt" id="endShareTxt"></div>
+      <div class="endshare-row">
+        <a class="endshare-thumb" id="endShareThumb" hidden download="game-of-agi.png" title="Download the image" aria-label="Download your result as an image"><img id="endShareImg" alt=""></a>
+        <div class="endshare-txt" id="endShareTxt"></div>
+      </div>
     </div>
     <div class="world-reveal difficulty" id="endDiff"></div>
     <div class="world-reveal" id="endWorld"></div>
@@ -2600,6 +2607,7 @@ function showEnding() {
   $('endTitle').style.color = o.color;
   $('endText').textContent = o.text;
   $('endShareTxt').textContent = '“' + endShareText() + '”';
+  $('endShareThumb').hidden = true;
   $('endDecisions').innerHTML = decisionItems(true);
   $('endBack').textContent = `‹ Back to ${game.decisions[game.decisions.length - 1].year}`;
   const { mc, d, mine } = endingInfo();
@@ -2609,6 +2617,7 @@ function showEnding() {
   const lastEst = [...game.decisions].reverse().find((x) => x.result?.est)?.result.est.byEnd;
   track('camp_end', { outcome: s.outcome, year: s.year, n: game.decisions.length, ff: game.decisions.filter((x) => x.by).length,
     cat_policy: round3(mine), cat_last: lastEst == null ? null : round3(lastEst), difficulty: d.tier[0], secrets: secretsOn, party: game.party, ...game.nav, ...levProps(game.L) });
+  prepareShareImage();
   $('endMC').innerHTML = `<p class="mcline">Your game was one path through one world. For comparison: if your <i>final</i> policy had been in place since 2027, across ${mc.n.toLocaleString()} possible worlds, futures would end like this:</p>` + mcBar(mc);
   $('ending').classList.remove('hidden');
   // Always open at the top (the outcome and its picture), whatever was scrolled before.
@@ -3405,12 +3414,191 @@ function endShareText() {
   if (s.outcome === 'benevolent') return `We lost control in ${s.year} in the Game of AGI, but the AI turned out kind. Lucky. Can you do better?`;
   return `${o.title} in ${s.year}. I couldn't save humanity in the Game of AGI, after ${steps}. Can you?`;
 }
-$('endShare').onclick = () => {
+// The share image: a 1080×1350 (4:5) portrait card of the ending, drawn on a canvas from what the
+// ending screen already shows (outcome, world difficulty, the final policy's outcome shares and the
+// decisions), with no network calls beyond the same-origin ending art. 4:5 is the tallest shape X,
+// Instagram and Reddit show uncropped in a feed, and fits up to 14 decisions in two columns.
+const SHARE_W = 1080, SHARE_H = 1350;
+const cssColor = (c) => (String(c).startsWith('var(') ? getComputedStyle(document.documentElement).getPropertyValue(c.slice(4, -1)).trim() || '#e6edf8' : c);
+const shareFileName = () => `game-of-agi-${game.s.year}-${game.s.outcome}.png`;
+// Fit text to a width: wrap into at most maxLines lines, ending the last one with … if it is cut.
+function fitLines(ctx, text, width, maxLines) {
+  const words = String(text).split(/\s+/), lines = [];
+  let line = '';
+  for (let i = 0; i < words.length; i++) {
+    const t = line ? line + ' ' + words[i] : words[i];
+    if (ctx.measureText(t).width <= width || !line) { line = t; continue; }
+    lines.push(line); line = words[i];
+    if (lines.length === maxLines) { line = lines.pop() + ' ' + words.slice(i).join(' '); break; }
+  }
+  lines.push(line);
+  const last = lines.length - 1;
+  if (ctx.measureText(lines[last]).width > width) {
+    let t = lines[last];
+    while (t.length > 1 && ctx.measureText(t + '…').width > width) t = t.slice(0, -1);
+    lines[last] = t.replace(/[\s,.;:–-]+$/, '') + '…';
+  }
+  return lines;
+}
+async function drawShareImage() {
+  const s = game.s, o = M.OUTCOMES[s.outcome], n = game.decisions.length;
+  const { mc, d } = endingInfo();
+  const decisions = game.decisions.map((x) => [x.year, x.label, x.title]);
+  const kicker = $('endKicker').textContent;
+  const SANS = '"Space Grotesk", system-ui, sans-serif', MONO = '"JetBrains Mono", ui-monospace, monospace';
+  // Fonts used only here may not have loaded yet; wait briefly for them, then draw with whatever is there.
+  const fonts = document.fonts ? Promise.all(['700 80px "Space Grotesk"', '500 28px "Space Grotesk"', '600 20px "JetBrains Mono"', '400 20px "JetBrains Mono"']
+    .map((f) => document.fonts.load(f).catch(() => {}))).then(() => document.fonts.ready) : Promise.resolve();
+  const art = new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = endArtUrl(s.outcome); });
+  const [img] = await Promise.all([art, Promise.race([fonts, new Promise((r) => setTimeout(r, 2500))])]);
+  if (!game || game.s !== s) return null;
+  const cv = document.createElement('canvas');
+  cv.width = SHARE_W; cv.height = SHARE_H;
+  const ctx = cv.getContext('2d'), X = 64, W = SHARE_W - 2 * X;
+  const C = { bg: '#03060d', text: '#e6edf8', muted: '#9eabc2', accent: '#7fe3ff', line: 'rgba(130,170,255,0.22)' };
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, SHARE_W, SHARE_H);
+  // The ending's art as a band across the top, fading into the page.
+  const ART_H = 450;
+  if (img) {
+    const r = Math.max(SHARE_W / img.width, ART_H / img.height), w = img.width * r, h = img.height * r;
+    ctx.globalAlpha = 0.85; ctx.drawImage(img, (SHARE_W - w) / 2, (ART_H - h) / 2, w, h); ctx.globalAlpha = 1;
+    let g = ctx.createLinearGradient(0, 0, 0, 150);
+    g.addColorStop(0, 'rgba(3,6,13,0.85)'); g.addColorStop(1, 'rgba(3,6,13,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, SHARE_W, 150);
+    g = ctx.createLinearGradient(0, 200, 0, ART_H);
+    g.addColorStop(0, 'rgba(3,6,13,0)'); g.addColorStop(0.7, 'rgba(3,6,13,0.85)'); g.addColorStop(1, C.bg);
+    ctx.fillStyle = g; ctx.fillRect(0, 200, SHARE_W, ART_H - 200 + 1);
+  }
+  ctx.textBaseline = 'alphabetic';
+  const label = (t, y) => { ctx.font = `600 19px ${MONO}`; ctx.fillStyle = C.muted; ctx.letterSpacing = '3px'; ctx.fillText(t.toUpperCase(), X, y); ctx.letterSpacing = '0px'; };
+  // Wordmark and kicker.
+  ctx.font = `600 26px ${MONO}`; ctx.letterSpacing = '6px'; ctx.fillStyle = C.accent; ctx.fillText('GAME OF AGI', X, 72);
+  ctx.font = `500 22px ${MONO}`; ctx.letterSpacing = '2px'; ctx.fillStyle = C.text; ctx.textAlign = 'right';
+  ctx.fillText(kicker.toUpperCase(), SHARE_W - X, 72); ctx.textAlign = 'left'; ctx.letterSpacing = '0px';
+  // Outcome title, as large as fits on one line, and the share line under it.
+  let size = 84;
+  do { ctx.font = `700 ${size}px ${SANS}`; } while (ctx.measureText(o.title).width > W && (size -= 4) > 40);
+  ctx.shadowColor = 'rgba(0,0,0,0.75)'; ctx.shadowBlur = 18;
+  ctx.fillStyle = o.color; ctx.fillText(o.title, X, 390);
+  ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+  ctx.font = `400 28px ${SANS}`; ctx.fillStyle = C.text;
+  let y = 440;
+  for (const l of fitLines(ctx, endShareText(), W, 2)) { ctx.fillText(l, X, y); y += 38; }
+  // World difficulty: the tier and how it ranks among worlds.
+  y += 34; label('World difficulty', y); y += 46;
+  const tierC = cssColor(d.tier[1]);
+  ctx.font = `700 40px ${SANS}`; ctx.fillStyle = tierC; ctx.fillText(d.tier[0], X, y);
+  const tw = ctx.measureText(d.tier[0]).width;
+  const [b, , a] = M.roundShares([d.below, d.same, d.above]);
+  ctx.font = `400 27px ${SANS}`; ctx.fillStyle = C.muted;
+  ctx.fillText(b >= a ? (b > 0 ? `harder than ${b}% of worlds` : 'about as hard as most worlds') : `easier than ${a}% of worlds`, X + tw + 20, y);
+  // Outcome shares if the final policy had run since 2027: a stacked bar and a three-column legend.
+  y += 52; label('If your final policy had run since 2027', y); y += 18;
+  const order = Object.keys(M.OUTCOMES).filter((k) => mc.counts[k]).sort((p, q) => mc.counts[q] - mc.counts[p]);
+  const BAR_H = 34;
+  ctx.save(); ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(X, y, W, BAR_H, 8); else ctx.rect(X, y, W, BAR_H); ctx.clip();
+  let bx = X;
+  for (const k of order) { const w = mc.counts[k] / mc.n * W; ctx.fillStyle = M.OUTCOMES[k].color; ctx.fillRect(bx, y, w + 0.5, BAR_H); bx += w; }
+  ctx.restore();
+  y += BAR_H + 38;
+  const legend = order.filter((k) => mc.counts[k] / mc.n >= 0.005), colW = W / 3;
+  legend.forEach((k, i) => {
+    const lx = X + (i % 3) * colW, ly = y + Math.floor(i / 3) * 34;
+    ctx.fillStyle = M.OUTCOMES[k].color; ctx.beginPath(); ctx.arc(lx + 7, ly - 8, 7, 0, Math.PI * 2); ctx.fill();
+    const p = pct(mc.counts[k] / mc.n, 0);
+    ctx.font = `600 22px ${MONO}`; const pw = ctx.measureText(p).width;
+    ctx.fillText(p, lx + colW - 18 - pw, ly);
+    ctx.font = `500 22px ${SANS}`; ctx.fillStyle = C.text;
+    ctx.fillText(fitLines(ctx, M.OUTCOMES[k].title, colW - 54 - pw, 1)[0], lx + 22, ly);
+  });
+  y += Math.ceil(legend.length / 3) * 34 + 14;
+  // The decisions: one column for a short game, two for a long one; each label wraps to two lines
+  // when there is room and is cut with … when it is still too long.
+  const FOOT = SHARE_H - 92;
+  label(`Your ${n} decision${n === 1 ? '' : 's'}`, y); y += 14;
+  const cols = n > 7 ? 2 : 1, rows = Math.ceil(n / cols) || 1, gap = 32, cw = (W - gap * (cols - 1)) / cols;
+  // A short game has room for each card's title above the choice.
+  const roomy = cols === 1 && (FOOT - y) / rows >= 70;
+  const rowH = Math.min(roomy ? 80 : 64, (FOOT - y) / rows), fs = roomy ? 26 : Math.max(19, Math.min(25, Math.floor(rowH / 2.7))), lh = fs * 1.2;
+  const maxLines = !roomy && rowH >= lh * 2 + 6 ? 2 : 1;
+  decisions.forEach(([yr, lab, title], i) => {
+    const c = cols === 2 ? Math.floor(i / rows) : 0, r = cols === 2 ? i % rows : i;
+    const dx = X + c * (cw + gap), dy = y + r * rowH + (rowH - lh * (maxLines === 2 || roomy ? 2 : 1)) / 2 + fs;
+    ctx.font = `600 ${fs - 2}px ${MONO}`;
+    const yw = ctx.measureText('2040').width + 14;
+    ctx.font = `${roomy ? 500 : 400} ${fs}px ${SANS}`;
+    const lines = fitLines(ctx, lab, cw - yw, maxLines), shift = lines.length === 1 && maxLines === 2 ? lh / 2 : 0;
+    ctx.font = `600 ${fs - 2}px ${MONO}`; ctx.fillStyle = C.accent; ctx.fillText(String(yr), dx, dy + shift);
+    if (roomy) {
+      ctx.font = `400 21px ${SANS}`; ctx.fillStyle = C.muted;
+      ctx.fillText(fitLines(ctx, title, cw - yw, 1)[0], dx + yw, dy - 2);
+    }
+    ctx.font = `${roomy ? 500 : 400} ${fs}px ${SANS}`; ctx.fillStyle = C.text;
+    lines.forEach((l, j) => ctx.fillText(l, dx + yw, dy + (roomy ? lh : 0) + j * lh + shift));
+  });
+  // Footer.
+  ctx.fillStyle = C.line; ctx.fillRect(X, SHARE_H - 86, W, 1);
+  ctx.font = `600 26px ${MONO}`; ctx.fillStyle = C.accent; ctx.fillText('thegameofagi.com', X, SHARE_H - 40);
+  ctx.font = `500 28px ${SANS}`; ctx.fillStyle = C.text; ctx.textAlign = 'right';
+  ctx.fillText('Can you save humanity?', SHARE_W - X, SHARE_H - 40); ctx.textAlign = 'left';
+  const blob = await new Promise((res) => { try { cv.toBlob(res, 'image/png'); } catch (e) { res(null); } });
+  return blob && game && game.s === s ? blob : null;
+}
+// Drawn as soon as the ending shows, so the share sheet can open straight from the tap (iOS needs
+// the tap's activation, which a long await would spend). Shows a small preview that downloads it.
+let shareImgUrl = null;
+function prepareShareImage() {
+  game.shareBlob = null;
+  const job = game.shareImg = drawShareImage().catch((e) => { console.error('Game of AGI: share image failed', e); return null; });
+  job.then((blob) => {
+    if (game?.shareImg !== job) return;
+    game.shareBlob = blob;
+    if (!blob) return;
+    if (shareImgUrl) URL.revokeObjectURL(shareImgUrl);
+    shareImgUrl = URL.createObjectURL(blob);
+    $('endShareImg').src = shareImgUrl;
+    $('endShareThumb').href = shareImgUrl; $('endShareThumb').download = shareFileName();
+    $('endShareThumb').hidden = false;
+  });
+}
+$('endShareThumb').onclick = () => track('share', { from: 'ending', native: false, img: true, how: 'download', outcome: game.s.outcome });
+function downloadShareImage(blob) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = shareFileName();
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+$('endShare').onclick = async () => {
   const url = SITE.replace(/\/?$/, '/') + '?utm_source=share&utm_campaign=ending';
-  const text = endShareText(), mobile = navigator.share && matchMedia('(pointer: coarse)').matches;
-  track('share', { from: 'ending', native: !!mobile, outcome: game.s.outcome });
-  if (mobile) { try { navigator.share({ title: 'Game of AGI', text, url }).catch(() => {}); return; } catch (e) {} }
-  writeClip(text + ' ' + url, () => toast('Copied. Paste it anywhere to share your result.'));
+  const text = endShareText(), mobile = !!navigator.share && matchMedia('(pointer: coarse)').matches;
+  const sent = (img, how) => track('share', { from: 'ending', native: how === 'native', img, how, outcome: game.s.outcome });
+  const blob = game.shareBlob || await game.shareImg;
+  const file = blob && typeof File === 'function' ? new File([blob], shareFileName(), { type: 'image/png' }) : null;
+  if (mobile) {
+    try {
+      if (file && navigator.canShare?.({ files: [file] })) {
+        sent(true, 'native');
+        navigator.share({ files: [file], title: 'Game of AGI', text: text + ' ' + url }).catch(() => {});
+        return;
+      }
+      sent(false, 'native');
+      navigator.share({ title: 'Game of AGI', text, url }).catch(() => {}); return;
+    } catch (e) {}
+  }
+  if (!blob) { sent(false, 'text'); writeClip(text + ' ' + url, () => toast('Copied. Paste it anywhere to share your result.')); return; }
+  // Desktop: the image (with the line and link as text) on the clipboard; if that is refused, a download.
+  const plain = new Blob([text + ' ' + url], { type: 'text/plain' });
+  const tryWrite = (items) => navigator.clipboard.write([new ClipboardItem(items)]);
+  try {
+    if (!navigator.clipboard?.write || typeof ClipboardItem !== 'function') throw new Error('no image clipboard');
+    await tryWrite({ 'image/png': blob, 'text/plain': plain }).catch(() => tryWrite({ 'image/png': blob }));
+    sent(true, 'clipboard');
+    toast('Image copied. Paste it into a post with the link thegameofagi.com, or click the preview to download it.');
+  } catch (e) {
+    sent(true, 'download');
+    downloadShareImage(blob);
+    toast(`Saved ${shareFileName()}. Attach it to a post with the link thegameofagi.com.`);
+  }
 };
 function copyForAI(text, msg) {
   const ok = () => toast(msg);

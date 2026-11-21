@@ -108,6 +108,9 @@ function run(check) {
   const endFn = html.slice(html.indexOf('function showEnding()'), html.indexOf('function showEnding()') + 4000);
   check('Analytics: the outcome is sent only from the ending (once it is revealed)',
     calls.filter(([, rest]) => /outcome/.test(rest)).every(([n, rest]) => n === 'camp_end' || n === 'again' || (n === 'share' && /from: 'ending'/.test(rest))) && endFn.includes("track('camp_end'"));
+  const endShares = calls.filter(([n, rest]) => n === 'share' && /from: 'ending'/.test(rest));
+  check('Analytics: the ending\'s share says whether an image went out and how', endShares.length > 0 && endShares.every(([, rest]) => /\bimg\b/.test(rest) && /\bhow\b/.test(rest))
+    && /`img`[^\n]*`how`/.test(agents));
   check('Analytics: the About page has the privacy note', /id="privacyNote"[^>]*>Privacy:[^<]*no cookies[^<]*Do Not Track or Global Privacy Control/.test(html));
   check('Analytics: index.html loads analytics.js and the artifact build copies it',
     /<script src="analytics\.js\?v=/.test(html) && fs.readFileSync(__dirname + '/scripts/build_artifact.py', 'utf8').includes('"analytics.js"'));
