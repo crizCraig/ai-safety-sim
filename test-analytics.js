@@ -7,10 +7,12 @@ function run(check) {
   const A = GA.ANALYTICS;
   const sent = [];
   let nav = {};
+  let host = 'thegameofagi.com';
   let clock = 0;
   const timers = [];
   GA.env = {
     nav: () => nav,
+    host: () => host,
     now: () => clock,
     date: () => '2026-01-01T00:00:00.000Z',
     width: () => 390,
@@ -44,6 +46,12 @@ function run(check) {
   check('Analytics: Do Not Track and Global Privacy Control block sending', dnt === false && gpc === false && sent.length === 0);
 
   nav = {};
+  host = 'localhost';
+  const local = GA.track('visit', {});
+  host = 'preview.example.com';
+  const other = GA.track('visit', {});
+  check('Analytics: only thegameofagi.com sends (local copies and previews send nothing)', local === false && other === false && sent.length === 0);
+  host = 'thegameofagi.com';
   clock = 12345;
   GA.track('camp_choice', { year: 2027, card: 'export', choice: 1 });
   const p = sent[0] && sent[0].body, pr = (p && p.properties) || {};
@@ -99,7 +107,7 @@ function run(check) {
   check('Analytics: no event reads the hidden world, typed text or the full URL', !leaky.length, leaky.map(([n]) => n).join(', '));
   const endFn = html.slice(html.indexOf('function showEnding()'), html.indexOf('function showEnding()') + 4000);
   check('Analytics: the outcome is sent only from the ending (once it is revealed)',
-    calls.filter(([, rest]) => /outcome/.test(rest)).every(([n]) => n === 'camp_end' || n === 'again') && endFn.includes("track('camp_end'"));
+    calls.filter(([, rest]) => /outcome/.test(rest)).every(([n, rest]) => n === 'camp_end' || n === 'again' || (n === 'share' && /from: 'ending'/.test(rest))) && endFn.includes("track('camp_end'"));
   check('Analytics: the About page has the privacy note', /id="privacyNote"[^>]*>Privacy:[^<]*no cookies[^<]*Do Not Track or Global Privacy Control/.test(html));
   check('Analytics: index.html loads analytics.js and the artifact build copies it',
     /<script src="analytics\.js\?v=/.test(html) && fs.readFileSync(__dirname + '/scripts/build_artifact.py', 'utf8').includes('"analytics.js"'));

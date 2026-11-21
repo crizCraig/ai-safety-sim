@@ -14,6 +14,7 @@ const ANALYTICS = { endpoint: 'https://us.i.posthog.com/i/v0/e/', key: 'phc_z3AM
   // Swappable in tests.
   GA.env = {
     nav: () => root.navigator || {},
+    host: () => { try { return root.location.hostname; } catch (e) { return ''; } },
     now: () => (root.performance && root.performance.now ? root.performance.now() : Date.now()),
     date: () => new Date().toISOString(),
     width: () => root.innerWidth || 0,
@@ -32,7 +33,9 @@ const ANALYTICS = { endpoint: 'https://us.i.posthog.com/i/v0/e/', key: 'phc_z3AM
     const n = GA.env.nav();
     return n.doNotTrack === '1' || n.doNotTrack === 'yes' || n.globalPrivacyControl === true;
   };
-  GA.enabled = () => !!ANALYTICS.key && !GA.blocked();
+  // Only the real site sends: local copies, previews and test runs stay out of the numbers.
+  GA.liveHost = () => /^(www\.)?thegameofagi\.com$/.test(GA.env.host() || '');
+  GA.enabled = () => !!ANALYTICS.key && !GA.blocked() && GA.liveHost();
 
   GA.device = (w = GA.env.width()) => (w <= 640 ? 'phone' : w <= 1024 ? 'tablet' : 'desktop');
   // The properties every event carries.

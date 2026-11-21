@@ -541,6 +541,9 @@
   .btnrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
   .btn { border: 1px solid var(--accent); background: rgba(127,227,255,0.12); padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 500; }
   .btn.ghost { border-color: var(--line); background: none; color: var(--muted); }
+  .endshare { margin: 14px 0 4px; display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
+  .endshare-btn { font-size: 16px; font-weight: 600; padding: 11px 22px; background: rgba(127,227,255,0.2); }
+  .endshare-txt { font-size: 12.5px; color: var(--muted); font-style: italic; max-width: 46ch; }
   .btn:hover { background: rgba(127,227,255,0.22); color: var(--text); }
   .disclaimer { font-size: 11.5px !important; color: var(--muted) !important; border-left: 2px solid var(--warn); padding-left: 10px; }
   .declist { font-size: 12.5px; margin: 8px 0 0; padding-left: 18px; }
@@ -952,6 +955,10 @@
     <div class="kicker" id="endKicker"></div>
     <h1 id="endTitle"></h1>
     <p id="endText"></p>
+    <div class="endshare">
+      <button class="btn endshare-btn" id="endShare">Share your result</button>
+      <div class="endshare-txt" id="endShareTxt"></div>
+    </div>
     <div class="world-reveal difficulty" id="endDiff"></div>
     <div class="world-reveal" id="endWorld"></div>
     <div id="endMC"></div>
@@ -2592,6 +2599,7 @@ function showEnding() {
   $('endTitle').textContent = o.title;
   $('endTitle').style.color = o.color;
   $('endText').textContent = o.text;
+  $('endShareTxt').textContent = '“' + endShareText() + '”';
   $('endDecisions').innerHTML = decisionItems(true);
   $('endBack').textContent = `‹ Back to ${game.decisions[game.decisions.length - 1].year}`;
   const { mc, d, mine } = endingInfo();
@@ -3386,6 +3394,23 @@ $('shareLink').onclick = () => {
   }
   const ok = () => toast('Link copied. Anyone who opens it sees these settings in God Mode.');
   writeClip(url, ok);
+};
+// A short, spoiler-free line about how this game ended, for sharing (Wordle-style: the result, then a challenge).
+function endShareText() {
+  const s = game.s, o = M.OUTCOMES[s.outcome], n = game.decisions.length;
+  const good = ['flourish', 'pause'].includes(s.outcome);
+  const steps = `${n} decision${n === 1 ? '' : 's'}`;
+  if (good) return `I steered humanity to ${o.title} in ${s.year} in the Game of AGI, after ${steps}. Can you?`;
+  if (s.outcome === 'muddle') return `I made it to ${s.year} in the Game of AGI without a catastrophe, but nothing settled. Can you do better?`;
+  if (s.outcome === 'benevolent') return `We lost control in ${s.year} in the Game of AGI, but the AI turned out kind. Lucky. Can you do better?`;
+  return `${o.title} in ${s.year}. I couldn't save humanity in the Game of AGI, after ${steps}. Can you?`;
+}
+$('endShare').onclick = () => {
+  const url = SITE.replace(/\/?$/, '/') + '?utm_source=share&utm_campaign=ending';
+  const text = endShareText(), mobile = navigator.share && matchMedia('(pointer: coarse)').matches;
+  track('share', { from: 'ending', native: !!mobile, outcome: game.s.outcome });
+  if (mobile) { try { navigator.share({ title: 'Game of AGI', text, url }).catch(() => {}); return; } catch (e) {} }
+  writeClip(text + ' ' + url, () => toast('Copied. Paste it anywhere to share your result.'));
 };
 function copyForAI(text, msg) {
   const ok = () => toast(msg);
