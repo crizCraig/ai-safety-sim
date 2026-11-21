@@ -779,14 +779,14 @@
   #ending .endwu a { color: var(--accent); }
   @media (max-width: 640px) { #writeupLink { display: none; } }
 </style>
-<script src="model.js?v=20261121125843"></script>
-<script src="events.js?v=20261121125843"></script>
-<script src="policies.js?v=20261121125843"></script>
-<script src="news.js?v=20261121125843"></script>
-<script src="landmask.js?v=20261121125843"></script>
-<script src="presets.js?v=20261121125843"></script>
-<script src="trees.js?v=20261121125843"></script>
-<script src="analytics.js?v=20261121125843"></script>
+<script src="model.js?v=20261121132151"></script>
+<script src="events.js?v=20261121132151"></script>
+<script src="policies.js?v=20261121132151"></script>
+<script src="news.js?v=20261121132151"></script>
+<script src="landmask.js?v=20261121132151"></script>
+<script src="presets.js?v=20261121132151"></script>
+<script src="trees.js?v=20261121132151"></script>
+<script src="analytics.js?v=20261121132151"></script>
 </head>
 <body class="mode-lab">
 <canvas id="gl"></canvas>
@@ -1172,7 +1172,7 @@ const structuredClone = globalThis.structuredClone || function clone(v) {
   return v;
 };
 // Bumped by scripts/stamp_version.py on every push so browsers fetch fresh files.
-const ASSET_VERSION = '20261121125843';
+const ASSET_VERSION = '20261121132151';
 // Anonymous usage stats (analytics.js; a no-op until it has a key). track() never throws.
 const GA = window.GameAnalytics;
 const track = (event, props) => { try { if (GA) GA.track(event, props); } catch (e) {} };
@@ -3028,8 +3028,8 @@ const labSettled = GA ? GA.settler((p) => track('lab_settings', p), 3000, 10000)
 const fmtLives = (m) => (m >= 995 ? (m / 1000).toFixed(m >= 9950 ? 0 : 1) + 'B' : m >= 9.95 ? Math.round(m) + 'M' : m >= 0.05 ? m.toFixed(1) + 'M' : m >= 0.0005 ? Math.round(m * 1000) + 'K' : m > 0 ? '<1K' : '0');
 // The lives comparison's assumptions, from the model's constants (shown behind the (i) and in Copy for AI).
 function livesAssumptions() {
-  const K = M.K, pop = (K.worldPop / 1000).toFixed(1) + ' billion';
-  return `Expected lives from 2027 until the simulation ends in 2040, averaged over these futures. It counts only people alive in this period, not future generations, and it never changes an outcome. <b>Saved:</b> AI medicine prevents a share of the world's ${K.deathsYr} million deaths a year (UN World Population Prospects): none below an Automated Coder (capability ${K.medStart}), rising to the full share at superintelligence (${K.medStart + K.medSpan}), ${K.medLag} years after the capability exists (trials and rollout). The full share is the unknown "AI medicine's reach" (now ${pct(M.probMean(labA.medicine), 0)} on average). Benefits stop when a catastrophe strikes, continue after an Aligned Transition or a Benevolent Takeover, and continue at ${pct(K.medLockin, 0)} under Locked-In Power. <b>Lost:</b> Loss of Control kills ${K.lossLoc >= 1 ? 'everyone' : pct(K.lossLoc, 0) + ' of the world'} (${pop}), Great-Power War ${pct(K.lossWar, 0)} of the world (${fmtLives(K.lossWar * K.worldPop)}), an Engineered Pandemic ${K.lossBio} million (its 100M+ floor). Locked-In Power is a catastrophe but counts no deaths, so the lives count leaves out its cost (a world held by a few for good), and a Benevolent Takeover counts none. To weigh a policy, compare its saved and lost against another setting's, not its catastrophe rate: much of that rate can be lock-in, which kills no one here. People saved earlier in a future that later ends in catastrophe count in both totals. Every figure here is an assumption, set out on the model page (section 8).`;
+  const K = M.K, pop = (K.worldPop / 1000).toFixed(1) + 'B';
+  return `Counts only people alive today, through 2040, not future generations. <b>Saved:</b> AI medicine prevents a share of the world's ${K.deathsYr}M yearly deaths, set by the "AI medicine's reach" unknown (now ${pct(M.probMean(labA.medicine), 0)}). Benefits ramp from Automated Coder to superintelligence with a ~${K.medLag}-year lag, stopping at a deadly catastrophe. <b>Lost:</b> Loss of Control kills ${K.lossLoc >= 1 ? 'everyone' : pct(K.lossLoc, 0) + ' of people'} (${pop}), war kills ${pct(K.lossWar, 0)} (${fmtLives(K.lossWar * K.worldPop)}), and a pandemic ${K.lossBio}M. Locked-In Power counts zero deaths, so its real cost isn't counted here. Compare saved and lost between settings, not catastrophe rates. Every figure is an assumption, detailed on the model page (section 8).`;
 }
 // Nice linear ceiling for the lives-saved y-axis (exact values that fmtLives prints without rounding up).
 function livesAxisCeil(v) {
