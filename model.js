@@ -155,6 +155,20 @@
     aggression: { label: 'Sabotage of China\'s AI', low: 'None',     high: 'Cyber + kinetic strikes', def: 0, short: 'sabotage', up: 'bad' },
     fund:      { label: 'Public AI wealth fund', low: 'None',         high: 'Public owns most AI', def: 0.05, short: 'public AI fund', up: 'good' },
   };
+  // What each lever does, for its (i) in God Mode.
+  const LEVER_HELP = {
+      "race": "How hard the US bloc pushes AI capability. Faster racing brings every milestone sooner, leaves less time for alignment to catch up, and pulls China into racing harder too. It also grows hidden internal AI, hands more decisions to AI without real review, strains US–China trust and concentrates power, raising the risk of Locked-In Power. At 0 the US pauses; China only partly follows.",
+      "safety": "The share of the US bloc's AI compute, and of the AI labor it buys, spent on alignment and control research instead of new capability. More of it raises alignment and slows the race. Past roughly a third, the slowdown starts handing China the lead, and 100% is a unilateral pause that does worse than a large but partial share.",
+      "openness": "How much of the frontier gets released as open weights anyone can download and modify. Open models spread AI's power and gains more widely, lowering the risk of Locked-In Power. But anyone can strip their safety training, so they raise the risk of an engineered pandemic.",
+      "transparency": "How much labs must publish: how they build and test their AI, their safety plans and how they use AI internally, but not the weights. Published safety research helps everyone's alignment, China's included, exposes hidden internal AI and keeps AI owners accountable. It also helps China catch up on capability, so its effects partly cancel.",
+      "biodef": "Spending on pandemic defenses: DNA synthesis screening, early detection, vaccines that can be made fast. It cuts the chance that an AI-assisted bioweapon becomes a pandemic that kills 100 million or more. It does nothing for the AI risks themselves.",
+      "diplomacy": "How hard the US works at cooperation with China, from cold war to a joint project. It builds trust that cuts the risk of great-power war, and above a threshold makes verified deals possible that cap both sides' racing (deals can still collapse). It helps against Locked-In Power only when the public is pushing for it.",
+      "bci": "Government push for brain-computer interfaces, from market pace to an AI-driven moonshot. More people with interfaces can follow what AI is doing: alignment work goes faster, hidden internal AI shrinks and the bar for a safe handoff drops. Without cooperation with China, it also concentrates power with those who have the implants.",
+      "oversight": "Independent inspection of frontier AI, from labs auditing themselves to an IAEA for AI. Inspectors catch problems tests miss, shrink hidden internal AI, slow the handover of decisions to AI and keep AI owners accountable, lowering Locked-In Power. Inspections also slow capability a little. As more decisions are handed to AI, inspection can turn into rubber-stamping.",
+      "aggression": "Cyber and physical strikes to slow China's AI program, AI 2040's Plan B. It slows China's labs and the research it can copy, but it raises the risk of great-power war, most of all when China is falling behind and has a reason to strike first, and it erodes trust.",
+      "fund": "The share of AI's returns owned by the public, like Norway's oil fund or Alaska's dividend. A large fund keeps people's economic stake as AI takes over work, which strongly lowers the risk of Locked-In Power. It builds up over years, so starting late helps less."
+  };
+  for (const k in LEVER_HELP) LEVER_INFO[k].help = LEVER_HELP[k];
   // How the levers are shown: similar levers together under a heading. LEVER_INFO's own order
   // stays fixed, because old positional share links (l=…) map by index.
   const LEVER_GROUPS = Object.freeze([
