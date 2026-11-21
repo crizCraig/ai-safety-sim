@@ -118,8 +118,9 @@ shrink these lists; strike items here as they land. Line numbers drift, so searc
 8. `index.html` the Lab path tooltip ("Secret facts in this future", `tip-world`) only if it is
    one of the headline unknowns (today: ease, speed, bio).
 9. `index.html` §6 calibration table if it moves a calibration target.
-10. `README.md` the count of uncertain assumptions ("eleven"), and the test that checks it
-    (`Object.keys(M.ASSUMPTION_INFO).length === 11 && readme.includes('eleven uncertain')`).
+10. `README.md` the count of uncertain assumptions (in words, "N uncertain"), and the test that
+    checks it (search `test-model.js` for `uncertain`: it compares `Object.keys(M.ASSUMPTION_INFO).length`
+    with the README's word).
 11. `test-model.js`: calibration of whatever it feeds; belief = average of truth; belief does not
     depend on the hidden draw; the dice use the draw; the draw-order tests (append the key to
     `FIXED`; "... is the last draw of a world", and move the previous last draw to "comes just

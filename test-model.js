@@ -1101,20 +1101,37 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   check('Lives: zero reach saves no one; saved lives rise with the reach and lost lives do not move',
     r0.lives.saved === 0 && r3.lives.saved > 0 && r6.lives.saved > r3.lives.saved && r0.lives.lost === r3.lives.lost && r6.lives.lost === r3.lives.lost,
     `${r0.lives.saved.toFixed(1)}M, ${r3.lives.saved.toFixed(1)}M, ${r6.lives.saved.toFixed(1)}M saved; ${r3.lives.lost.toFixed(0)}M lost`);
-  // Belief = average of truth: the shown figure (mean reach × mean medicine-years) matches the average of each
-  // future's own hidden reach × its medicine-years, and does not depend on any one world's draw.
-  let truth = 0; const rng = M.mulberry32(3), N = 4000;
-  for (let i = 0; i < N; i++) {
-    const s = M.initialState(M.sampleWorld(A, rng)); s.fast = true;
-    const caps = [M.maxCap(s)]; let res;
-    do { res = M.step(s, L, rng, true); caps.push(M.maxCap(s)); } while (!res.event);
-    truth += M.livesSavedTrue(s.world, M.livesOfFuture(caps, res.event, res.stage, s.year).medYears);
-  }
-  const mc = M.monteCarlo(L, N, 0, 3, A);
-  check('Lives: the shown saved lives equal the average of each future\'s own hidden reach (within 8%)', Math.abs(truth / N - mc.lives.saved) < 0.08 * mc.lives.saved,
-    `${(truth / N).toFixed(1)}M vs ${mc.lives.saved.toFixed(1)}M`);
+  // Belief = average of truth: the shown figure is the average of each future's own hidden reach × its
+  // medicine-years (the same futures, so exactly), also when every other unknown is pinned (sd 0).
+  const ownAverage = (A, L, N, seed) => {
+    let truth = 0; const rng = M.mulberry32(seed), meds = [];
+    for (let i = 0; i < N; i++) {
+      const s = M.initialState(M.sampleWorld(A, rng)); s.fast = true;
+      const caps = [M.maxCap(s)]; let res;
+      do { res = M.step(s, L, rng, true); caps.push(M.maxCap(s)); } while (!res.event);
+      truth += M.livesSavedTrue(s.world, M.livesOfFuture(caps, res.event, res.stage, s.year).medYears); meds.push(s.world.medicine);
+    }
+    return { saved: truth / N, meds };
+  };
+  const own = ownAverage(A, L, 4000, 3), mc = M.monteCarlo(L, 4000, 0, 3, A);
+  check('Lives: the shown saved lives equal the average of each future\'s own hidden reach × its medicine-years', Math.abs(own.saved - mc.lives.saved) < 1e-9 * own.saved,
+    `${own.saved.toFixed(2)}M vs ${mc.lives.saved.toFixed(2)}M`);
+  const AP = M.defaultAssumptions();
+  for (const k in AP) if (k !== 'medicine') AP[k].sd = 0;
+  AP.ease.mean = 0.7; AP.benevolent.mean = 0;
+  const pin = ownAverage(AP, L, 2000, 42), mcp = M.monteCarlo(L, 2000, 0, 42, AP), pm = pin.meds.reduce((a, b) => a + b, 0) / pin.meds.length;
+  const psd = Math.sqrt(pin.meds.reduce((a, b) => a + (b - pm) ** 2, 0) / pin.meds.length);
+  check('Lives: with every other unknown pinned, AI medicine\'s reach still varies across futures with its own mean and spread, and the shown figure is their average',
+    new Set(pin.meds).size > 1990 && Math.abs(pm - 0.3) < 0.015 && Math.abs(psd - 0.2) < 0.015 && Math.abs(pin.saved - mcp.lives.saved) < 1e-9 * pin.saved,
+    `${new Set(pin.meds).size} distinct, mean ${pm.toFixed(3)}, sd ${psd.toFixed(3)}; ${pin.saved.toFixed(2)}M vs ${mcp.lives.saved.toFixed(2)}M`);
   const meds = Array.from({ length: 4000 }, (_, i) => M.sampleWorld(A, M.mulberry32(i + 1)).medicine), mm = meds.reduce((a, b) => a + b, 0) / meds.length;
   check('Lives: AI medicine\'s reach is a Beta draw with the slider\'s mean, different across worlds', Math.abs(mm - 0.3) < 0.01 && new Set(meds).size > 3990 && meds.every((x) => x >= 0 && x <= 1), mm.toFixed(3));
+  // A lag that is not a whole number of years interpolates the capability between the two years.
+  const lagged = (medLag) => { M.setConstants({ medLag }); const r = M.monteCarlo(L, 1000, 0, 42).lives; M.setConstants(); return r; };
+  const l2 = lagged(2), l25 = lagged(2.5), l3 = lagged(3);
+  check('Lives: a fractional medicine lag gives finite figures between the whole-year lags on either side',
+    Number.isFinite(l25.saved) && Number.isFinite(l25.medYears) && l25.medYears <= l2.medYears + 1e-9 && l25.medYears >= l3.medYears - 1e-9,
+    `${l2.medYears.toFixed(3)} / ${l25.medYears.toFixed(3)} / ${l3.medYears.toFixed(3)} medicine-years`);
   // Deaths per ending: Locked-In Power and a Benevolent Takeover count none.
   const K = M.K;
   check('Lives: Locked-In Power and a Benevolent Takeover count no deaths; loss of control, war and pandemic count theirs',
@@ -1130,6 +1147,23 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   const end = M.livesOfFuture([44, 50, 60, 70, 80, 90, 95, 96, 97, 98, 99, 99, 99, 99], 'muddle', 'end', 2040);
   check('Lives: a future reaching 2040 counts 2027–2039 only', end.medYears > 0 && end.medYears < 13 && end.lost === 0, end.medYears.toFixed(2));
   const page = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+  const fmtSrc = page.match(/const fmtLives = [^\n]+/)[0], fmtLives = new Function(fmtSrc + '; return fmtLives;')();
+  check('Lives: a small positive estimate never shows as 0 (thousands below 0.05M, "<1K" below 500), and only zero shows 0',
+    fmtLives(0) === '0' && fmtLives(0.003661) === '4K' && fmtLives(0.0002) === '<1K' && fmtLives(0.049) === '49K' && fmtLives(0.3) === '0.3M' && fmtLives(18.6) === '19M' && fmtLives(8300) === '8.3B',
+    ['0', 0.003661, 0.0002, 0.049, 0.3, 18.6, 8300].map((x) => fmtLives(+x)).join(' '));
+  // Optimized presets: changing only AI medicine's reach (which moves no outcome) keeps Safest mix shown.
+  {
+    const vm = require('vm'), sl = (a, b) => { const i = page.indexOf(a), j = page.indexOf(b, i); return page.slice(i, j); };
+    const btns = {}, el = (id) => ({ hidden: false, querySelector: (q) => { const n = (q.match(/data-p="([^"]+)"/) || [])[1]; return n ? (btns[n] ??= { hidden: false, classList: { contains: () => true, remove() {} } }) : null; } });
+    const ctx = { M, PRESETS, labA: M.defaultAssumptions(), $: (id) => (id === 'presets' ? pres : { hidden: false }), clearTimeout() {}, setTimeout: (f) => f() }, pres = el('presets');
+    vm.createContext(ctx);
+    vm.runInContext(sl('function defaultUnknowns(', 'function unknownPreset(') + sl('let fitKey', 'function runLab()'), ctx);
+    vm.runInContext('fitOptimizedPresets()', ctx); const before = btns['Safest mix'].hidden;
+    ctx.labA.medicine = { mean: 0.31, sd: 0.2 }; vm.runInContext('fitOptimizedPresets()', ctx); const med = btns['Safest mix'].hidden;
+    ctx.labA.ease = { mean: ctx.labA.ease.mean + 0.05, sd: ctx.labA.ease.sd }; vm.runInContext('fitOptimizedPresets()', ctx); const ease = btns['Safest mix'].hidden;
+    check('Lives: changing only AI medicine\'s reach keeps Safest mix shown; changing an outcome unknown still hides it', before === false && med === false && ease === true, `${before} ${med} ${ease}`);
+  }
+  check('Lives: the losses equation lists Aligned Transition with the endings that kill no one', /Locked-In Power, Benevolent Takeover, Aligned Transition, Careful Path, Muddling Through/.test(page));
   check('Lives: God Mode shows the line with its (i), Copy for AI includes it, and the model page has its section',
     page.includes('id="livesLine"') && page.includes('id="livesInfo"') && page.includes('fmtLives(r.lives.saved)') && page.includes('8. Lives: AI medicine against catastrophe') && page.includes('not future generations'));
 }

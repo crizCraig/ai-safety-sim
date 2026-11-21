@@ -332,9 +332,14 @@
   //   notInBase             left out of the base world that measures bio exposure.
   // The RNG order. Append-only: a new unknown goes at the end, so every existing seed keeps its world.
   // An unknown marked ownStream feeds no hazard (today only AI medicine's reach, for the lives
-  // comparison). It draws from a second stream seeded by the world's other draws (worldSeed), so the
-  // main stream, and with it every existing world and every seeded future, is the same as without it.
+  // comparison). It draws from a second stream seeded by the raw random numbers the world's other
+  // draws took from the main stream (worldSeed), so the main stream, and with it every existing world
+  // and every seeded future, is the same as without it. Seeding from the raw numbers, not the values
+  // they became, keeps the side draw varying when every other unknown is pinned (spread 0).
   const DRAW_ORDER = Object.freeze(['ease', 'speed', 'whistle', 'benevolent', 'bioDecade', 'cnAlign', 'cnCaution', 'evalGap', 'capNow', 'share', 'valueAlign', 'medicine']);
+  // The unknowns that can move an outcome (every one but the ownStream ones): the optimized presets'
+  // validity in God Mode depends only on these.
+  const OUTCOME_KEYS = Object.freeze(DRAW_ORDER.filter((k) => !ASSUMPTION_INFO[k].ownStream));
 
   // Draw one world. `pSafe` is what everyone believes up front; `safe` is the truth.
   function sampleWorld(A, rng, skipBio = false) {
@@ -344,18 +349,18 @@
       return info.fmt === 'pct' ? betaAtZ(betaOf(A[k], info.min, info.max), z) : Math.max(info.min, Math.min(info.max, A[k].mean + A[k].sd * z));
     };
     const v = {}, one = (k, r) => { v[k] = ASSUMPTION_INFO[k].sample ? ASSUMPTION_INFO[k].sample(A, r, drawFrom(r)) : drawFrom(r)(k); };
-    for (const k of DRAW_ORDER) if (!ASSUMPTION_INFO[k].ownStream) one(k, rng);
-    const side = mulberry32(worldSeed(v));
+    const raw = [], main = () => { const u = rng(); raw.push(u); return u; };
+    for (const k of DRAW_ORDER) if (!ASSUMPTION_INFO[k].ownStream) one(k, main);
+    const side = mulberry32(worldSeed(raw));
     for (const k of DRAW_ORDER) if (ASSUMPTION_INFO[k].ownStream) one(k, side);
     return buildWorld(A, v, skipBio);
   }
-  // A 32-bit seed from the main-stream draws' exact bits (FNV-1a over their float64 words).
-  function worldSeed(v) {
+  // A 32-bit seed from the raw main-stream random numbers a world took (FNV-1a over their float64 words).
+  function worldSeed(raw) {
     const f = new Float64Array(1), u = new Uint32Array(f.buffer);
     let h = 0x811c9dc5;
-    for (const k of DRAW_ORDER) {
-      if (ASSUMPTION_INFO[k].ownStream) continue;
-      f[0] = +v[k];
+    for (const x of raw) {
+      f[0] = x;
       for (let i = 0; i < 2; i++) h = Math.imul(h ^ u[i], 0x01000193);
     }
     return h | 0;
@@ -1243,7 +1248,8 @@
   const catastropheDeaths = (ev) => (ev === 'misalign' ? K.lossLoc * K.worldPop : ev === 'war' ? K.lossWar * K.worldPop : ev === 'bio' ? K.lossBio : 0);
   // One future's medicine-years: the sum over the years 2027–2039 of the reach deployed that year,
   // medReach of the capability at the start of the year medLag years earlier (the start of 2027
-  // for earlier years, and the capability the future ended with for years after its end).
+  // for earlier years, and the capability the future ended with for years after its end; a lag that
+  // is not a whole number of years interpolates between the two years' capabilities).
   // `caps` holds the frontier capability at the start of each year from 2027 on, its last entry
   // the capability the future ended with. A year counts in full while the future runs; after the
   // future ends, an Aligned Transition or a Benevolent Takeover keeps counting in full, Locked-In
@@ -1258,20 +1264,23 @@
     for (let y = START_YEAR; y < END_YEAR; y++) {
       const f = y <= lived ? 1 : after;
       if (!f) continue;
-      const i = Math.min(caps.length - 1, Math.max(0, y - K.medLag - START_YEAR));
-      medYears += f * medReach(caps[i]);
+      const x = Math.min(caps.length - 1, Math.max(0, y - K.medLag - START_YEAR)), i = Math.floor(x), j = Math.min(caps.length - 1, i + 1);
+      medYears += f * medReach(caps[i] + (x - i) * (caps[j] - caps[i]));
     }
     return { medYears, lost: catastropheDeaths(ev) };
   }
-  // Expected lives over a set of futures, from their summed medicine-years and deaths. The shown
-  // figure uses AI medicine's mean reach: the reach changes nothing in a future, so it is
-  // independent of the medicine-years and E[reach × medicine-years] = E[reach] × E[medicine-years].
-  function livesSummary(acc, n, A) {
-    const reach = probMean(A.medicine, 0, 1), medYears = acc.medYears / n;
-    return { saved: reach * K.deathsYr * medYears, lost: acc.lost / n, medYears, reach };
-  }
-  // A future's own lives saved, with its hidden reach (the campaign's truth).
+  // A future's own lives saved, with its hidden reach.
   const livesSavedTrue = (w, medYears) => w.medicine * K.deathsYr * medYears;
+  // Add one finished future to a running lives tally.
+  function addLives(acc, w, caps, ev, stage, year) {
+    const lv = livesOfFuture(caps, ev, stage, year);
+    acc.medYears += lv.medYears; acc.lost += lv.lost; acc.saved += livesSavedTrue(w, lv.medYears);
+  }
+  // Expected lives over a set of futures: the average of each future's own saved (its hidden reach ×
+  // its medicine-years) and deaths. `reach` is the slider's mean reach, for the text.
+  function livesSummary(acc, n, A) {
+    return { saved: acc.saved / n, lost: acc.lost / n, medYears: acc.medYears / n, reach: probMean(A.medicine, 0, 1) };
+  }
 
   // Monte Carlo: run n futures under fixed levers, returning outcome counts
   // and a sample of trajectories for visualisation.
@@ -1279,7 +1288,7 @@
     const rng = mulberry32(seed);
     const counts = {};
     for (const k in OUTCOMES) counts[k] = 0;
-    const paths = [], lives = { medYears: 0, lost: 0 };
+    const paths = [], lives = { medYears: 0, lost: 0, saved: 0 };
     let yearsSum = 0;
     for (let i = 0; i < n; i++) {
       const s = initialState(sampleWorld(A, rng)); s.fast = true; // outcomes only: skip shown-risk bookkeeping
@@ -1292,8 +1301,7 @@
       }
       counts[ev]++;
       yearsSum += s.year - START_YEAR;
-      const lv = livesOfFuture(caps, ev, res.stage, s.year);
-      lives.medYears += lv.medYears; lives.lost += lv.lost;
+      addLives(lives, s.world, caps, ev, res.stage, s.year);
       if (i < keepPaths) paths.push({ outcome: ev, points: path, world: s.world });
     }
     return { counts, n, paths, meanYears: yearsSum / n, lives: livesSummary(lives, n, A) };
@@ -1351,7 +1359,7 @@
   function summarize(L, A = defaultAssumptions(), n = 2000, seed = 7) {
     const rng = mulberry32(seed);
     const counts = {}; for (const k in OUTCOMES) counts[k] = 0;
-    const acYears = [], asiYears = [], lives = { medYears: 0, lost: 0 };
+    const acYears = [], asiYears = [], lives = { medYears: 0, lost: 0, saved: 0 };
     let pAlign = 0, nAlign = 0;
     for (let i = 0; i < n; i++) {
       const s = initialState(sampleWorld(A, rng)); s.fast = true; // outcomes only: skip shown-risk bookkeeping
@@ -1359,8 +1367,7 @@
       const caps = [maxCap(s)];
       while (!ev) { res = step(s, L, rng, true); ev = res.event; caps.push(maxCap(s)); if (!ac && maxCap(s) >= AC) ac = s.year; }
       counts[ev]++;
-      const lv = livesOfFuture(caps, ev, res.stage, s.year);
-      lives.medYears += lv.medYears; lives.lost += lv.lost;
+      addLives(lives, s.world, caps, ev, res.stage, s.year);
       if (ac) acYears.push(ac);
       if (maxCap(s) >= 100) asiYears.push(s.year);
       if (ev === 'bio' || ev === 'war') continue;
@@ -1423,6 +1430,6 @@
     AC, TOP_EXPERT, TEDAI, DELEG0, oversightBite, delegHazard, uplift, rdShare, locGate, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, assumptionToURL, assumptionFromURL, legacyProbAssumption, betaOf, betaAtZ, probNodes, LOCK_DX, probMean, probSpread, BETA_SD_CAP, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
-    risks, transitionOdds, handoffBelief, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, outlook, outlookStart, outlookTotal, OUTLOOK_SEED, summarize, alignmentScore, medReach, catastropheDeaths, livesOfFuture, livesSummary, livesSavedTrue, worldSeed, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
+    risks, transitionOdds, handoffBelief, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, outlook, outlookStart, outlookTotal, OUTLOOK_SEED, summarize, alignmentScore, medReach, catastropheDeaths, livesOfFuture, livesSummary, livesSavedTrue, addLives, worldSeed, OUTCOME_KEYS, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
