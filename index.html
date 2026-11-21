@@ -3512,29 +3512,26 @@ async function drawShareImage() {
     ctx.fillText(fitLines(ctx, M.OUTCOMES[k].title, colW - 54 - pw, 1)[0], lx + 22, ly);
   });
   y += Math.ceil(legend.length / 3) * 34 + 14;
-  // The decisions: one column for a short game, two for a long one; each label wraps to two lines
-  // when there is room and is cut with … when it is still too long.
+  // The decisions: one column for a short game, two for a long one. Each entry is two lines: what
+  // it answered (the card's tag and title, or just the title if both do not fit) and the choice.
+  // Type grows with the room a short game leaves, so the block fills the space above the footer.
   const FOOT = SHARE_H - 92;
-  label(`Your ${n} decision${n === 1 ? '' : 's'}`, y); y += 14;
+  label(`Your ${n} decision${n === 1 ? '' : 's'}`, y); y += 10;
   const cols = n > 7 ? 2 : 1, rows = Math.ceil(n / cols) || 1, gap = 32, cw = (W - gap * (cols - 1)) / cols;
-  // A short game has room for each card's title above the choice.
-  const roomy = cols === 1 && (FOOT - y) / rows >= 70;
-  const rowH = Math.min(roomy ? 80 : 64, (FOOT - y) / rows), fs = roomy ? 26 : Math.max(19, Math.min(25, Math.floor(rowH / 2.7))), lh = fs * 1.2;
-  const maxLines = !roomy && rowH >= lh * 2 + 6 ? 2 : 1;
+  const rowH = Math.min(170, (FOOT - y) / rows), fs = Math.max(20, Math.min(38, Math.floor(rowH * 0.38))), ts = Math.round(fs * 0.8);
+  const entryH = ts * 1.25 + fs * 1.2;
+  const tagOf = new Map([...E.CARDS, E.QUIET].map((c) => [c.title, c.tag]));
   decisions.forEach(([yr, lab, title], i) => {
     const c = cols === 2 ? Math.floor(i / rows) : 0, r = cols === 2 ? i % rows : i;
-    const dx = X + c * (cw + gap), dy = y + r * rowH + (rowH - lh * (maxLines === 2 || roomy ? 2 : 1)) / 2 + fs;
-    ctx.font = `600 ${fs - 2}px ${MONO}`;
-    const yw = ctx.measureText('2040').width + 14;
-    ctx.font = `${roomy ? 500 : 400} ${fs}px ${SANS}`;
-    const lines = fitLines(ctx, lab, cw - yw, maxLines), shift = lines.length === 1 && maxLines === 2 ? lh / 2 : 0;
-    ctx.font = `600 ${fs - 2}px ${MONO}`; ctx.fillStyle = C.accent; ctx.fillText(String(yr), dx, dy + shift);
-    if (roomy) {
-      ctx.font = `400 21px ${SANS}`; ctx.fillStyle = C.muted;
-      ctx.fillText(fitLines(ctx, title, cw - yw, 1)[0], dx + yw, dy - 2);
-    }
-    ctx.font = `${roomy ? 500 : 400} ${fs}px ${SANS}`; ctx.fillStyle = C.text;
-    lines.forEach((l, j) => ctx.fillText(l, dx + yw, dy + (roomy ? lh : 0) + j * lh + shift));
+    const dx = X + c * (cw + gap), top = y + r * rowH + (rowH - entryH) / 2, y1 = top + ts, y2 = top + ts * 1.25 + fs;
+    ctx.font = `600 ${ts + 2}px ${MONO}`;
+    const yw = ctx.measureText('2040').width + Math.round(ts * 0.6);
+    ctx.fillStyle = C.accent; ctx.fillText(String(yr), dx, y1);
+    ctx.font = `400 ${ts}px ${SANS}`; ctx.fillStyle = C.muted;
+    const tag = tagOf.get(title), full = tag && !title.toLowerCase().includes(tag.toLowerCase()) ? `${tag} · ${title}` : title;
+    ctx.fillText(fitLines(ctx, ctx.measureText(full).width <= cw - yw ? full : title, cw - yw, 1)[0], dx + yw, y1);
+    ctx.font = `500 ${fs}px ${SANS}`; ctx.fillStyle = C.text;
+    ctx.fillText(fitLines(ctx, lab, cw - yw, 1)[0], dx + yw, y2);
   });
   // Footer.
   ctx.fillStyle = C.line; ctx.fillRect(X, SHARE_H - 86, W, 1);
