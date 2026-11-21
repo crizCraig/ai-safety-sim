@@ -337,7 +337,7 @@ Events:
 - `lab_settings`: God Mode settings once they have been still for 3 s, at most every 10 s, only
   when changed; `lev_*`, `unk_*`, `unk_changed`, `preset`, `unk_preset`, `cat` (headline).
 - `preset`, `unk_preset`: `name`. `jump`: `to` (outcomes/levers/unknowns). `dist_open`: `cat`.
-- `share`: `native` (the phone share sheet) plus the God Mode settings. `copy_ai`: `what`
+- `share`: `native` (the phone share sheet) plus the God Mode settings; from the ending's "Share your result" button it carries `from: 'ending'` and the revealed `outcome` instead. Analytics sends only when the page is served from thegameofagi.com (`GA.liveHost`), so local copies and test runs stay out of the numbers. `copy_ai`: `what`
   (lab/campaign), `at`, `year`.
 - `tour`: `act` (start, finished, skipped, interrupted), `of` (mode), `auto`, `step`, `steps`.
 - `model_open`: `deep`. `link`: an external link, by `id` (ghLink, writeupLink, builtLink) or `host`.
