@@ -1146,6 +1146,19 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
     `${fl.medYears.toFixed(3)}, ${lk.medYears.toFixed(3)}, ${ml.medYears}`);
   const end = M.livesOfFuture([44, 50, 60, 70, 80, 90, 95, 96, 97, 98, 99, 99, 99, 99], 'muddle', 'end', 2040);
   check('Lives: a future reaching 2040 counts 2027–2039 only', end.medYears > 0 && end.medYears < 13 && end.lost === 0, end.medYears.toFixed(2));
+  // Per-year cumulative saved and lost: 2027–2040, starting at 0, monotone, ending at the 2040 totals.
+  const bioEarly = M.livesOfFuture(caps, 'bio', 'bio', 2030);
+  check('Lives: livesOfFuture per-year breakdown sums to medYears and records the catastrophe year',
+    Math.abs(fl.byYear.reduce((a, b) => a + b, 0) - fl.medYears) < 1e-12 && fl.lostYear === null && lk.lostYear === null && ml.lostYear === 2031 && bioEarly.lostYear === 2030,
+    `fl sum ${fl.byYear.reduce((a, b) => a + b, 0).toFixed(3)}, ml year ${ml.lostYear}, bio year ${bioEarly.lostYear}`);
+  const mono = (arr) => arr.every((v, i) => i === 0 || v >= arr[i - 1] - 1e-12);
+  const perYrOk = [mc.lives, r3.lives, M.monteCarlo(PRESETS['Plan A: Verified slowdown'], 1000, 0, 42, A).lives, M.monteCarlo(PRESETS['Safest mix'], 1000, 0, 42, A).lives].every((lv) =>
+    lv.years.length === M.END_YEAR - M.START_YEAR + 1 && lv.years[0] === M.START_YEAR && lv.years[lv.years.length - 1] === M.END_YEAR
+    && lv.savedByYear[0] === 0 && lv.lostByYear[0] === 0 && mono(lv.savedByYear) && mono(lv.lostByYear)
+    && Math.abs(lv.savedByYear[lv.savedByYear.length - 1] - lv.saved) <= 1e-9 * Math.max(1, lv.saved)
+    && Math.abs(lv.lostByYear[lv.lostByYear.length - 1] - lv.lost) <= 1e-9 * Math.max(1, lv.lost));
+  check('Lives: per-year cumulative saved and lost run 2027–2040, stay monotone and end at the 2040 totals',
+    perYrOk, `saved ${mc.lives.savedByYear[mc.lives.savedByYear.length - 1].toFixed(2)}M vs ${mc.lives.saved.toFixed(2)}M; lost ${mc.lives.lostByYear[mc.lives.lostByYear.length - 1].toFixed(1)}M vs ${mc.lives.lost.toFixed(1)}M`);
   const page = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
   const fmtSrc = page.match(/const fmtLives = [^\n]+/)[0], fmtLives = new Function(fmtSrc + '; return fmtLives;')();
   check('Lives: a small positive estimate never shows as 0 (thousands below 0.05M, "<1K" below 500), and only zero shows 0',
@@ -1164,8 +1177,8 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
     check('Lives: changing only AI medicine\'s reach keeps Safest mix shown; changing an outcome unknown still hides it', before === false && med === false && ease === true, `${before} ${med} ${ease}`);
   }
   check('Lives: the losses equation lists Aligned Transition with the endings that kill no one', /Locked-In Power, Benevolent Takeover, Aligned Transition, Careful Path, Muddling Through/.test(page));
-  check('Lives: God Mode shows the line with its (i), Copy for AI includes it, and the model page has its section',
-    page.includes('id="livesLine"') && page.includes('id="livesInfo"') && page.includes('fmtLives(r.lives.saved)') && page.includes('8. Lives: AI medicine against catastrophe') && page.includes('not future generations'));
+  check('Lives: God Mode shows the graph with its (i), Copy for AI includes it, and the model page has its section',
+    page.includes('id="livesLine"') && page.includes('id="livesInfo"') && page.includes('livesGrad') && page.includes('fmtLives(r.lives.saved)') && page.includes('8. Lives: AI medicine against catastrophe') && page.includes('not future generations'));
 }
 
 // --- News clips (news.js): see test-news.js ---

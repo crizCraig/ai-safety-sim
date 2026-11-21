@@ -1255,31 +1255,57 @@
   // future ends, an Aligned Transition or a Benevolent Takeover keeps counting in full, Locked-In
   // Power a share medLockin, and a catastrophe that kills (or the year it strikes) nothing.
   // Lives saved are then its medicine-years × the world's yearly deaths × AI medicine's reach.
+  const LIVES_SPAN = END_YEAR - START_YEAR;
   function livesOfFuture(caps, ev, stage, year) {
     // The last year lived in full: the year before an annual hazard strikes (year = the year it
     // struck), the year the handoff happened (year = the year after it), or 2039.
     const lived = stage === 'end' ? END_YEAR - 1 : year - 1;
     const after = ev === 'flourish' || ev === 'benevolent' ? 1 : ev === 'lockin' ? K.medLockin : 0;
+    const byYear = new Array(LIVES_SPAN).fill(0);
     let medYears = 0;
-    for (let y = START_YEAR; y < END_YEAR; y++) {
+    for (let k = 0; k < LIVES_SPAN; k++) {
+      const y = START_YEAR + k;
       const f = y <= lived ? 1 : after;
       if (!f) continue;
       const x = Math.min(caps.length - 1, Math.max(0, y - K.medLag - START_YEAR)), i = Math.floor(x), j = Math.min(caps.length - 1, i + 1);
-      medYears += f * medReach(caps[i] + (x - i) * (caps[j] - caps[i]));
+      const m = f * medReach(caps[i] + (x - i) * (caps[j] - caps[i]));
+      byYear[k] = m;
+      medYears += m;
     }
-    return { medYears, lost: catastropheDeaths(ev) };
+    const lost = catastropheDeaths(ev);
+    // Calendar year (2027–2039) the deadly catastrophe struck: annual hazards strike during `year`;
+    // handoffs happen at the end of `year - 1` (step increments s.year before the handoff check).
+    const lostYear = lost > 0 ? clamp(stage === 'handoff' || stage === 'end' ? year - 1 : year, START_YEAR, END_YEAR - 1) : null;
+    return { medYears, lost, byYear, lostYear };
   }
   // A future's own lives saved, with its hidden reach.
   const livesSavedTrue = (w, medYears) => w.medicine * K.deathsYr * medYears;
+  // Fresh running lives tally (totals plus per-year saved and lost for 2027–2039).
+  const livesAcc = () => ({ medYears: 0, lost: 0, saved: 0, savedYr: new Array(LIVES_SPAN).fill(0), lostYr: new Array(LIVES_SPAN).fill(0) });
   // Add one finished future to a running lives tally.
   function addLives(acc, w, caps, ev, stage, year) {
     const lv = livesOfFuture(caps, ev, stage, year);
     acc.medYears += lv.medYears; acc.lost += lv.lost; acc.saved += livesSavedTrue(w, lv.medYears);
+    if (acc.savedYr) {
+      const scale = w.medicine * K.deathsYr;
+      for (let k = 0; k < LIVES_SPAN; k++) acc.savedYr[k] += scale * lv.byYear[k];
+    }
+    if (acc.lostYr && lv.lost > 0) acc.lostYr[lv.lostYear - START_YEAR] += lv.lost;
   }
   // Expected lives over a set of futures: the average of each future's own saved (its hidden reach ×
-  // its medicine-years) and deaths. `reach` is the slider's mean reach, for the text.
+  // its medicine-years) and deaths, plus cumulative expected saved and lost at each year 2027–2040
+  // (0 at the start of 2027, ending at the 2040 totals). `reach` is the slider's mean reach, for the text.
   function livesSummary(acc, n, A) {
-    return { saved: acc.saved / n, lost: acc.lost / n, medYears: acc.medYears / n, reach: probMean(A.medicine, 0, 1) };
+    const years = [START_YEAR], savedByYear = [0], lostByYear = [0];
+    let sCum = 0, lCum = 0;
+    for (let k = 0; k < LIVES_SPAN; k++) {
+      years.push(START_YEAR + k + 1);
+      sCum += (acc.savedYr ? acc.savedYr[k] : 0) / n;
+      lCum += (acc.lostYr ? acc.lostYr[k] : 0) / n;
+      savedByYear.push(sCum);
+      lostByYear.push(lCum);
+    }
+    return { saved: acc.saved / n, lost: acc.lost / n, medYears: acc.medYears / n, reach: probMean(A.medicine, 0, 1), years, savedByYear, lostByYear };
   }
 
   // Monte Carlo: run n futures under fixed levers, returning outcome counts
@@ -1288,7 +1314,7 @@
     const rng = mulberry32(seed);
     const counts = {};
     for (const k in OUTCOMES) counts[k] = 0;
-    const paths = [], lives = { medYears: 0, lost: 0, saved: 0 };
+    const paths = [], lives = livesAcc();
     let yearsSum = 0;
     for (let i = 0; i < n; i++) {
       const s = initialState(sampleWorld(A, rng)); s.fast = true; // outcomes only: skip shown-risk bookkeeping
@@ -1359,7 +1385,7 @@
   function summarize(L, A = defaultAssumptions(), n = 2000, seed = 7) {
     const rng = mulberry32(seed);
     const counts = {}; for (const k in OUTCOMES) counts[k] = 0;
-    const acYears = [], asiYears = [], lives = { medYears: 0, lost: 0, saved: 0 };
+    const acYears = [], asiYears = [], lives = livesAcc();
     let pAlign = 0, nAlign = 0;
     for (let i = 0; i < n; i++) {
       const s = initialState(sampleWorld(A, rng)); s.fast = true; // outcomes only: skip shown-risk bookkeeping
@@ -1430,6 +1456,6 @@
     AC, TOP_EXPERT, TEDAI, DELEG0, oversightBite, delegHazard, uplift, rdShare, locGate, computeSpeed, dealActive, dealCeiling, dealHazard, safetyEffect, chinaSlowdown, chinaRace, effAlign, hiddenShare, realAlign,
     bioShape, bioRefExposure,
     clamp, sig, defaultLevers, defaultAssumptions, assumptionToURL, assumptionFromURL, legacyProbAssumption, betaOf, betaAtZ, probNodes, LOCK_DX, probMean, probSpread, BETA_SD_CAP, sampleWorld, meanWorld, initialState, maxCap, chinaRace,
-    risks, transitionOdds, handoffBelief, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, outlook, outlookStart, outlookTotal, OUTLOOK_SEED, summarize, alignmentScore, medReach, catastropheDeaths, livesOfFuture, livesSummary, livesSavedTrue, addLives, worldSeed, OUTCOME_KEYS, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
+    risks, transitionOdds, handoffBelief, lockinOdds, lockinBelief, lockinScale, LOCK_K, CATASTROPHES, step, monteCarlo, outlook, outlookStart, outlookTotal, OUTLOOK_SEED, summarize, alignmentScore, medReach, catastropheDeaths, livesOfFuture, livesSummary, livesSavedTrue, livesAcc, addLives, worldSeed, OUTCOME_KEYS, mulberry32, rankAmong, leverPct, roundShares, dealImpairedText,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
