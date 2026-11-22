@@ -1178,7 +1178,7 @@ for (const [label, L] of [['race 0', { ...M.defaultLevers(), race: 0 }], ['safet
   }
   check('Lives: the losses equation lists Aligned Transition with the endings that kill no one', /Locked-In Power, Benevolent Takeover, Aligned Transition, Careful Path, Muddling Through/.test(page));
   check('Lives: God Mode shows the graph with its (i), Copy for AI includes it, and the model page has its section',
-    page.includes('id="livesLine"') && page.includes('id="livesInfo"') && page.includes('livesGrad') && page.includes('fmtLives(r.lives.saved)') && page.includes('8. Lives: AI medicine against catastrophe') && page.includes('not future generations'));
+    page.includes('id="livesLine"') && page.includes('id="livesInfo"') && page.includes('Lives by 2040, expected') && page.includes('fmtLives(r.lives.saved)') && page.includes('8. Lives: AI medicine against catastrophe') && page.includes('not future generations'));
 }
 
 // --- News clips (news.js): see test-news.js ---
